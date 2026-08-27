@@ -526,21 +526,22 @@ export const Timer = React.memo<TimerProps>(({
   };
 
   const totalDistractions = distractions.internal + distractions.external + distractions.unavoidable;
-  // Deliberate design: Scale up slightly on distractions to simulate pressure, capped at 5% (reduced from 10% to prevent excessive overlap)
-  const distractionScale = 1 + Math.min(totalDistractions * 0.01, 0.05);
+  // User design: Circle starts slightly smaller (0.85 scale) and smoothly expands to max (1.0 scale) at 10 distractions
+  const distractionProgress = Math.min(totalDistractions / 10, 1);
+  const distractionScale = 0.85 + distractionProgress * 0.15;
 
   return (
-    <div className="relative flex flex-col items-center justify-center gap-2 sm:gap-4 lg:gap-6 w-full h-full min-h-0 flex-1">
+    <div className="relative flex flex-col items-center justify-center gap-2 sm:gap-4 lg:gap-5 w-full h-full min-h-0 flex-1">
       {/* Timer Display */}
       <div className={cn(
         "relative flex-1 min-h-0 w-full flex items-center justify-center",
         isFullscreen
-          ? "max-w-[320px] sm:max-w-[420px] md:max-w-[500px] lg:max-w-[560px] xl:max-w-[640px] max-h-[320px] sm:max-h-[420px] md:max-h-[500px] lg:max-h-[560px] xl:max-h-[640px]"
-          : "max-w-[280px] sm:max-w-[360px] lg:max-w-[420px] xl:max-w-[480px] max-h-[280px] sm:max-h-[360px] lg:max-h-[420px] xl:max-h-[480px]"
+          ? "max-w-[240px] sm:max-w-[300px] md:max-w-[350px] lg:max-w-[390px] xl:max-w-[430px] max-h-[240px] sm:max-h-[300px] md:max-h-[350px] lg:max-h-[390px] xl:max-h-[430px]"
+          : "max-w-[220px] sm:max-w-[280px] lg:max-w-[340px] xl:max-w-[380px] max-h-[220px] sm:max-h-[280px] lg:max-h-[340px] xl:max-h-[380px]"
       )}>
         <motion.div 
           animate={{ scale: distractionScale }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
           className="relative w-full h-full aspect-square max-w-full max-h-full"
         >
           <svg viewBox="0 0 320 320" className="w-full h-full transform -rotate-90">
@@ -577,7 +578,7 @@ export const Timer = React.memo<TimerProps>(({
           <div 
             className={cn(
               "font-black font-mono text-white tracking-tighter flex items-center justify-center",
-              isFullscreen ? "text-6xl sm:text-7xl md:text-[5rem]" : "text-6xl sm:text-7xl lg:text-7xl"
+              isFullscreen ? "text-5xl sm:text-6xl md:text-7xl" : "text-5xl sm:text-6xl lg:text-6xl"
             )}
           >
             {formatTime(timeLeft).split('').map((char, i) => (
@@ -640,24 +641,24 @@ export const Timer = React.memo<TimerProps>(({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-5 sm:space-x-6 shrink-0">
         <button
           onClick={resetTimer}
-          className="p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          className="p-3.5 sm:p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
           title="Reset Timer"
         >
-          <RotateCcw size={24} />
+          <RotateCcw size={22} />
         </button>
         <button
           onClick={toggleTimer}
           className={cn(
-            "w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-2xl",
+            "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all shadow-2xl",
             isActive 
               ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
               : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
           )}
         >
-          {isActive ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
+          {isActive ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1.5" />}
         </button>
         <button
           onContextMenu={(e) => e.preventDefault()}
@@ -666,7 +667,7 @@ export const Timer = React.memo<TimerProps>(({
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerMove={handlePointerMove}
-          className="p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area"
+          className="p-3.5 sm:p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area"
           title="Click to Skip, Hold 3s for Partial Skip"
           style={{ touchAction: 'none' }}
         >
@@ -686,7 +687,7 @@ export const Timer = React.memo<TimerProps>(({
               </svg>
             </div>
           )}
-          <SkipForward size={24} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
+          <SkipForward size={22} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
         </button>
       </div>
 
@@ -694,7 +695,7 @@ export const Timer = React.memo<TimerProps>(({
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center mt-2 gap-1 md:mt-4 md:gap-2 z-10"
+          className="flex flex-col items-center mt-1 sm:mt-2 gap-1 md:gap-1.5 z-10 shrink-0"
         >
           <span className="text-[9px] md:text-[10px] text-slate-500 uppercase tracking-widest font-bold">Distractions</span>
           <div className="flex items-center space-x-1.5 md:space-x-2 bg-slate-900/50 p-1 md:p-1.5 rounded-full border border-slate-800">

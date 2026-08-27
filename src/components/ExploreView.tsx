@@ -599,13 +599,13 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
             )}
 
              {isFullscreenExplore && (
-              <div className="w-full h-[100dvh] flex flex-col items-center justify-center p-8 relative overflow-hidden bg-slate-950">
+              <div className="w-full h-[100dvh] flex flex-col items-center justify-between p-4 sm:p-6 md:p-8 relative overflow-hidden bg-slate-950">
                  {/* Simplified Progress Bar for Fullscreen Mode */}
                  {currentDungeon && (
                    <motion.div 
                      initial={{ opacity: 0, y: -20 }}
                      animate={{ opacity: 1, y: 0 }}
-                     className="absolute top-6 sm:top-12 left-4 sm:left-1/2 sm:-translate-x-1/2 w-[calc(100%-80px)] sm:w-full sm:max-w-sm space-y-2 z-[30] px-0 sm:px-8 [@media(orientation:landscape)_and_(max-height:600px)]:top-auto [@media(orientation:landscape)_and_(max-height:600px)]:bottom-6 [@media(orientation:landscape)_and_(max-height:600px)]:left-1/2 [@media(orientation:landscape)_and_(max-height:600px)]:-translate-x-1/2 [@media(orientation:landscape)_and_(max-height:600px)]:w-full"
+                     className="w-full max-w-xs sm:max-w-sm space-y-1.5 z-[30] shrink-0 pt-2 sm:pt-4 px-2"
                    >
                       <div className="flex justify-between items-center px-1">
                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">{currentDungeon.name}</span>
@@ -620,7 +620,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                         )}
                       </div>
                       {!currentDungeon.isOpenEnded && (
-                        <div className="h-2 flex w-full bg-slate-900 rounded-full border border-slate-800 overflow-hidden mt-2">
+                        <div className="h-2 flex w-full bg-slate-900 rounded-full border border-slate-800 overflow-hidden mt-1.5">
                            <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.min(100, (currentDungeon.completedSessions / currentDungeon.totalSessions) * 100)}%` }}
@@ -632,8 +632,8 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                  )}
 
                   {/* Scaled Timer for Fullscreen Experience */}
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center pt-8 sm:pt-12">
-                   <div className="w-full h-full flex items-center justify-center origin-center transition-transform [@media(orientation:landscape)_and_(max-height:600px)]:scale-[0.80] [@media(orientation:landscape)_and_(max-height:600px)]:-mt-4">
+                 <div className="flex-1 w-full min-h-0 flex items-center justify-center py-2 sm:py-4">
+                   <div className="w-full h-full flex items-center justify-center origin-center transition-transform [@media(orientation:landscape)_and_(max-height:600px)]:scale-[0.85]">
                      {renderTimerContent()}
                    </div>
                  </div>

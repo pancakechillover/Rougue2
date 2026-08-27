@@ -36,9 +36,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.6
+- **Current Version:** v9.0.7
 - **Last Update Date:** 2026-08-27
-- **Last Update Time:** 05:54:00
+- **Last Update Time:** 08:20:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -63,6 +63,10 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.0.7 (2026-08-27):** Distraction Scale Dynamic Curve & Fullscreen Zero-Overlap Layout
+  - *UI Adjustment:* Refined the focus timer circle's starting scale to 0.85 (more compact and elegant) and smoothly scales up to maximum 1.0 upon reaching 10 distractions (`0.85 + (min(distractions, 10) / 10) * 0.15`).
+  - *Layout:* Restructured the Fullscreen Explore layout into a strict flexbox column where the top dungeon progress bar is part of the layout flow (`shrink-0`) and the timer gets the exact remaining viewport space (`flex-1 min-h-0`), guaranteeing that even at maximum scale and distraction count, the circle will never overlap the progress bar or bottom distraction controls.
 
 - **v9.0.6 (2026-08-27):** Distractions in PIP, Custom Sounds & Fullscreen Layout Fix
   - *Feature:* Added the Distraction tracking module to the Compact (Picture-in-Picture) timer interface, migrating the state up to `useTimerStore`.
