@@ -1,0 +1,28 @@
+<svg width="256" height="256" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: white; }
+    .fg { fill: black; }
+    .fg-inverted { fill: white; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: black; }
+      .fg { fill: white; }
+      .fg-inverted { fill: black; }
+    }
+  </style>
+
+  <rect width="200" height="200" rx="0" class="bg" />
+  
+  <g id="Centered-Icon-Group" transform="translate(0, -1) scale(1.2)">
+    <path d="M 5 146.25 C 20 146.25 40 145.5 52 144 C 58 143.2 64 143.2 64 146.25 C 64 149.3 58 149.3 52 148.5 C 40 147 20 146.25 5 146.25 Z" class="fg"/>
+    <g id="Icon-Scholar-Sword" transform="rotate(30, 60, 145)">
+      <path d="M60 145Q57 125 48 105L50 42L60 18L70 42L72 105Q63 125 60 145Z" class="fg"/>
+      <circle cx="60" cy="60" r="6" class="fg-inverted"/>
+      <rect x="58.75" y="63" width="2.5" height="80" class="fg-inverted"/>
+      <rect x="30" y="36" width="60" height="6" rx="1" class="fg"/>
+      <circle cx="30" cy="39" r="5" class="fg"/>
+      <circle cx="90" cy="39" r="5" class="fg"/>
+      <rect x="55" y="15" width="10" height="21" class="fg"/>
+      <circle cx="60" cy="12" r="7" class="fg"/>
+    </g>
+  </g>
+</svg>

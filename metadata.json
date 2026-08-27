@@ -1,0 +1,6 @@
+{
+  "name": "Scholar's Dungeon",
+  "description": "A Roguelike-themed study system with Pomodoro timers, talent trees, and meta-progression rewards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

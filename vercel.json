@@ -1,0 +1,56 @@
+{
+  "rewrites": [
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/pwa-icon.svg",
+      "destination": "/pwa-icon.svg"
+    },
+    {
+      "source": "/api/sync/(.*)",
+      "destination": "/api/sync"
+    },
+    {
+      "source": "/api/sync/",
+      "destination": "/api/sync"
+    },
+    {
+      "source": "/api/push/(.*)",
+      "destination": "/api/push"
+    },
+    {
+      "source": "/api/push/",
+      "destination": "/api/push"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ]
+}
