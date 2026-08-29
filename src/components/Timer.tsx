@@ -519,6 +519,32 @@ export const Timer = React.memo<TimerProps>(({
     setDistractions({ internal: 0, external: 0, unavoidable: 0 });
   };
 
+  const timerContainerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
+
+  useEffect(() => {
+    const el = timerContainerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setContainerDimensions({ width: rect.width, height: rect.height });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener('resize', measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -530,135 +556,180 @@ export const Timer = React.memo<TimerProps>(({
   const distractionProgress = Math.min(totalDistractions / 10, 1);
   const distractionScale = 0.85 + distractionProgress * 0.15;
 
-  return (
-    <div className="relative flex flex-col items-center justify-center gap-2 sm:gap-4 lg:gap-5 w-full h-full min-h-0 flex-1">
-      {/* Timer Display */}
-      <div className={cn(
-        "relative flex-1 min-h-0 w-full flex items-center justify-center",
-        isFullscreen
-          ? "max-w-[240px] sm:max-w-[300px] md:max-w-[350px] lg:max-w-[390px] xl:max-w-[430px] max-h-[240px] sm:max-h-[300px] md:max-h-[350px] lg:max-h-[390px] xl:max-h-[430px]"
-          : "max-w-[220px] sm:max-w-[280px] lg:max-w-[340px] xl:max-w-[380px] max-h-[220px] sm:max-h-[280px] lg:max-h-[340px] xl:max-h-[380px]"
-      )}>
-        <motion.div 
-          animate={{ scale: distractionScale }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="relative w-full h-full aspect-square max-w-full max-h-full"
-        >
-          <svg viewBox="0 0 320 320" className="w-full h-full transform -rotate-90">
-          <circle
-            cx="160"
-            cy="160"
-            r="150"
-            stroke="currentColor"
-            strokeWidth="8"
-            fill="transparent"
-            className="text-slate-800"
-          />
-          <motion.circle
-            cx="160"
-            cy="160"
-            r="150"
-            stroke="currentColor"
-            strokeWidth="8"
-            fill="transparent"
-            strokeDasharray={2 * Math.PI * 150}
-            initial={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
-            animate={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
-            className={isResting ? "text-emerald-500" : "text-indigo-500"}
-          />
-        </svg>
-        <div className="absolute inset-x-0 top-[20%] flex flex-col items-center justify-end z-10 pointer-events-none pb-2">
-          {isLooping && (
-             <span className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 px-3 py-1 rounded-full text-xs font-bold text-slate-300">
-               {loopCount}/{loopTarget > 0 ? loopTarget : '∞'} loops
-             </span>
-          )}
-        </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div 
-            className={cn(
-              "font-black font-mono text-white tracking-tighter flex items-center justify-center",
-              isFullscreen ? "text-5xl sm:text-6xl md:text-7xl" : "text-5xl sm:text-6xl lg:text-6xl"
-            )}
-          >
-            {formatTime(timeLeft).split('').map((char, i) => (
-              <span
-                key={i}
-                className="inline-block"
-              >
-                {char}
-              </span>
-            ))}
-          </div>
-          <div className={cn(
-              "font-bold uppercase tracking-widest text-xs mt-2 flex items-center gap-1",
-              isResting ? "text-emerald-500" : "text-indigo-400"
-            )}>
-            {(() => {
-              const statusText = (isResting ? (isActive ? 'Resting...' : 'Ready to Rest') : (isActive ? 'Exploring...' : 'Ready to Delve'));
-              const charArray = statusText.split('');
-              const totalItems = charArray.length + 1; // +1 for the icon
-              const animationDuration = 0.6;
-              const repeatDelay = (totalItems - 1) * animationDuration;
+  const showDistractionControls = !isResting;
 
-              return (
-                <>
-                  <motion.span
-                    animate={isActive ? { y: [0, -8, 0] } : { y: 0 }}
-                    transition={{
-                      duration: animationDuration,
-                      repeat: isActive ? Infinity : 0,
-                      ease: "easeInOut",
-                      delay: 0,
-                      repeatDelay: repeatDelay
-                    }}
-                    className="inline-block mr-1"
+  // Mathematical function to compute the exact safe base diameter for the circular arena
+  const safeDiameter = React.useMemo(() => {
+    const { width: cWidth, height: cHeight } = containerDimensions;
+    if (!cWidth || !cHeight) {
+      return isFullscreen ? 360 : 260;
+    }
+
+    // Height consumed by controls (Reset, Play/Pause, Skip) + vertical margins
+    const controlsHeight = isFullscreen ? (cHeight < 600 ? 76 : 96) : 76;
+    
+    // Height consumed by distraction buttons + label + padding
+    const distractionsHeight = showDistractionControls ? (isFullscreen ? 56 : 50) : 0;
+    
+    // Structural vertical padding and gap tolerances
+    const verticalSafetyBuffer = isFullscreen ? (showDistractionControls ? 28 : 20) : 18;
+
+    // Remaining vertical space dedicated to the timer circle
+    const availableHeight = Math.max(120, cHeight - controlsHeight - distractionsHeight - verticalSafetyBuffer);
+
+    // Available horizontal space (with container padding)
+    const availableWidth = Math.max(120, cWidth - (isFullscreen ? 32 : 24));
+
+    // Calculate maximum bounding square
+    const maxSquare = Math.min(availableWidth, availableHeight);
+
+    // Clamp to aesthetic upper bounds based on viewport mode
+    const upperLimit = isFullscreen ? (cHeight < 700 ? 420 : 540) : 360;
+
+    return Math.max(120, Math.min(maxSquare, upperLimit));
+  }, [containerDimensions, isFullscreen, showDistractionControls]);
+
+  return (
+    <div 
+      ref={timerContainerRef}
+      className={cn(
+        "relative flex flex-col items-center w-full h-full min-h-0 flex-1 select-none",
+        isFullscreen ? "justify-between py-2 sm:py-3" : "justify-center gap-2 sm:gap-4"
+      )}
+    >
+      {/* Timer Display */}
+      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
+        <div 
+          style={{ width: `${safeDiameter}px`, height: `${safeDiameter}px` }}
+          className="relative flex items-center justify-center shrink-0"
+        >
+          <motion.div 
+            animate={{ scale: distractionScale }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            style={{ width: `${safeDiameter}px`, height: `${safeDiameter}px` }}
+            className="relative aspect-square max-w-full max-h-full"
+          >
+            <svg viewBox="0 0 320 320" className="w-full h-full transform -rotate-90">
+              <circle
+                cx="160"
+                cy="160"
+                r="150"
+                stroke="currentColor"
+                strokeWidth="8"
+                fill="transparent"
+                className="text-slate-800"
+              />
+              <motion.circle
+                cx="160"
+                cy="160"
+                r="150"
+                stroke="currentColor"
+                strokeWidth="8"
+                fill="transparent"
+                strokeDasharray={2 * Math.PI * 150}
+                initial={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
+                animate={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
+                className={isResting ? "text-emerald-500" : "text-indigo-500"}
+              />
+            </svg>
+            <div className="absolute inset-x-0 top-[20%] flex flex-col items-center justify-end z-10 pointer-events-none pb-2">
+              {isLooping && (
+                 <span className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 px-3 py-1 rounded-full text-xs font-bold text-slate-300">
+                   {loopCount}/{loopTarget > 0 ? loopTarget : '∞'} loops
+                 </span>
+              )}
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div 
+                style={{ fontSize: `${Math.round(Math.max(30, Math.min(safeDiameter * 0.19, 70)))}px` }}
+                className="font-black font-mono text-white tracking-tighter flex items-center justify-center leading-none"
+              >
+                {formatTime(timeLeft).split('').map((char, i) => (
+                  <span
+                    key={i}
+                    className="inline-block"
                   >
-                    {isResting ? <Coffee size={14} /> : <Sword size={14} />}
-                  </motion.span>
-                  {charArray.map((char, i) => (
-                    <motion.span
-                      key={i}
-                      animate={isActive ? { y: [0, -8, 0] } : { y: 0 }}
-                      transition={{
-                        duration: animationDuration,
-                        repeat: isActive ? Infinity : 0,
-                        ease: "easeInOut",
-                        delay: (i + 1) * animationDuration, // Delay based on its position in sequence
-                        repeatDelay: repeatDelay
-                      }}
-                      className="inline-block"
-                    >
-                      {char}
-                    </motion.span>
-                  ))}
-                </>
-              );
-            })()}
-          </div>
+                    {char}
+                  </span>
+                ))}
+              </div>
+              <div 
+                style={{ fontSize: `${Math.round(Math.max(10, Math.min(safeDiameter * 0.035, 14)))}px` }}
+                className={cn(
+                  "font-bold uppercase tracking-widest mt-2 flex items-center gap-1 leading-none",
+                  isResting ? "text-emerald-500" : "text-indigo-400"
+                )}
+              >
+                {(() => {
+                  const statusText = (isResting ? (isActive ? 'Resting...' : 'Ready to Rest') : (isActive ? 'Exploring...' : 'Ready to Delve'));
+                  const charArray = statusText.split('');
+                  const totalItems = charArray.length + 1; // +1 for the icon
+                  const animationDuration = 0.6;
+                  const repeatDelay = (totalItems - 1) * animationDuration;
+
+                  return (
+                    <>
+                      <motion.span
+                        animate={isActive ? { y: [0, -8, 0] } : { y: 0 }}
+                        transition={{
+                          duration: animationDuration,
+                          repeat: isActive ? Infinity : 0,
+                          ease: "easeInOut",
+                          delay: 0,
+                          repeatDelay: repeatDelay
+                        }}
+                        className="inline-block mr-1"
+                      >
+                        {isResting ? <Coffee size={14} /> : <Sword size={14} />}
+                      </motion.span>
+                      {charArray.map((char, i) => (
+                        <motion.span
+                          key={i}
+                          animate={isActive ? { y: [0, -8, 0] } : { y: 0 }}
+                          transition={{
+                            duration: animationDuration,
+                            repeat: isActive ? Infinity : 0,
+                            ease: "easeInOut",
+                            delay: (i + 1) * animationDuration, // Delay based on its position in sequence
+                            repeatDelay: repeatDelay
+                          }}
+                          className="inline-block"
+                        >
+                          {char}
+                        </motion.span>
+                      ))}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
       </div>
 
       {/* Controls */}
-      <div className="flex items-center space-x-5 sm:space-x-6 shrink-0">
+      <div className={cn(
+        "flex items-center shrink-0 z-10",
+        isFullscreen ? "space-x-4 sm:space-x-6 py-1 sm:py-2" : "space-x-4 sm:space-x-6"
+      )}>
         <button
           onClick={resetTimer}
-          className="p-3.5 sm:p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          className="p-3 sm:p-3.5 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
           title="Reset Timer"
         >
-          <RotateCcw size={22} />
+          <RotateCcw size={20} />
         </button>
         <button
           onClick={toggleTimer}
           className={cn(
-            "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all shadow-2xl",
+            "rounded-full flex items-center justify-center transition-all shadow-2xl",
+            isFullscreen ? "w-18 h-18 sm:w-22 sm:h-22" : "w-18 h-18 sm:w-20 sm:h-20",
             isActive 
               ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
               : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
           )}
         >
-          {isActive ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1.5" />}
+          {isActive ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
         </button>
         <button
           onContextMenu={(e) => e.preventDefault()}
@@ -667,7 +738,7 @@ export const Timer = React.memo<TimerProps>(({
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerMove={handlePointerMove}
-          className="p-3.5 sm:p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area"
+          className="p-3 sm:p-3.5 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area"
           title="Click to Skip, Hold 3s for Partial Skip"
           style={{ touchAction: 'none' }}
         >
@@ -687,53 +758,68 @@ export const Timer = React.memo<TimerProps>(({
               </svg>
             </div>
           )}
-          <SkipForward size={22} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
+          <SkipForward size={20} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
         </button>
       </div>
 
-      {isActive && !isResting && (
+      {showDistractionControls && (
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center mt-1 sm:mt-2 gap-1 md:gap-1.5 z-10 shrink-0"
+          className={cn(
+            "flex flex-col items-center gap-1 shrink-0 z-20",
+            isFullscreen ? "pt-1 pb-1" : "mt-1 shrink-0"
+          )}
         >
           <span className="text-[9px] md:text-[10px] text-slate-500 uppercase tracking-widest font-bold">Distractions</span>
-          <div className="flex items-center space-x-1.5 md:space-x-2 bg-slate-900/50 p-1 md:p-1.5 rounded-full border border-slate-800">
+          <div className="flex items-center space-x-1.5 md:space-x-2 bg-slate-900/80 backdrop-blur-md p-1 md:p-1.5 rounded-full border border-slate-800 shadow-xl">
             <button 
               onClick={() => {
                 playSound('click', 0.5, true);
                 setDistractions(d => ({ ...d, internal: d.internal + 1 }));
               }}
-              className="px-2 md:px-4 py-1.5 md:py-2 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center gap-1 md:gap-2"
+              className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
               title="Internal: Distracted by your own thoughts"
             >
-              <Brain size={14} />
+              <Brain size={13} className="shrink-0" />
               <span>Internal</span>
-              {distractions.internal > 0 && <span className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-full text-[8px] md:text-[10px] font-bold">{distractions.internal}</span>}
+              {distractions.internal > 0 && (
+                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
+                  {distractions.internal}
+                </span>
+              )}
             </button>
             <button 
               onClick={() => {
                 playSound('pop', 0.5, true);
                 setDistractions(d => ({ ...d, external: d.external + 1 }));
               }}
-              className="px-2 md:px-4 py-1.5 md:py-2 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center gap-1 md:gap-2"
+              className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
               title="External: Interrupted by environment"
             >
-              <Wind size={14} />
+              <Wind size={13} className="shrink-0" />
               <span>External</span>
-              {distractions.external > 0 && <span className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-full text-[8px] md:text-[10px] font-bold">{distractions.external}</span>}
+              {distractions.external > 0 && (
+                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
+                  {distractions.external}
+                </span>
+              )}
             </button>
             <button 
               onClick={() => {
                 playSound('error', 0.5, true);
                 setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
               }}
-              className="px-2 md:px-4 py-1.5 md:py-2 bg-slate-800 hover:bg-rose-600/20 text-slate-300 hover:text-rose-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center gap-1 md:gap-2"
+              className="w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
               title="Unavoidable: Forced to interrupt"
             >
-              <Zap size={14} />
+              <Zap size={13} className="shrink-0" />
               <span>Unavoidable</span>
-              {distractions.unavoidable > 0 && <span className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center bg-rose-500/20 text-rose-400 rounded-full text-[8px] md:text-[10px] font-bold">{distractions.unavoidable}</span>}
+              {distractions.unavoidable > 0 && (
+                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-red-500/20 text-red-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
+                  {distractions.unavoidable}
+                </span>
+              )}
             </button>
           </div>
         </motion.div>

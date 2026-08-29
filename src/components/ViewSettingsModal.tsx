@@ -17,6 +17,7 @@ interface ViewSettingsModalProps {
     dailyDonutMode?: '24h' | 'compact';
     weeklyDonutMode?: 'time_of_day' | 'day_of_week';
     showHeatmap?: boolean;
+    averageCalculationBase?: 'active_days' | 'total_days';
   };
   onUpdate: (updates: Partial<ViewSettingsModalProps['opts']>) => void;
 }
@@ -150,6 +151,42 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({ isOpen, on
                 checked={opts.showHeatmap ?? true} 
                 onChange={() => onUpdate({ showHeatmap: !(opts.showHeatmap ?? true) })}
               />
+            </div>
+          </div>
+
+          {/* Average Calculation Baseline */}
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest pl-1">Average Calculation</h3>
+              <span className="text-[11px] text-slate-500 pl-1 mt-0.5">
+                Calculate daily averages using all calendar days or only active study days.
+              </span>
+            </div>
+            <div className="flex gap-2 bg-slate-800/30 p-2 rounded-2xl border border-slate-700/50">
+              <button
+                type="button"
+                onClick={() => onUpdate({ averageCalculationBase: 'total_days' })}
+                className={cn(
+                  "flex-1 py-2 px-2 text-xs font-bold rounded-xl border transition-all text-center flex items-center justify-center",
+                  (opts.averageCalculationBase ?? 'total_days') === 'total_days'
+                    ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-sm" 
+                    : "bg-slate-800/60 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                )}
+              >
+                <span>Total Days</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdate({ averageCalculationBase: 'active_days' })}
+                className={cn(
+                  "flex-1 py-2 px-2 text-xs font-bold rounded-xl border transition-all text-center flex items-center justify-center",
+                  opts.averageCalculationBase === 'active_days' 
+                    ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-sm" 
+                    : "bg-slate-800/60 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                )}
+              >
+                <span>Active Days</span>
+              </button>
             </div>
           </div>
         </div>

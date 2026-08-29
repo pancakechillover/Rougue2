@@ -631,9 +631,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                    </motion.div>
                  )}
 
-                  {/* Scaled Timer for Fullscreen Experience */}
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center py-2 sm:py-4">
-                   <div className="w-full h-full flex items-center justify-center origin-center transition-transform [@media(orientation:landscape)_and_(max-height:600px)]:scale-[0.85]">
+                  {/* Timer for Fullscreen Experience */}
+                 <div className="flex-1 w-full min-h-0 flex items-center justify-center py-1 sm:py-2">
+                   <div className="w-full h-full flex flex-col items-center justify-center min-h-0">
                      {renderTimerContent()}
                    </div>
                  </div>

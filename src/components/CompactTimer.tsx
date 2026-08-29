@@ -320,7 +320,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
       </div>
 
       {/* Distractions Module */}
-      {isActive && !isResting && (
+      {!isResting && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -339,7 +339,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                  <Brain size={12} />
                  <span className="font-bold">INT</span>
               </div>
-              {distractions.internal > 0 && <span className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-bl text-[7px] font-black">{distractions.internal}</span>}
+              {distractions.internal > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-tl text-[7px] font-black">{distractions.internal}</span>}
             </button>
             <button 
               onClick={() => {
@@ -353,21 +353,21 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                  <Wind size={12} />
                  <span className="font-bold">EXT</span>
               </div>
-              {distractions.external > 0 && <span className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-bl text-[7px] font-black">{distractions.external}</span>}
+              {distractions.external > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-tl text-[7px] font-black">{distractions.external}</span>}
             </button>
             <button 
               onClick={() => {
                 playSound('error', 0.5, true);
                 setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
               }}
-              className="flex-1 py-1.5 bg-slate-800 hover:bg-rose-600/20 text-slate-300 hover:text-rose-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
+              className="flex-1 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
               title="Unavoidable"
             >
               <div className="flex items-center gap-1">
                  <Zap size={12} />
                  <span className="font-bold">UNA</span>
               </div>
-              {distractions.unavoidable > 0 && <span className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center bg-rose-500/20 text-rose-400 rounded-bl text-[7px] font-black">{distractions.unavoidable}</span>}
+              {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-red-500/20 text-red-400 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>}
             </button>
           </div>
         </motion.div>

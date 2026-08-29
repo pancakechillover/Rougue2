@@ -121,7 +121,7 @@ export const DailyPieChart: React.FC<Props> = ({ date, sessions, dungeons, major
     });
 
     return { chartData: segments, legendPayload: legendData };
-  }, [history, date, dungeons, majorDungeons, mode]);
+  }, [sessions, dungeons, majorDungeons, mode, includeRestTimeInTasks, timeSettings, date]);
 
   if (!chartData.length || (mode === 'compact' && chartData.reduce((a, b) => a + b.value, 0) === 0)) {
     return (

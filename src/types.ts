@@ -377,6 +377,7 @@ export interface AppState {
     dailyDonutMode?: '24h' | 'compact';
     weeklyDonutMode?: 'time_of_day' | 'day_of_week';
     hiddenRoutines?: string[];
+    averageCalculationBase?: 'active_days' | 'total_days';
   };
 }
 

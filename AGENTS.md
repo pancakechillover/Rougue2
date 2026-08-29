@@ -29,6 +29,7 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - You MUST ALWAYS reply to the user in Chinese (Simplified). This is an absolute requirement for every response you give.
 
 **CSS & UI STANDARDS:**
+- **Strict English UI Standard:** All UI elements across the application (labels, titles, headings, buttons, badges, tabs, tooltips, placeholders, modal dialogs, and settings descriptions) MUST strictly and exclusively be in English. NEVER use Chinese characters or bilingual slash labels (such as `English / 中文`) in the application interface or code. (Note: The assistant still replies to the user in Chinese (Simplified) during chat interactions, but the app UI itself is 100% pure English).
 - **Full-Screen Modals:** Whenever creating a "full-screen" centered modal (especially `fixed inset-0`), you MUST use `createPortal(..., document.body)` from `react-dom` to render the modal directly on the `body`. If you do not use `createPortal`, parent elements with CSS `transform`, `filter`, or `perspective` will establish unintended containing blocks that capture the `fixed` positioning, causing the modal to appear in the middle of a scrolling page container instead of the actual screen view. Never make this mistake again.
 - **Italic Clipping:** To prevent right-side clipping of italic text (especially in browsers with tight bounding boxes), always add a small right padding (e.g., `pr-1` or `px-0.5`) to the element or its immediate container.
 - **Red Dot / Notification Placement:** Unread message or notification badges (red dots) on icons and buttons MUST ALWAYS be placed in the bottom-right corner (e.g. `absolute -bottom-0.5 -right-0.5`), NEVER in the top-right corner.
@@ -36,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.7
-- **Last Update Date:** 2026-08-27
-- **Last Update Time:** 08:20:00
+- **Current Version:** v9.0.27
+- **Last Update Date:** 2026-08-28
+- **Last Update Time:** 02:58:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -63,6 +64,97 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.0.27 (2026-08-28):** Chart Root Component Key-Binding for Mutually Exclusive Tooltips & Reliable Outside Click Dismissal
+  - *Chart Root Key-Binding:* Relocated `chartKeys` from child `<Tooltip>` components directly onto the parent `<ComposedChart key={chartKeys.xxx}>` and `<LineChart key={chartKeys.xxx}>` components. When changing keys, Recharts' internal chart state (`isTooltipActive`) is cleanly remounted and reset to `false`.
+  - *Weekly Chart Mutual Exclusion:* In `handleChartClick`, clicking an element in the Weekly Activity Bar chart immediately regenerates `chartKeys.weeklyLine` (and vice-versa), ensuring only one chart's popover can exist at any time.
+  - *Reliable Click-Outside Auto-Dismissal:* In `handleOutsideInteraction`, clicking anywhere outside active chart containers and popover contents resets all chart keys, immediately closing all open tooltips.
+
+- **v9.0.26 (2026-08-28):** Click-Outside Popover Auto-Dismissal & Mutually Exclusive Chart Tooltips
+  - *Reliable Click-Outside Dismissal:* Refined `handleOutsideInteraction` click target detection to check for interactive SVG elements (`recharts-bar-rectangle`, `recharts-dot`, `recharts-sector`, `g.recharts-layer`, `recharts-cartesian-axis-tick`) instead of entire chart wrapper bounds. Clicking anywhere outside active chart items (empty page, other cards, whitespace in or out of chart) now immediately closes open popovers.
+  - *Mutually Exclusive Chart Popovers:* In `handleChartClick`, whenever a data point or category is clicked on any chart (such as Weekly Activity Bar or Weekly Efficiency Trend), all other charts' `chartKeys` are immediately regenerated, ensuring that only one chart tooltip can be open at any given moment.
+
+- **v9.0.25 (2026-08-28):** Fix Daily Distractions Mode Bar Isolation, Cursor Ghost Columns & 0-Data Popover Stability
+  - *Distractions-Only Bar Isolation:* Explicitly mapped `<Cell fill="transparent" fillOpacity={0} stroke="transparent" />` to hit-box `<Bar>` elements in `Distractions` (lines) mode in both Daily and Weekly charts, completely eliminating unintentional colored session bars from leaking into the Distractions view.
+  - *Eliminate Lingering Cursor Ghost Highlight:* Removed Recharts `cursor={{ fill: ... }}` background highlight (`cursor={false}`) across Daily, Weekly, and Sleep charts, preventing any grey columns from remaining visible after popovers close.
+  - *Reliable 0-Data Category Popovers:* Fixed `handleOutsideInteraction` and `handleChartClick` so clicking periods with zero recorded time or zero distractions stably opens the popover ("No activity") without premature dismissal or flickering.
+  - *Data Fallback in Tooltips:* Added `allData` fallback lookups in `CustomDailyTooltip` and `CustomWeeklyTooltip` to guarantee popover rendering even when Recharts returns an empty `payload` array.
+
+- **v9.0.24 (2026-08-28):** Fix Record Bubble Card (Popover/Tooltip) Interaction & Synchronization Bugs
+  - *Single-Click Tooltip Open:* Refined `handleChartClick` so clicking data points on any chart opens the popover immediately without resetting the active chart's key or requiring a double-click.
+  - *Transparent Bar Hitboxes:* Added transparent `<Bar>` overlays for `Distractions` line mode in both Daily and Weekly `ComposedChart` components, making trend line nodes effortless to click and tap on touch/mobile devices.
+  - *Reliable Click-Outside Dismissal:* Enhanced the global `click` and `touchstart` listener to cleanly dismiss all popovers when clicking outside charts, popovers, or heatmap cells while preventing premature dismissal during button clicks.
+  - *Scroll & Resize Synchronization:* Added listeners to dismiss open popovers during scroll or window resize events to eliminate floating detachments.
+  - *Heatmap Distractions Breakdown:* Fixed missing `distractions`, `internal`, `external`, and `unavoidable` count aggregation in `renderHeatmapPopover`, ensuring full parity with Daily and Weekly card popovers.
+  - *Session Details Integrity:* Passed `processedHistory` with pre-computed `assignedDateStr` and `period` into `DailySessionsModal` to guarantee accurate session listings and period breakdowns.
+
+- **v9.0.23 (2026-08-28):** Strict English UI Standard & Clean Average Calculation Settings
+  - *Strict English UI Standard:* Added a strict rule to `AGENTS.md` specifying that all UI elements across the application must strictly and exclusively be in English with zero Chinese characters or bilingual slashes.
+  - *Clean Average Calculation Setting:* Removed the Chinese label suffix and the descriptive `(e.g. ...)` subtext from the "Average Calculation" section in `ViewSettingsModal.tsx`, leaving clean, minimalist buttons ("Total Days" / "Active Days").
+
+- **v9.0.22 (2026-08-28):** Heatmap Hourly Distraction Rate & Dashboard Average Baseline Toggle
+  - *Heatmap Avg/h Distraction Rate:* Updated the Distractions summary card in the Activity Heatmap from "Avg/Day" to "Avg/h", dividing total interruptions by effective study hours `(distractions / (timeOrTasks / 60))` to accurately reflect focus quality across any time scale.
+  - *Dashboard Layout Average Calculation Toggle:* Added an "Average Calculation" setting in Dashboard Layout (`statsViewOpts.averageCalculationBase`), allowing users to switch whether daily averages (Avg Gold, Avg Exp, Avg Time) in Weekly and Heatmap summaries are computed using Active Days or Total Calendar Days.
+
+- **v9.0.21 (2026-08-28):** Fix Distractions-Only Y-Axis Display in Daily and Weekly Activity Charts
+  - *Clean Conditional Y-Axis Rendering:* Resolved an issue where the Distractions Y-axis did not render on the left in single-axis mode (`Distractions` only) due to multi-axis layout collisions with hidden axes. Now mounts only the active Y-axis in single mode (`yAxisId="distractions"`, `orientation="left"`), rendering integer count ticks clearly on the left.
+  - *Seamless Dual/Single Mode Axis Binding:* In `Both` mode, mounts `yAxisId="time"` (left) and `yAxisId="distractions"` (right); in `Time` mode, mounts `yAxisId="time"` (left); in `Distractions` mode, mounts `yAxisId="distractions"` (left).
+
+- **v9.0.20 (2026-08-28):** Refined Layer Selector Labels & Responsive Single/Dual Y-Axes Display
+  - *Clean Layer Selector Labels:* Removed the "Layer:" prefix from the Daily and Weekly selector badges and option menus, displaying concise pills: `Both`, `Time`, and `Distractions`.
+  - *Contextual Single/Dual Y-Axes:* Configured Recharts Y-axes in both Daily and Weekly charts to dynamically show values based on the active mode:
+    - When single axis (`Time` or `Distractions` only): Displays the respective tick values on the left Y-axis.
+    - When dual axis (`Both` mode): Left Y-axis displays formatted focus time (e.g. `30m`, `1h`), and right Y-axis displays integer distraction counts (0, 1, 2, 3...).
+
+- **v9.0.19 (2026-08-28):** 3-Mode Layer Toggle & Deep Crimson Red for Unavoidable Distractions
+  - *3-Mode Layer Toggle:* Restructured the Layer dropdown selector in both Daily and Weekly activity cards into 3 intuitive modes: ① `Layer: Time` (时长的柱状图), ② `Layer: Distractions` (分心的折线图), ③ `Layer: Both` (两者都有), with persistent local storage.
+  - *Deep Red for Unavoidable Interruptions:* Changed the color representation for "Unavoidable" interruptions from rose-pink (`#fb7185`) to a distinct, high-contrast deep crimson red (`#ef4444` / `text-red-400` / `bg-red-500/20`), clearly separating it from Afternoon's orange (`#f97316` / `#fb923c`) across the Timer buttons, Chart trend lines, and Popover tooltips.
+
+- **v9.0.18 (2026-08-28):** Fix Recharts Line Right-Side Animation Clipping Bug
+  - *ClipPath Animation Bug Fix:* Disabled `isAnimationActive` on `ComposedChart` `Line` and `Bar` series in both Daily and Weekly charts. This eliminates Recharts' dynamic SVG clipPath truncation where line segments were prematurely cut off midway before connecting to rightmost data points.
+  - *Balanced Margins:* Normalized chart margins to symmetric `margin={{ top: 12, right: 16, left: 16, bottom: 0 }}` ensuring consistent padding and unobstructed rendering for all nodes and line paths across all screen sizes.
+
+- **v9.0.17 (2026-08-28):** Streamlined Layer Dropdown & Matching Timer Distraction Colors with Light Strokes
+  - *Streamlined Layer Dropdown:* Replaced multi-button layer toggle groups in Daily & Weekly headers with compact, elegant dropdown selectors matching the "Last 7d / Natural" pill design (`Layer: All`, `Layer: Internal`, `Layer: External`, `Layer: Unavoidable`, `Layer: Off`).
+  - *Timer-Matched Distraction Colors:* Aligned the 3 distraction trend lines and tooltip badges directly with the Timer interface's color scheme (Internal: Indigo `#818cf8`, External: Orange `#fb923c`, Unavoidable: Rose `#fb7185`).
+  - *Light-Colored Dot Strokes:* Replaced dark dot borders with clean, high-contrast light white strokes (`stroke: '#ffffff'`) on chart dots and active hover states for superior visibility across all dark and light themes.
+
+- **v9.0.16 (2026-08-27):** Refined Distraction Layer Controls, Chart Margin & SVG Icon Purity
+  - *SVG Icon Purity:* Replaced all emojis in `SharedPopoverContent` and `CustomDailyTooltip` with pure Lucide SVG icons (`Brain`, `Wind`, `Zap`), strictly eliminating emoji usage across tooltips and popovers.
+  - *High-Contrast Chart Lines:* Shifted Distraction trend lines to non-colliding colors (Internal: Sky `#38bdf8`, External: Emerald `#34d399`, Unavoidable: Rose `#f43f5e`) ensuring crisp contrast against Yellow, Orange, Indigo, and Slate bars.
+  - *Right Boundary Margin Fix:* Added `margin={{ top: 12, right: 18, left: -20, bottom: 0 }}` and `overflow: 'visible'` to `ComposedChart` in both Daily and Weekly views to prevent rightmost dots and line endpoints from being clipped.
+  - *Header Row Layer Controls:* Relocated Distraction Layer toggle buttons directly into the header rows of both Daily and Weekly activity cards, creating a cleaner and unified card layout.
+
+- **v9.0.15 (2026-08-27):** Dual-Layer Distraction Composed Charts & Hourly Interruption Rate KPIs
+  - *Composed Dual-Layer Charts:* Upgraded Daily and Weekly activity charts from simple BarCharts to Recharts `ComposedChart` with dual Y-axes (`yAxisId="left"` for session durations, `yAxisId="right"` for distraction counts), preventing scale interference between minutes and counts.
+  - *Distraction Trend Lines & Filters:* Added individual trend lines for Internal (`#818cf8`), External (`#fb923c`), and Unavoidable (`#fb7185`) interruptions, along with top layer filter toggles (`All`, `Internal`, `External`, `Unavoidable`, `Hide`) and local persistence.
+  - *Hourly Distraction Rate KPI (次/h):* Refactored the Daily "Distracted" and Weekly "Avg Distracted" KPI cards to calculate the normalized focus interruption rate `(分心次数 / 专注时长小时数) 次/h` to accurately reflect focus quality.
+  - *Interactive Tooltips:* Enhanced Daily and Weekly chart tooltips with rich popovers breaking down total distraction counts, hourly rates, and per-type distributions with themed icons.
+
+- **v9.0.14 (2026-08-27):** Daily Activity Section & Chart Dependency Robustness Fix
+  - *Data & Computation Integrity:* Fixed date validation in `getPeriodInfo` and memoized session and reward fetchers (`getSessionsForDate`, `getRewardsForDate`) to ensure the Daily section updates smoothly on date changes.
+  - *Distraction & NaN Safeguards:* Added universal fallback calculations for `distractions` in `dailyGains`, `weeklyGains`, `dailyData`, and `heatmapSummary` to prevent `NaN` values from breaking the Daily gains cards and charts.
+  - *Daily Pie Chart Dependencies:* Resolved undeclared dependency bugs in `DailyPieChart.tsx` by directly watching `sessions`, `date`, `dungeons`, and `timeSettings`.
+
+- **v9.0.12 (2026-08-27):** Restored Subtle Inline Translucent Badges with Fixed Footprints
+  - *UI Aesthetic Restoration:* Reverted the 100% opaque corner badge back to the elegant, subtle theme-aware translucent inline pill badges (`bg-indigo-500/20 text-indigo-400`, `bg-orange-500/20 text-orange-400`, `bg-rose-500/20 text-rose-400`).
+  - *Zero-Jitter Fixed Layout:* Maintained fixed, tailored button widths (`w-[84px] sm:w-[94px] md:w-[104px]` for Internal/External, `w-[96px] sm:w-[106px] md:w-[118px]` for Unavoidable) so that buttons never expand, shrink, or push neighboring elements when counts change.
+
+- **v9.0.11 (2026-08-27):** Fixed Distraction Footprint & Zero-Jitter Badges
+  - *Layout Stability:* Standardized all three Distraction buttons (Internal, External, Unavoidable) with fixed proportional width dimensions (`w-[86px] sm:w-[98px] md:w-[112px]`).
+  - *Zero Layout Shift:* Converted distraction counts from inline flow elements to non-intrusive bottom-right absolute corner badges (`absolute -bottom-1 -right-0.5`). Clicking distraction buttons and recording counts now preserves the exact same container footprint without any stretching, shifting, or jumping.
+
+- **v9.0.10 (2026-08-27):** Persistent Distraction Controls & Layout Stability
+  - *UI & UX Stability:* Distraction tracking controls (Internal, External, Unavoidable) are now permanently and stably visible during all focus timer states (ready to start, running, paused) rather than appearing only after clicking start. This eliminates layout shifts and abrupt pop-ins upon starting a focus session.
+  - *Compact / PIP Parity:* Ensured consistent visibility and standardized notification badge positioning in both full timer and Compact (Picture-in-Picture) timer views.
+
+- **v9.0.9 (2026-08-27):** Dynamic Mathematical Layout & Absolute Non-Overlapping Guarantee
+  - *Layout Architecture:* Replaced manual / absolute positioning with an integrated Flex column layout where Distractions, Controls, and the Circular Arena are distinct sequential flex children (`justify-between`), completely eliminating any possibility of Controls overlapping Distractions.
+  - *Mathematical Safe Sizing:* Implemented a dynamic calculation hook using `ResizeObserver` that measures exact container height/width in real-time, deducts the precise heights of Controls, Distraction controls, and safety margins, and computes `safeDiameter`. Circle scaling (0.85 -> 1.0) strictly respects this ceiling so it will never overlap or push into adjacent components regardless of screen height or distraction count.
+
+- **v9.0.8 (2026-08-27):** Fullscreen Distraction Bottom Anchor & Expanded Circular Arena
+  - *UI Refactor:* Re-anchored the active Distraction tracker to the absolute bottom of the screen (`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2`) when in Fullscreen mode.
+  - *Layout & Sizing:* Freed up vertical space for the central timer display by separating distractions from the controls flex flow, expanding the maximum responsive bounds of the timer in fullscreen mode up to `max-w-[540px]` / `max-h-[540px]` on wide viewports without any danger of overlapping.
 
 - **v9.0.7 (2026-08-27):** Distraction Scale Dynamic Curve & Fullscreen Zero-Overlap Layout
   - *UI Adjustment:* Refined the focus timer circle's starting scale to 0.85 (more compact and elegant) and smoothly scales up to maximum 1.0 upon reaching 10 distractions (`0.85 + (min(distractions, 10) / 10) * 0.15`).

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   format, eachDayOfInterval, isSameDay, 
@@ -9,7 +9,7 @@ import {
 import { StudySession, AppState, RewardHistoryItem, Dungeon, MajorDungeon } from '../types';
 import { cn, getSessionEffectiveMinutes } from '../lib/utils';
 import { 
-  BarChart2, Zap, Coins, ChevronLeft, ChevronRight, ChevronDown, Calendar, CalendarDays, Flame, Star, StarHalf, Edit2, Save, X, Eye, EyeOff, LineChart as LineChartIcon, Trophy, Sword, Heart, Maximize2, Minimize2, LayoutTemplate, File, FileText, RotateCcw, Share2, Moon, Clock, Target
+  BarChart2, Zap, Coins, ChevronLeft, ChevronRight, ChevronDown, Calendar, CalendarDays, Flame, Star, StarHalf, Edit2, Save, X, Eye, EyeOff, LineChart as LineChartIcon, Trophy, Sword, Heart, Maximize2, Minimize2, LayoutTemplate, File, FileText, RotateCcw, Share2, Moon, Clock, Target, Brain, Wind
 } from 'lucide-react';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../constants';
 
@@ -59,6 +59,29 @@ const formatDuration = (val: number) => {
   return h > 0 ? `${h}h ${m}min` : `${m}min`;
 };
 
+const formatTimeTick = (val: number) => {
+  if (typeof val !== 'number' || isNaN(val) || val <= 0) return '0';
+  if (val >= 60) {
+    const h = val / 60;
+    return Number.isInteger(h) ? `${h}h` : `${h.toFixed(1)}h`;
+  }
+  return `${val}m`;
+};
+
+const getSessionDistractionCount = (distractions: any): number => {
+  if (!distractions) return 0;
+  if (typeof distractions === 'number') {
+    return isNaN(distractions) ? 0 : distractions;
+  }
+  if (typeof distractions === 'object') {
+    const internal = Number(distractions.internal) || 0;
+    const external = Number(distractions.external) || 0;
+    const unavoidable = Number(distractions.unavoidable) || 0;
+    return internal + external + unavoidable;
+  }
+  return 0;
+};
+
 const SharedPopoverContent = ({
   label,
   totalSessions,
@@ -68,6 +91,10 @@ const SharedPopoverContent = ({
   other,
   coins,
   xp,
+  distractions,
+  internal,
+  external,
+  unavoidable,
   efficiency,
   mood,
   dateTimestamp,
@@ -96,10 +123,15 @@ const SharedPopoverContent = ({
     }
   });
 
+  const distCount = Number(distractions) || 0;
+  const hourlyDistRate = totalSessions > 0 
+    ? (Math.round((distCount / (totalSessions / 60)) * 10) / 10).toFixed(1) 
+    : distCount;
+
   return (
     <div 
       ref={containerRef}
-      className="shared-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 sm:p-4 z-[100] w-[180px] sm:w-[200px]"
+      className="shared-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 sm:p-4 z-[100] w-[190px] sm:w-[210px]"
     >
       <p className="text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm">{label}</p>
       <div className="space-y-1.5 text-xs text-slate-300">
@@ -115,6 +147,40 @@ const SharedPopoverContent = ({
           </>
         ) : (
           <p className="text-slate-500 italic">No activity</p>
+        )}
+
+        {distCount > 0 && (
+          <div className="border-t border-slate-800/50 my-1 pt-1 space-y-1">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-rose-400 font-medium">Distracted</span>
+              <span className="text-rose-300 font-bold font-mono">
+                {distCount}{' '}
+                <span className="text-[10px] text-slate-400 font-normal font-sans">
+                  ({hourlyDistRate}/h)
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] pt-0.5">
+              {Number(internal) > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 flex items-center gap-1 font-medium">
+                  <Brain size={10} className="shrink-0 text-indigo-400" />
+                  <span>{internal}</span>
+                </span>
+              )}
+              {Number(external) > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 flex items-center gap-1 font-medium">
+                  <Wind size={10} className="shrink-0 text-orange-400" />
+                  <span>{external}</span>
+                </span>
+              )}
+              {Number(unavoidable) > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 flex items-center gap-1 font-medium">
+                  <Zap size={10} className="shrink-0 text-red-500" />
+                  <span>{unavoidable}</span>
+                </span>
+              )}
+            </div>
+          </div>
         )}
         
         {efficiency !== undefined && efficiency !== null && (
@@ -164,29 +230,38 @@ const SharedPopoverContent = ({
 };
 
 // Moved outside to avoid redefining on every render, which causes extreme lag
-const CustomWeeklyTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <SharedPopoverContent 
-        label={data.fullDate || label}
-        totalSessions={data.total}
-        morning={data.Morning}
-        afternoon={data.Afternoon}
-        night={data.Night}
-        other={data.Other}
-        coins={data.coins}
-        xp={data.xp}
-        efficiency={data.efficiency}
-        mood={data.mood}
-        dateTimestamp={data.timestamp}
-      />
-    );
+const CustomWeeklyTooltip = ({ active, payload, label, allData }: any) => {
+  if (active) {
+    let data = payload && payload.length ? payload[0].payload : null;
+    if (!data && allData && label) {
+      data = allData.find((d: any) => d.fullDate === label || d.dayName === label || d.name === label);
+    }
+    if (data) {
+      return (
+        <SharedPopoverContent 
+          label={data.fullDate || label}
+          totalSessions={data.total}
+          morning={data.Morning}
+          afternoon={data.Afternoon}
+          night={data.Night}
+          other={data.Other}
+          coins={data.coins}
+          xp={data.xp}
+          distractions={data.distractions}
+          internal={data.internal}
+          external={data.external}
+          unavoidable={data.unavoidable}
+          efficiency={data.efficiency}
+          mood={data.mood}
+          dateTimestamp={data.timestamp}
+        />
+      );
+    }
   }
   return null;
 };
 
-const CustomDailyTooltip = ({ active, payload, label, dateTimestamp }: any) => {
+const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: any) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -208,42 +283,85 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp }: any) => {
     }
   });
 
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div 
-        ref={containerRef}
-        className="bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 z-50 min-w-[125px]"
-      >
-        <p className="text-slate-50 font-bold mb-1.5 pb-1.5 border-b border-slate-800/50 text-[13px] sm:text-sm">{label}</p>
-        {data.sessions > 0 ? (
-          <div className="flex justify-between gap-4 text-xs mb-3">
-            <span className="text-slate-400">Time</span>
-            <span className="text-indigo-400 font-bold">{formatDuration(data.sessions)}</span>
-          </div>
-        ) : (
-          <p className="text-slate-500 italic text-xs mb-3">No activity</p>
-        )}
-        {dateTimestamp && (
-          <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-800/50">
-            <button 
-              type="button"
-              style={{ pointerEvents: 'auto' }}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                window.dispatchEvent(new CustomEvent('statsShowDailySessionsModal', { 
-                  detail: { timestamp: dateTimestamp, period: data.periodKey } 
-                })); 
-              }}
-              className="w-full text-emerald-400 hover:text-emerald-300 font-bold text-[10px] uppercase tracking-wider text-center transition-colors hover:bg-slate-800/30 rounded py-1 flex items-center justify-center gap-1"
-            >
-              <LayoutTemplate size={10} />
-              Sessions
-            </button>
-          </div>
-        )}
-      </div>
-    );
+  if (active) {
+    let data = payload && payload.length ? payload[0].payload : null;
+    if (!data && allData && label) {
+      data = allData.find((d: any) => d.name === label);
+    }
+    if (data) {
+      const totalDistractions = data.distractions || (Number(data.internal) || 0) + (Number(data.external) || 0) + (Number(data.unavoidable) || 0);
+      const hourlyRate = data.sessions > 0 
+        ? (Math.round((totalDistractions / (data.sessions / 60)) * 10) / 10).toFixed(1) 
+        : totalDistractions;
+
+      return (
+        <div 
+          ref={containerRef}
+          className="shared-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 z-50 min-w-[140px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-slate-50 font-bold mb-1.5 pb-1.5 border-b border-slate-800/50 text-[13px] sm:text-sm">{label || data.name}</p>
+          {data.sessions > 0 ? (
+            <div className="flex justify-between gap-4 text-xs mb-2">
+              <span className="text-slate-400">Time</span>
+              <span className="text-indigo-400 font-bold">{formatDuration(data.sessions)}</span>
+            </div>
+          ) : (
+            <p className="text-slate-500 italic text-xs mb-2">No activity</p>
+          )}
+
+          {totalDistractions > 0 && (
+            <div className="border-t border-slate-800/50 pt-1.5 mb-2 space-y-1">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-rose-400 font-medium">Distracted</span>
+                <span className="text-rose-300 font-bold font-mono text-[11px]">
+                  {totalDistractions} <span className="text-slate-400 font-normal text-[10px]">({hourlyRate}/h)</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] pt-0.5">
+                {Number(data.internal) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium flex items-center gap-1">
+                    <Brain size={10} className="shrink-0 text-indigo-400" />
+                    <span>{data.internal}</span>
+                  </span>
+                )}
+                {Number(data.external) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-medium flex items-center gap-1">
+                    <Wind size={10} className="shrink-0 text-orange-400" />
+                    <span>{data.external}</span>
+                  </span>
+                )}
+                {Number(data.unavoidable) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-medium flex items-center gap-1">
+                    <Zap size={10} className="shrink-0 text-red-500" />
+                    <span>{data.unavoidable}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {dateTimestamp && (
+            <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-800/50">
+              <button 
+                type="button"
+                style={{ pointerEvents: 'auto' }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  window.dispatchEvent(new CustomEvent('statsShowDailySessionsModal', { 
+                    detail: { timestamp: dateTimestamp, period: data.periodKey } 
+                  })); 
+                }}
+                className="w-full text-emerald-400 hover:text-emerald-300 font-bold text-[10px] uppercase tracking-wider text-center transition-colors hover:bg-slate-800/30 rounded py-1 flex items-center justify-center gap-1"
+              >
+                <LayoutTemplate size={10} />
+                Sessions
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
   }
   return null;
 };
@@ -339,6 +457,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     showHeatmap: true,
     dailyDonutMode: 'compact' as const,
     weeklyDonutMode: 'time_of_day' as const,
+    averageCalculationBase: 'total_days' as const,
   };
   
   const getInitialPeakDate = () => {
@@ -399,6 +518,20 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     } catch(e){}
     return false;
   });
+  const [dailyLayerMode, setDailyLayerMode] = useState<'both' | 'bars' | 'lines'>(() => {
+    try {
+      const saved = localStorage.getItem('scholar_dungeon_stats_dailyLayerMode');
+      if (saved && ['both', 'bars', 'lines'].includes(saved)) return saved as any;
+    } catch(e){}
+    return 'both';
+  });
+  const [weeklyLayerMode, setWeeklyLayerMode] = useState<'both' | 'bars' | 'lines'>(() => {
+    try {
+      const saved = localStorage.getItem('scholar_dungeon_stats_weeklyLayerMode');
+      if (saved && ['both', 'bars', 'lines'].includes(saved)) return saved as any;
+    } catch(e){}
+    return 'both';
+  });
 
   useEffect(() => {
     localStorage.setItem('scholar_dungeon_stats_weeklyMode', weeklyMode);
@@ -415,6 +548,14 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
   useEffect(() => {
     localStorage.setItem('scholar_dungeon_stats_heatmapMood', String(showHeatmapMood));
   }, [showHeatmapMood]);
+
+  useEffect(() => {
+    localStorage.setItem('scholar_dungeon_stats_dailyLayerMode', dailyLayerMode);
+  }, [dailyLayerMode]);
+
+  useEffect(() => {
+    localStorage.setItem('scholar_dungeon_stats_weeklyLayerMode', weeklyLayerMode);
+  }, [weeklyLayerMode]);
   const [heatmapMetric, setHeatmapMetric] = useState<'time' | 'efficiency'>('time');
   const [heatmapPopoverAnchor, setHeatmapPopoverAnchor] = useState<{ date: number, element: HTMLElement | null } | null>(null);
 
@@ -447,15 +588,28 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
   }, [state.history, state.dailyLogs]);
 
   const handleChartClick = (chartState: any, chart: 'daily' | 'weeklyBar' | 'weeklyLine' | 'sleep') => {
-    // If no active payload, we clicked empty space - reset ALL keys including current one
-    const isEmptyClick = !chartState || !chartState.activePayload || chartState.activePayload.length === 0;
+    const hasTarget = chartState && (
+      chartState.activeTooltipIndex !== undefined || 
+      chartState.activeLabel !== undefined ||
+      (chartState.activePayload && chartState.activePayload.length > 0)
+    );
 
-    setChartKeys(prev => ({
-      daily: (chart === 'daily' && !isEmptyClick) ? prev.daily : Date.now() + Math.random(),
-      weeklyBar: (chart === 'weeklyBar' && !isEmptyClick) ? prev.weeklyBar : Date.now() + Math.random(),
-      weeklyLine: (chart === 'weeklyLine' && !isEmptyClick) ? prev.weeklyLine : Date.now() + Math.random(),
-      sleep: (chart === 'sleep' && !isEmptyClick) ? prev.sleep : Date.now() + Math.random()
-    }));
+    if (!hasTarget) {
+      setChartKeys({
+        daily: Date.now() + Math.random(),
+        weeklyBar: Date.now() + Math.random(),
+        weeklyLine: Date.now() + Math.random(),
+        sleep: Date.now() + Math.random()
+      });
+    } else {
+      // Keep only the clicked chart active; force-reset all other charts to close their popovers
+      setChartKeys(prev => ({
+        daily: chart === 'daily' ? prev.daily : Date.now() + Math.random(),
+        weeklyBar: chart === 'weeklyBar' ? prev.weeklyBar : Date.now() + Math.random(),
+        weeklyLine: chart === 'weeklyLine' ? prev.weeklyLine : Date.now() + Math.random(),
+        sleep: chart === 'sleep' ? prev.sleep : Date.now() + Math.random()
+      }));
+    }
   };
 
   const [isEditingLog, setIsEditingLog] = useState(false);
@@ -489,14 +643,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       const target = e.target as Element;
       
       const inHeatmap = !!target.closest('.heatmap-cell-container');
-      const inTooltip = !!target.closest('.recharts-tooltip-wrapper') || !!target.closest('.recharts-tooltip-portal');
-      const isDataPoint = !!target.closest('.recharts-bar-rectangle') || 
-                          !!target.closest('.recharts-dot') || 
-                          !!target.closest('.recharts-active-dot') ||
-                          !!target.closest('.recharts-sector') ||
-                          !!target.closest('.recharts-rectangle');
-      
-      const isChart = !!target.closest('.recharts-wrapper') || !!target.closest('.recharts-responsive-container');
+      const inTooltip = !!target.closest('.recharts-tooltip-wrapper') || !!target.closest('.recharts-tooltip-portal') || !!target.closest('.shared-popover-content');
+      const inChart = !!target.closest('.recharts-responsive-container') || !!target.closest('.recharts-wrapper');
       
       if (dismissalTimeout) clearTimeout(dismissalTimeout);
 
@@ -505,18 +653,26 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           setHeatmapPopoverAnchor(prev => prev !== null ? null : prev);
         }
         
-        if (!inTooltip && (!isChart || (isChart && !isDataPoint))) {
-          const tooltips = document.querySelectorAll('.recharts-tooltip-wrapper');
-          tooltips.forEach(t => {
-            (t as HTMLElement).style.visibility = 'hidden';
-            (t as HTMLElement).style.opacity = '0';
+        if (!inTooltip && !inChart) {
+          setChartKeys({
+            daily: Date.now() + Math.random(),
+            weeklyBar: Date.now() + Math.random(),
+            weeklyLine: Date.now() + Math.random(),
+            sleep: Date.now() + Math.random()
           });
         }
-      }, 50);
+      }, 30);
+    };
+
+    const handleScrollOrResize = () => {
+      // Dismiss popovers on scroll or resize to prevent floating detachments
+      setHeatmapPopoverAnchor(prev => prev !== null ? null : prev);
     };
 
     document.addEventListener('click', handleOutsideInteraction, { capture: true });
     document.addEventListener('touchstart', handleOutsideInteraction, { passive: true, capture: true });
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true, capture: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
 
     const handleJump = (e: any) => {
       // Use refs to avoid stale closure in effect
@@ -549,6 +705,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       if (dismissalTimeout) clearTimeout(dismissalTimeout);
       document.removeEventListener('click', handleOutsideInteraction, { capture: true });
       document.removeEventListener('touchstart', handleOutsideInteraction, { capture: true });
+      window.removeEventListener('scroll', handleScrollOrResize, { capture: true });
+      window.removeEventListener('resize', handleScrollOrResize);
       window.removeEventListener('statsNavJump', handleJump);
       window.removeEventListener('statsShowDailySessionsModal', handleShowSessions);
       
@@ -570,6 +728,11 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                dayRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0);
     
     const counts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
+    let dayInternal = 0;
+    let dayExternal = 0;
+    let dayUnavoidable = 0;
+    let dayTotalDistractions = 0;
+
     daySessions.forEach(s => {
       const p = s.period || getPeriod(new Date(s.timestamp));
       const amount = Math.max(1, getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks));
@@ -577,6 +740,16 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         counts[p as keyof typeof counts] += amount;
       } else {
         counts.Other += amount;
+      }
+
+      if (s.distractions) {
+        const intCount = typeof s.distractions === 'number' ? (isNaN(s.distractions) ? 0 : s.distractions) : (Number(s.distractions.internal) || 0);
+        const extCount = typeof s.distractions === 'object' ? (Number(s.distractions.external) || 0) : 0;
+        const unavCount = typeof s.distractions === 'object' ? (Number(s.distractions.unavoidable) || 0) : 0;
+        dayInternal += intCount;
+        dayExternal += extCount;
+        dayUnavoidable += unavCount;
+        dayTotalDistractions += (intCount + extCount + unavCount);
       }
     });
 
@@ -599,10 +772,13 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           other={counts.Other}
           coins={coins}
           xp={xp}
+          distractions={dayTotalDistractions}
+          internal={dayInternal}
+          external={dayExternal}
+          unavoidable={dayUnavoidable}
           efficiency={log?.rating}
           mood={log?.mood}
           dateTimestamp={date.getTime()}
-          
       />
     );
   };
@@ -829,12 +1005,18 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     night: { start: 20, end: 24 }
   };
 
-  const getPeriodInfo = (date: Date) => {
+  const getPeriodInfo = useCallback((date: Date) => {
     let localDate = new Date(date);
+    if (!date || isNaN(localDate.getTime())) {
+      localDate = new Date();
+    }
     if (state.timezone) {
       try {
-        const str = date.toLocaleString('en-US', { timeZone: state.timezone });
-        localDate = new Date(str);
+        const str = localDate.toLocaleString('en-US', { timeZone: state.timezone });
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+          localDate = parsed;
+        }
       } catch (e) {}
     }
     const hour = localDate.getHours();
@@ -870,11 +1052,12 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     }
     
     return { period: 'Other', assignedDate: localDate };
-  };
+  }, [state.timezone, ts]);
 
   const processedHistory = useMemo(() => {
-    return history.map(s => {
-      const info = getPeriodInfo(new Date(s.timestamp));
+    return (history || []).map(s => {
+      const validDate = s.timestamp && !isNaN(new Date(s.timestamp).getTime()) ? new Date(s.timestamp) : new Date();
+      const info = getPeriodInfo(validDate);
       return {
         ...s,
         assignedDate: info.assignedDate,
@@ -882,18 +1065,19 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         period: info.period
       };
     });
-  }, [history, state.timezone, state.timeSettings]);
+  }, [history, getPeriodInfo]);
 
   const processedRewards = useMemo(() => {
     return (state.rewardHistory || []).map(r => {
-      const info = getPeriodInfo(new Date(r.timestamp));
+      const validDate = r.timestamp && !isNaN(new Date(r.timestamp).getTime()) ? new Date(r.timestamp) : new Date();
+      const info = getPeriodInfo(validDate);
       return {
         ...r,
         assignedDate: info.assignedDate,
         assignedDateStr: format(info.assignedDate, 'yyyy-MM-dd'),
       };
     });
-  }, [state.rewardHistory, state.timezone, state.timeSettings]);
+  }, [state.rewardHistory, getPeriodInfo]);
 
   const sessionsByDateStr = useMemo(() => {
     const map: Record<string, typeof processedHistory> = {};
@@ -913,12 +1097,25 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     return map;
   }, [processedRewards]);
 
-  const getSessionsForDate = (date: Date) => sessionsByDateStr[format(date, 'yyyy-MM-dd')] || [];
-  const getRewardsForDate = (date: Date) => rewardsByDateStr[format(date, 'yyyy-MM-dd')] || [];
+  const getSessionsForDate = useCallback((date: Date) => {
+    if (!date || isNaN(date.getTime())) return [];
+    return sessionsByDateStr[format(date, 'yyyy-MM-dd')] || [];
+  }, [sessionsByDateStr]);
+
+  const getRewardsForDate = useCallback((date: Date) => {
+    if (!date || isNaN(date.getTime())) return [];
+    return rewardsByDateStr[format(date, 'yyyy-MM-dd')] || [];
+  }, [rewardsByDateStr]);
 
   const isSamePeakDay = (sessionDate: Date, targetDate: Date) => {
     const info = getPeriodInfo(sessionDate);
     return isSameDay(info.assignedDate, targetDate);
+  };
+
+  const calculateDistractionCount = (distractions: any) => {
+    if (!distractions) return 0;
+    if (typeof distractions === 'number') return isNaN(distractions) ? 0 : distractions;
+    return (Number(distractions.internal) || 0) + (Number(distractions.external) || 0) + (Number(distractions.unavoidable) || 0);
   };
 
   // --- Aggregate Helpers ---
@@ -935,24 +1132,13 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       ? processedRewards.filter(r => isWithinInterval(new Date(r.timestamp), dateRange))
       : processedRewards;
 
-    const coins = periodSessions.reduce((acc, s) => acc + s.coinsEarned, 0) + 
-                  periodRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (r.amount || 0), 0);
-    const xp = periodSessions.reduce((acc, s) => acc + s.xpEarned, 0) + 
-               periodRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0);
-    
-    // Tasks = Sessions + Unique Quest/Dungeon reward events
-    const questRewards = periodRewards.filter(r => 
-      r.name.includes('Quest') || 
-      r.name.includes('MAJOR CLEAR') || 
-      r.name.includes('QUEST COMPLETE') ||
-      r.name.includes('Achievement') ||
-      r.name.includes('GOAL ACHIEVED') ||
-      r.name.includes('Dungeon Reward')
-    );
-    const uniqueQuests = new Set(questRewards.map(r => r.timestamp)).size;
+    const coins = periodSessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 
+                  periodRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const xp = periodSessions.reduce((acc, s) => acc + (Number(s.xpEarned) || 0), 0) + 
+               periodRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     
     const tasks = Math.floor(periodSessions.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks), 0));
-    const distractions = periodSessions.reduce((acc, s) => acc + (s.distractions ? (s.distractions.internal + s.distractions.external + s.distractions.unavoidable) : 0), 0);
+    const distractions = periodSessions.reduce((acc, s) => acc + calculateDistractionCount(s.distractions), 0);
 
     return { coins, xp, tasks, distractions };
   };
@@ -961,63 +1147,105 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     const sessions = getSessionsForDate(dailyDate);
     const rewards = getRewardsForDate(dailyDate);
     
-    const coins = sessions.reduce((acc, s) => acc + s.coinsEarned, 0) + 
-                  rewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (r.amount || 0), 0);
-    const xp = sessions.reduce((acc, s) => acc + s.xpEarned, 0) + 
-               rewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0);
-    
-    const questRewards = rewards.filter(r => 
-      r.name.includes('Quest') || 
-      r.name.includes('MAJOR CLEAR') || 
-      r.name.includes('QUEST COMPLETE') ||
-      r.name.includes('Achievement') ||
-      r.name.includes('GOAL ACHIEVED') ||
-      r.name.includes('Dungeon Reward')
-    );
-    const uniqueQuests = new Set(questRewards.map(r => r.timestamp)).size;
+    const coins = sessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 
+                  rewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const xp = sessions.reduce((acc, s) => acc + (Number(s.xpEarned) || 0), 0) + 
+               rewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     
     const tasks = Math.floor(sessions.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks), 0));
-    const distractions = sessions.reduce((acc, s) => acc + (s.distractions ? (s.distractions.internal + s.distractions.external + s.distractions.unavoidable) : 0), 0);
+    const distractions = sessions.reduce((acc, s) => acc + calculateDistractionCount(s.distractions), 0);
 
     return { coins, xp, tasks, distractions };
-  }, [history, state.rewardHistory, dailyDate, ts]);
+  }, [getSessionsForDate, getRewardsForDate, dailyDate, state.includeRestTimeInTasks]);
 
   const weeklyGains = useMemo(() => {
     const interval = { start: weekStart, end: weekEnd };
     return getGainsForPeriod(history, state.rewardHistory || [], interval);
-  }, [history, state.rewardHistory, weekStart, weekEnd, ts]);
+  }, [history, state.rewardHistory, weekStart, weekEnd, processedHistory, processedRewards, state.includeRestTimeInTasks]);
 
   const getPeriod = (date: Date) => {
     return getPeriodInfo(date).period;
   };
 
   const dailyData = useMemo(() => {
-    const dailySessions = getSessionsForDate(dailyDate);
+    const currentDailySessions = getSessionsForDate(dailyDate);
     const dailyCounts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
-    dailySessions.forEach(s => {
+    const dailyDistractions = {
+      Morning: { internal: 0, external: 0, unavoidable: 0, total: 0 },
+      Afternoon: { internal: 0, external: 0, unavoidable: 0, total: 0 },
+      Night: { internal: 0, external: 0, unavoidable: 0, total: 0 },
+      Other: { internal: 0, external: 0, unavoidable: 0, total: 0 },
+    };
+
+    currentDailySessions.forEach(s => {
       const p = s.period || getPeriod(new Date(s.timestamp));
-      const amount = Math.max(1, getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks));
+      const amount = Math.max(0, getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks));
       if (p in dailyCounts) {
         dailyCounts[p as keyof typeof dailyCounts] += amount;
       } else {
         dailyCounts.Other += amount;
       }
+
+      const targetPeriod = (p in dailyDistractions ? p : 'Other') as keyof typeof dailyDistractions;
+      if (s.distractions) {
+        const intCount = typeof s.distractions === 'number' ? (isNaN(s.distractions) ? 0 : s.distractions) : (Number(s.distractions.internal) || 0);
+        const extCount = typeof s.distractions === 'object' ? (Number(s.distractions.external) || 0) : 0;
+        const unavCount = typeof s.distractions === 'object' ? (Number(s.distractions.unavoidable) || 0) : 0;
+        dailyDistractions[targetPeriod].internal += intCount;
+        dailyDistractions[targetPeriod].external += extCount;
+        dailyDistractions[targetPeriod].unavoidable += unavCount;
+        dailyDistractions[targetPeriod].total += (intCount + extCount + unavCount);
+      }
     });
 
-    if (true) {
-      dailyCounts.Morning = Math.floor(dailyCounts.Morning);
-      dailyCounts.Afternoon = Math.floor(dailyCounts.Afternoon);
-      dailyCounts.Night = Math.floor(dailyCounts.Night);
-      dailyCounts.Other = Math.floor(dailyCounts.Other);
-    }
+    dailyCounts.Morning = Math.floor(dailyCounts.Morning);
+    dailyCounts.Afternoon = Math.floor(dailyCounts.Afternoon);
+    dailyCounts.Night = Math.floor(dailyCounts.Night);
+    dailyCounts.Other = Math.floor(dailyCounts.Other);
 
     return [
-      { name: `Morning (${ts.morning.start}-${ts.morning.end})`, sessions: dailyCounts.Morning, fill: '#fde047', periodKey: 'Morning' },
-      { name: `Afternoon (${ts.afternoon.start}-${ts.afternoon.end})`, sessions: dailyCounts.Afternoon, fill: '#f97316', periodKey: 'Afternoon' },
-      { name: `Night (${ts.night.start}-${ts.night.end})`, sessions: dailyCounts.Night, fill: '#6366f1', periodKey: 'Night' },
-      ...(state.showOtherInActivityLog !== false ? [{ name: 'Other', sessions: dailyCounts.Other, fill: '#64748b', periodKey: 'Other' }] : [])
+      { 
+        name: `Morning (${ts.morning.start}-${ts.morning.end})`, 
+        sessions: dailyCounts.Morning, 
+        fill: '#fde047', 
+        periodKey: 'Morning',
+        internal: dailyDistractions.Morning.internal,
+        external: dailyDistractions.Morning.external,
+        unavoidable: dailyDistractions.Morning.unavoidable,
+        distractions: dailyDistractions.Morning.total,
+      },
+      { 
+        name: `Afternoon (${ts.afternoon.start}-${ts.afternoon.end})`, 
+        sessions: dailyCounts.Afternoon, 
+        fill: '#f97316', 
+        periodKey: 'Afternoon',
+        internal: dailyDistractions.Afternoon.internal,
+        external: dailyDistractions.Afternoon.external,
+        unavoidable: dailyDistractions.Afternoon.unavoidable,
+        distractions: dailyDistractions.Afternoon.total,
+      },
+      { 
+        name: `Night (${ts.night.start}-${ts.night.end})`, 
+        sessions: dailyCounts.Night, 
+        fill: '#6366f1', 
+        periodKey: 'Night',
+        internal: dailyDistractions.Night.internal,
+        external: dailyDistractions.Night.external,
+        unavoidable: dailyDistractions.Night.unavoidable,
+        distractions: dailyDistractions.Night.total,
+      },
+      ...(state.showOtherInActivityLog !== false ? [{ 
+        name: 'Other', 
+        sessions: dailyCounts.Other, 
+        fill: '#64748b', 
+        periodKey: 'Other',
+        internal: dailyDistractions.Other.internal,
+        external: dailyDistractions.Other.external,
+        unavoidable: dailyDistractions.Other.unavoidable,
+        distractions: dailyDistractions.Other.total,
+      }] : [])
     ];
-  }, [dailyDate, getSessionsForDate, ts, state.showOtherInActivityLog]);
+  }, [dailyDate, getSessionsForDate, ts, state.showOtherInActivityLog, state.includeRestTimeInTasks, getPeriodInfo]);
 
   const dailySessions = getSessionsForDate(dailyDate);
   const dailyCounts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
@@ -1113,6 +1341,12 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       const xp = daySessions.reduce((acc, s) => acc + s.xpEarned, 0) + 
                  dayRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0);
       const counts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
+      
+      let dayInternal = 0;
+      let dayExternal = 0;
+      let dayUnavoidable = 0;
+      let dayTotalDistractions = 0;
+
       daySessions.forEach(s => {
         const p = s.period || getPeriod(new Date(s.timestamp));
         const amount = Math.max(1, getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks));
@@ -1120,6 +1354,16 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           counts[p as keyof typeof counts] += amount;
         } else {
           counts.Other += amount;
+        }
+
+        if (s.distractions) {
+          const intCount = typeof s.distractions === 'number' ? (isNaN(s.distractions) ? 0 : s.distractions) : (Number(s.distractions.internal) || 0);
+          const extCount = typeof s.distractions === 'object' ? (Number(s.distractions.external) || 0) : 0;
+          const unavCount = typeof s.distractions === 'object' ? (Number(s.distractions.unavoidable) || 0) : 0;
+          dayInternal += intCount;
+          dayExternal += extCount;
+          dayUnavoidable += unavCount;
+          dayTotalDistractions += (intCount + extCount + unavCount);
         }
       });
       if (true) {
@@ -1139,13 +1383,17 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         total,
         xp,
         coins,
+        internal: dayInternal,
+        external: dayExternal,
+        unavoidable: dayUnavoidable,
+        distractions: dayTotalDistractions,
         moodHeight: 0,
         mood: log?.mood,
         efficiency: log?.rating || null,
         timestamp: date.getTime(),
       };
     });
-  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate]);
+  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, getPeriodInfo]);
 
   // --- Heatmap Data ---
   const heatmapDays = useMemo(() => {
@@ -1260,26 +1508,27 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           gold += (session.coinsEarned || 0);
           xp += (session.xpEarned || 0);
           timeOrTasks += getSessionEffectiveMinutes(session, !!state.includeRestTimeInTasks);
-          if (session.distractions) {
-            distractions += (session.distractions.internal + session.distractions.external + session.distractions.unavoidable);
-          }
+          distractions += getSessionDistractionCount(session.distractions);
        }
     });
 
     const activeDaysCount = activeDates.size;
+    const daysDivisor = viewOpts.averageCalculationBase === 'active_days'
+      ? (activeDaysCount > 0 ? activeDaysCount : 1)
+      : (heatmapDays.length > 0 ? heatmapDays.length : 1);
     
     return {
       activeDays: activeDaysCount,
       totalTimeOrTasks: timeOrTasks,
-      avgTimeOrTasks: heatmapDays.length > 0 ? Math.round(timeOrTasks / heatmapDays.length) : 0,
+      avgTimeOrTasks: Math.round(timeOrTasks / daysDivisor),
       totalGold: gold,
-      avgGold: heatmapDays.length > 0 ? Math.round(gold / heatmapDays.length) : 0,
+      avgGold: Math.round(gold / daysDivisor),
       totalExp: xp,
-      avgExp: heatmapDays.length > 0 ? Math.round(xp / heatmapDays.length) : 0,
+      avgExp: Math.round(xp / daysDivisor),
       totalDistractions: distractions,
-      avgDistractions: heatmapDays.length > 0 ? Math.round((distractions / heatmapDays.length) * 10) / 10 : 0,
+      avgDistractionsPerHour: timeOrTasks > 0 ? Math.round((distractions / (timeOrTasks / 60)) * 10) / 10 : 0,
     };
-  }, [heatmapDays, heatmapMode, history]);
+  }, [heatmapDays, heatmapMode, history, state.includeRestTimeInTasks, viewOpts.averageCalculationBase]);
 
   return (
     <div ref={statsContainerRef} className="w-full space-y-6 sm:space-y-8" onClick={() => {}} style={{ cursor: 'auto' }}>
@@ -1316,12 +1565,33 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         {/* Daily */}
         {shareConfig.showDaily && (
           <div id="daily-activity-section" className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 border-b border-slate-800/50 pb-4">
-            <div className="flex items-center justify-start w-full sm:w-auto gap-2">
-              <Calendar className="text-indigo-400" size={20} />
-              <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Daily</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
+            <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5">
+              <div className="flex items-center gap-2">
+                <Calendar className="text-indigo-400" size={20} />
+                <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Daily</h3>
+              </div>
+
+              <div className="relative bg-slate-800/50 hover:bg-slate-700 transition-colors rounded-lg flex items-center p-0.5 sm:p-1 cursor-pointer group" title="Layer Mode">
+                <span className="px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-widest text-indigo-400 group-hover:text-indigo-300 whitespace-nowrap pointer-events-none flex items-center gap-1">
+                  {dailyLayerMode === 'both' && 'Both'}
+                  {dailyLayerMode === 'bars' && 'Time'}
+                  {dailyLayerMode === 'lines' && 'Distractions'}
+                  <ChevronDown size={12} className="opacity-70" />
+                </span>
+                <select 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  value={dailyLayerMode}
+                  onChange={(e) => setDailyLayerMode(e.target.value as 'both' | 'bars' | 'lines')}
+                >
+                  <option value="both">Both</option>
+                  <option value="bars">Time</option>
+                  <option value="lines">Distractions</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full sm:w-auto">
+
+            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full sm:w-auto shrink-0">
               <button onClick={() => handleDailyDateChange(subDays(dailyDate, 1))} className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"><ChevronLeft size={16} /></button>
               <div className="relative flex items-center justify-center flex-1 sm:flex-none">
                 <DatePicker 
@@ -1367,35 +1637,116 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                 <span className="text-[10px] sm:text-lg font-black font-mono truncate">{formatDuration(dailyGains.tasks)}</span>
               </div>
             </div>
-            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
+            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0" title={`Total interruptions: ${dailyGains.distractions} across ${formatDuration(dailyGains.tasks)} focus time`}>
               <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full">Distracted</span>
-              <div className="flex items-center gap-1 sm:gap-1.5 text-rose-400 min-w-0">
+              <div className="flex items-center gap-0.5 sm:gap-1 text-rose-400 min-w-0">
                 <Zap size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-                <span className="text-[10px] sm:text-lg font-black font-mono truncate">{dailyGains.distractions}</span>
+                <span className="text-[10px] sm:text-lg font-black font-mono truncate">
+                  {dailyGains.tasks > 0 
+                    ? (Math.round((dailyGains.distractions / (dailyGains.tasks / 60)) * 10) / 10).toFixed(1) 
+                    : (dailyGains.distractions > 0 ? String(dailyGains.distractions) : '0.0')}
+                </span>
+                <span className="text-[8px] sm:text-xs text-rose-400/80 font-mono -ml-0.5">/h</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6">
             {(viewOpts.showDailyBar ?? true) && (
               <div className="h-48 min-h-[192px]">
                 <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                  <BarChart data={dailyData} onClick={(state) => handleChartClick(state, 'daily')} style={{ outline: 'none', touchAction: 'pan-y' }}>
+                  <ComposedChart 
+                    key={chartKeys.daily}
+                    data={dailyData} 
+                    onClick={(state) => handleChartClick(state, 'daily')} 
+                    margin={{ top: 12, right: dailyLayerMode === 'both' ? 12 : 16, left: 0, bottom: 0 }}
+                    style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
+                  >
                     <XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: '#64748b', fontSize: 10 }} />
+                    {(dailyLayerMode === 'both' || dailyLayerMode === 'bars') && (
+                      <YAxis 
+                        yAxisId="time" 
+                        orientation="left"
+                        domain={[0, 'auto']} 
+                        tickFormatter={formatTimeTick}
+                        tick={{ fill: '#64748b', fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={32}
+                      />
+                    )}
+                    {(dailyLayerMode === 'both' || dailyLayerMode === 'lines') && (
+                      <YAxis 
+                        yAxisId="distractions" 
+                        orientation={dailyLayerMode === 'both' ? 'right' : 'left'} 
+                        domain={[0, (dataMax: number) => Math.max(4, Math.ceil(dataMax * 1.25))]} 
+                        allowDecimals={false} 
+                        tick={{ fill: '#64748b', fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={dailyLayerMode === 'both' ? 20 : 28}
+                      />
+                    )}
                     <Tooltip 
                       key={chartKeys.daily}
                       trigger="click"
-                      content={<CustomDailyTooltip dateTimestamp={dailyDate.getTime()} />}
-                      cursor={{ fill: 'rgba(100, 116, 139, 0.2)' }}
+                      content={<CustomDailyTooltip dateTimestamp={dailyDate.getTime()} allData={dailyData} />}
+                      cursor={false}
                       wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                       allowEscapeViewBox={{ x: true, y: true }}
                     />
-                    <Bar dataKey="sessions" radius={[4, 4, 0, 0]}>
-                      {dailyData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                    {(dailyLayerMode === 'both' || dailyLayerMode === 'bars') && (
+                      <Bar yAxisId="time" dataKey="sessions" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                        {dailyData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    )}
+                    {dailyLayerMode === 'lines' && (
+                      <Bar yAxisId="distractions" dataKey="distractions" isAnimationActive={false}>
+                        {dailyData.map((_, index) => (
+                          <Cell key={`transparent-daily-cell-${index}`} fill="transparent" fillOpacity={0} stroke="transparent" />
+                        ))}
+                      </Bar>
+                    )}
+                    {(dailyLayerMode === 'both' || dailyLayerMode === 'lines') && (
+                      <>
+                        <Line 
+                          yAxisId="distractions" 
+                          type="monotone" 
+                          dataKey="internal" 
+                          stroke="#818cf8" 
+                          strokeWidth={2} 
+                          isAnimationActive={false}
+                          dot={{ fill: '#818cf8', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                          activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#818cf8' }}
+                          name="Internal"
+                        />
+                        <Line 
+                          yAxisId="distractions" 
+                          type="monotone" 
+                          dataKey="external" 
+                          stroke="#fb923c" 
+                          strokeWidth={2} 
+                          isAnimationActive={false}
+                          dot={{ fill: '#fb923c', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                          activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#fb923c' }}
+                          name="External"
+                        />
+                        <Line 
+                          yAxisId="distractions" 
+                          type="monotone" 
+                          dataKey="unavoidable" 
+                          stroke="#ef4444" 
+                          strokeWidth={2} 
+                          isAnimationActive={false}
+                          dot={{ fill: '#ef4444', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                          activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#ef4444' }}
+                          name="Unavoidable"
+                        />
+                      </>
+                    )}
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             )}
@@ -1600,8 +1951,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         {/* Weekly */}
         {shareConfig.showWeekly && (
           <div id="weekly-activity-section" className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4 border-b border-slate-800/50 pb-4">
-            <div className="flex items-center justify-between md:justify-start gap-2 sm:gap-4 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
+            <div className="flex flex-wrap items-center justify-between md:justify-start gap-2.5">
               <div className="flex items-center gap-2">
                 <CalendarDays className="text-indigo-400" size={20} />
                 <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Weekly</h3>
@@ -1620,8 +1971,27 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   <option value="rolling">Last 7d</option>
                 </select>
               </div>
+
+              <div className="relative bg-slate-800/50 hover:bg-slate-700 transition-colors rounded-lg flex items-center p-0.5 sm:p-1 cursor-pointer group" title="Layer Mode">
+                <span className="px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-widest text-indigo-400 group-hover:text-indigo-300 whitespace-nowrap pointer-events-none flex items-center gap-1">
+                  {weeklyLayerMode === 'both' && 'Both'}
+                  {weeklyLayerMode === 'bars' && 'Time'}
+                  {weeklyLayerMode === 'lines' && 'Distractions'}
+                  <ChevronDown size={12} className="opacity-70" />
+                </span>
+                <select 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  value={weeklyLayerMode}
+                  onChange={(e) => setWeeklyLayerMode(e.target.value as 'both' | 'bars' | 'lines')}
+                >
+                  <option value="both">Both</option>
+                  <option value="bars">Time</option>
+                  <option value="lines">Distractions</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full md:w-auto">
+
+            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full md:w-auto shrink-0">
               <button onClick={() => {
                 setWeeklyDate(subDays(weeklyDate, 7));
               }} className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"><ChevronLeft size={16} /></button>
@@ -1649,63 +2019,153 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           </div>
 
           {/* Weekly Gains Summary */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
-            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
-              <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Gold</span>
-              <div className="flex items-center gap-1 sm:gap-1.5 text-amber-400 min-w-0">
-                <Coins size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-                <span className="text-[10px] sm:text-lg font-black font-mono truncate">+{Math.round(weeklyGains.coins / Math.max(1, weeklyDays.length))}</span>
+          {(() => {
+            const weeklyDivisor = viewOpts.averageCalculationBase === 'active_days' 
+              ? weeklyActiveDaysCount 
+              : Math.max(1, weeklyDays.length);
+            return (
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+                <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Gold</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-amber-400 min-w-0">
+                    <Coins size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
+                    <span className="text-[10px] sm:text-lg font-black font-mono truncate">+{Math.round(weeklyGains.coins / weeklyDivisor)}</span>
+                  </div>
+                </div>
+                <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Exp</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-indigo-400 min-w-0">
+                    <Zap size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
+                    <span className="text-[10px] sm:text-lg font-black font-mono truncate">+{Math.round(weeklyGains.xp / weeklyDivisor)}</span>
+                  </div>
+                </div>
+                <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Time</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-emerald-400 min-w-0">
+                    <Sword size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
+                    <span className="text-[10px] sm:text-lg font-black font-mono truncate">{formatDuration(Math.round(weeklyGains.tasks / weeklyDivisor))}</span>
+                  </div>
+                </div>
+                <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0" title={`Total interruptions: ${weeklyGains.distractions} across ${formatDuration(weeklyGains.tasks)} focus time`}>
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Distracted</span>
+                  <div className="flex items-center gap-0.5 sm:gap-1 text-rose-400 min-w-0">
+                    <Zap size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
+                    <span className="text-[10px] sm:text-lg font-black font-mono truncate">
+                      {weeklyGains.tasks > 0 
+                        ? (Math.round((weeklyGains.distractions / (weeklyGains.tasks / 60)) * 10) / 10).toFixed(1) 
+                        : (weeklyGains.distractions > 0 ? String(weeklyGains.distractions) : '0.0')}
+                    </span>
+                    <span className="text-[8px] sm:text-xs text-rose-400/80 font-mono -ml-0.5">/h</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
-              <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Exp</span>
-              <div className="flex items-center gap-1 sm:gap-1.5 text-indigo-400 min-w-0">
-                <Zap size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-                <span className="text-[10px] sm:text-lg font-black font-mono truncate">+{Math.round(weeklyGains.xp / Math.max(1, weeklyDays.length))}</span>
-              </div>
-            </div>
-            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
-              <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Time</span>
-              <div className="flex items-center gap-1 sm:gap-1.5 text-emerald-400 min-w-0">
-                <Sword size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-                <span className="text-[10px] sm:text-lg font-black font-mono truncate">{formatDuration(Math.round(weeklyGains.tasks / Math.max(1, weeklyDays.length)))}</span>
-              </div>
-            </div>
-            <div className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0">
-              <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">Avg Distracted</span>
-              <div className="flex items-center gap-1 sm:gap-1.5 text-rose-400 min-w-0">
-                <Zap size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-                <span className="text-[10px] sm:text-lg font-black font-mono truncate">{Math.round((weeklyGains.distractions / Math.max(1, weeklyDays.length)) * 10) / 10}</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
           
-          <div className="space-y-8">
+          <div className="space-y-6">
             {(viewOpts.showWeeklyBar ?? true) && (
               <>
                 <div className="h-48 min-h-[192px]">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                    <BarChart data={weeklyData} onClick={(state) => handleChartClick(state, 'weeklyBar')} style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}>
+                    <ComposedChart 
+                      key={chartKeys.weeklyBar}
+                      data={weeklyData} 
+                      onClick={(state) => handleChartClick(state, 'weeklyBar')} 
+                      margin={{ top: 12, right: weeklyLayerMode === 'both' ? 12 : 16, left: 0, bottom: 0 }}
+                      style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
+                    >
                       <XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: '#64748b', fontSize: 10 }} />
+                      {(weeklyLayerMode === 'both' || weeklyLayerMode === 'bars') && (
+                        <YAxis 
+                          yAxisId="time" 
+                          orientation="left"
+                          domain={[0, 'auto']} 
+                          tickFormatter={formatTimeTick}
+                          tick={{ fill: '#64748b', fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={32}
+                        />
+                      )}
+                      {(weeklyLayerMode === 'both' || weeklyLayerMode === 'lines') && (
+                        <YAxis 
+                          yAxisId="distractions" 
+                          orientation={weeklyLayerMode === 'both' ? 'right' : 'left'} 
+                          domain={[0, (dataMax: number) => Math.max(4, Math.ceil(dataMax * 1.25))]} 
+                          allowDecimals={false} 
+                          tick={{ fill: '#64748b', fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={weeklyLayerMode === 'both' ? 20 : 28}
+                        />
+                      )}
                       <Tooltip 
                         key={chartKeys.weeklyBar}
                         trigger="click"
-                        content={<CustomWeeklyTooltip />}
-                        cursor={{ fill: 'rgba(100, 116, 139, 0.2)' }}
+                        content={<CustomWeeklyTooltip allData={weeklyData} />}
+                        cursor={false}
                         wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                         allowEscapeViewBox={{ x: true, y: true }}
                       />
-                      <Bar dataKey="Morning" stackId="a" fill="#fde047" />
-                      <Bar dataKey="Afternoon" stackId="a" fill="#f97316" />
-                      <Bar dataKey="Night" stackId="a" fill="#6366f1" />
-                      {state.showOtherInActivityLog !== false && (
-                        <Bar dataKey="Other" stackId="a" fill="#64748b" radius={[4, 4, 0, 0]} />
+                      {(weeklyLayerMode === 'both' || weeklyLayerMode === 'bars') && (
+                        <>
+                          <Bar yAxisId="time" dataKey="Morning" stackId="a" fill="#fde047" isAnimationActive={false} />
+                          <Bar yAxisId="time" dataKey="Afternoon" stackId="a" fill="#f97316" isAnimationActive={false} />
+                          <Bar yAxisId="time" dataKey="Night" stackId="a" fill="#6366f1" isAnimationActive={false} />
+                          {state.showOtherInActivityLog !== false && (
+                            <Bar yAxisId="time" dataKey="Other" stackId="a" fill="#64748b" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                          )}
+                          {/* Mood Icon Layer - Stacked with 0 height to stay at the top */}
+                          <Bar yAxisId="time" dataKey="moodHeight" stackId="a" fill="transparent" isAnimationActive={false}>
+                            <LabelList content={renderMoodIcon} />
+                          </Bar>
+                        </>
                       )}
-                      {/* Mood Icon Layer - Stacked with 0 height to stay at the top */}
-                      <Bar dataKey="moodHeight" stackId="a" fill="transparent" isAnimationActive={false}>
-                        <LabelList content={renderMoodIcon} />
-                      </Bar>
-                    </BarChart>
+                      {weeklyLayerMode === 'lines' && (
+                        <Bar yAxisId="distractions" dataKey="distractions" isAnimationActive={false}>
+                          {weeklyData.map((_, index) => (
+                            <Cell key={`transparent-weekly-cell-${index}`} fill="transparent" fillOpacity={0} stroke="transparent" />
+                          ))}
+                        </Bar>
+                      )}
+                      {(weeklyLayerMode === 'both' || weeklyLayerMode === 'lines') && (
+                        <>
+                          <Line 
+                            yAxisId="distractions" 
+                            type="monotone" 
+                            dataKey="internal" 
+                            stroke="#818cf8" 
+                            strokeWidth={2} 
+                            isAnimationActive={false}
+                            dot={{ fill: '#818cf8', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                            activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#818cf8' }}
+                            name="Internal"
+                          />
+                          <Line 
+                            yAxisId="distractions" 
+                            type="monotone" 
+                            dataKey="external" 
+                            stroke="#fb923c" 
+                            strokeWidth={2} 
+                            isAnimationActive={false}
+                            dot={{ fill: '#fb923c', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                            activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#fb923c' }}
+                            name="External"
+                          />
+                          <Line 
+                            yAxisId="distractions" 
+                            type="monotone" 
+                            dataKey="unavoidable" 
+                            stroke="#ef4444" 
+                            strokeWidth={2} 
+                            isAnimationActive={false}
+                            dot={{ fill: '#ef4444', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                            activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#ef4444' }}
+                            name="Unavoidable"
+                          />
+                        </>
+                      )}
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
 
@@ -1716,7 +2176,13 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   </div>
                   <div className="h-32 min-h-[128px]">
                     <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                      <LineChart data={weeklyData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }} onClick={(state) => handleChartClick(state, 'weeklyLine')} style={{ outline: 'none', touchAction: 'pan-y' }}>
+                      <LineChart 
+                        key={chartKeys.weeklyLine}
+                        data={weeklyData} 
+                        margin={{ top: 10, right: 10, left: 10, bottom: 20 }} 
+                        onClick={(state) => handleChartClick(state, 'weeklyLine')} 
+                        style={{ outline: 'none', touchAction: 'pan-y' }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: '#64748b', fontSize: 10 }} />
                         <YAxis hide domain={[0, 5]} />
@@ -1851,6 +2317,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           <div className="h-80 min-h-[320px]">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <ComposedChart 
+                key={chartKeys.sleep}
                 data={sleepData} 
                 onClick={(state) => handleChartClick(state, 'sleep')}
                 style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible', cursor: 'pointer' }} 
@@ -1890,7 +2357,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                   allowEscapeViewBox={{ x: true, y: true }}
                   content={<CustomSleepTooltip />}
-                  cursor={{ fill: 'rgba(100, 116, 139, 0.2)' }}
+                  cursor={false}
                 />
                 <Bar yAxisId="right" dataKey="duration" fill="#818cf8" radius={[4, 4, 0, 0]} opacity={0.5} barSize={20} />
                 <Line yAxisId="left" type="linear" dataKey="sleepTime" stroke="#6366f1" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#1e293b' }} />
@@ -2272,8 +2739,12 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                               <span className="text-base font-black font-mono text-rose-400">{heatmapSummary.totalDistractions}</span>
                            </div>
                            <div className="flex flex-col items-center text-center">
-                              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Avg/Day</span>
-                              <span className="text-base font-black font-mono text-rose-400/80">{heatmapSummary.avgDistractions}</span>
+                              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Avg/h</span>
+                              <span className="text-base font-black font-mono text-rose-400/80">
+                                {heatmapSummary.totalTimeOrTasks > 0 
+                                  ? (heatmapSummary.avgDistractionsPerHour).toFixed(1) 
+                                  : (heatmapSummary.totalDistractions > 0 ? String(heatmapSummary.totalDistractions) : '0.0')}
+                              </span>
                            </div>
                         </div>
                      </div>
