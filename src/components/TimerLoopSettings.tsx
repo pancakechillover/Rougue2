@@ -20,7 +20,7 @@ export const TimerLoopSettings: React.FC<TimerLoopSettingsProps> = ({
 }) => {
   return (
     <div className="flex items-center gap-2">
-      <label className="flex items-center gap-2 text-sm font-bold text-slate-300 cursor-pointer group">
+      <label className="flex items-center gap-2 text-sm font-bold text-slate-300 cursor-pointer group select-none">
         <div className={cn(
           "w-8 h-5 rounded-full transition-colors relative",
           isLooping ? "bg-indigo-500" : "bg-slate-700"
@@ -42,7 +42,7 @@ export const TimerLoopSettings: React.FC<TimerLoopSettingsProps> = ({
         Loop
       </label>
       {isLooping && (
-        <div className="relative ml-1 flex items-center gap-2">
+        <div className="relative ml-1 flex items-center gap-2 animate-in fade-in duration-200">
           <SpinnerInput
             allowInfinity
             min={2}
@@ -55,9 +55,9 @@ export const TimerLoopSettings: React.FC<TimerLoopSettingsProps> = ({
               }
               setLoopCount(0);
             }}
-            className="w-20 px-2 py-1.5 text-xs text-center border bg-slate-800 text-slate-300 focus:border-indigo-500 transition-all font-bold"
+            className="w-20 px-2.5 py-1.5 text-xs text-center border border-slate-700 bg-slate-800 text-slate-300 focus:border-indigo-500 transition-all font-mono font-bold"
           />
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Times</span>
+          <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider select-none">Times</span>
         </div>
       )}
     </div>

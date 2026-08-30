@@ -185,6 +185,14 @@ export interface Transaction {
   reason: string;
 }
 
+export interface EfficiencyRatingConfig {
+  autoCalculateOnOpen?: boolean;
+  maxDistractionsPerHour?: number; // b, default 10
+  completionRateWeight?: number; // c, default 70 (%)
+  focusQualityWeight?: number; // d, default 30 (%)
+  ratingDisplayPreference?: 'efficiency' | 'star';
+}
+
 export interface TodayTodo {
   id: string;
   title: string;
@@ -192,6 +200,7 @@ export interface TodayTodo {
   completed: boolean;
   durationMinutes?: number;
   date?: string; // Format: YYYY-MM-DD
+  source?: 'manual' | 'expedition' | 'yesterday' | 'ddl' | 'routine';
 }
 
 export interface AppState {
@@ -344,6 +353,7 @@ export interface AppState {
   dailyProgressGoalConfig?: Record<number, number>;
   useSameDailyProgressGoalEveryDay?: boolean;
   dailyProgressGoal?: number;
+  efficiencyRatingConfig?: EfficiencyRatingConfig;
   limitedMentalEffort?: boolean;
   // Custom Time Mocking
   customTimeEnabled?: boolean;
@@ -378,6 +388,7 @@ export interface AppState {
     weeklyDonutMode?: 'time_of_day' | 'day_of_week';
     hiddenRoutines?: string[];
     averageCalculationBase?: 'active_days' | 'total_days';
+    yAxisMaxMode?: 'dynamic' | 'fixed';
   };
 }
 

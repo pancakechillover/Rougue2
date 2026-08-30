@@ -753,7 +753,7 @@ export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { stat
                <div className="flex-1 pr-4">
                  <div className="text-sm font-bold text-white mb-0.5">Show "Start of the Day" Prompt</div>
                  <div className="text-[11px] text-slate-500 leading-relaxed">
-                   When enabled, the app will automatically show the daily summary and streak check screen when opened in a new day. Disabled by default.
+                   When enabled, the app will play a sunrise animation on startup and open directly into the Start of the Day screen on a new day. Disabled by default.
                  </div>
                </div>
              </div>

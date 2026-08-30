@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { format, subDays } from 'date-fns';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
+import { format, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
 import { 
   X, 
   Moon, 
@@ -26,20 +26,28 @@ import {
   Circle,
   Calendar,
   ListPlus,
-  Target
+  Target,
+  Play,
+  CalendarClock,
+  RotateCcw,
+  RefreshCcw,
+  Layers,
+  ArrowUpDown
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { TimePicker } from './TimePicker';
 import { useScrollLock } from '../hooks/useScrollLock';
-import { AppState, Dungeon, TodayTodo } from '../types';
-import { cn } from '../lib/utils';
+import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../types';
+import { cn, sortAgendaTodos } from '../lib/utils';
 import { getSettlementDay } from '../lib/utils';
 import { ConfirmModal } from './ConfirmModal';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
+import { ExpeditionTreePicker } from './common/ExpeditionTreePicker';
 
 interface StartOfDayModalProps {
   state: AppState;
   dungeons: Dungeon[];
+  majorDungeons?: MajorDungeon[];
   onClose: () => void;
   onSave: (date: string, sleepTime: string, wakeTime: string, sleepDurationMin: number, reflection: string, mood?: string) => void;
   repairStreak?: (dateStr: string) => void;
@@ -47,8 +55,105 @@ interface StartOfDayModalProps {
   onUpdateState?: (update: Partial<AppState>) => void;
 }
 
-export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeons, onClose, onSave, initialDateStr, onUpdateState, repairStreak }) => {
+interface DraggableStartOfDayTodoItemProps {
+  todo: TodayTodo;
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+const DraggableStartOfDayTodoItem: React.FC<DraggableStartOfDayTodoItemProps> = ({
+  todo,
+  children,
+  className,
+  onClick
+}) => {
+  const controls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const startPosRef = React.useRef<{ x: number; y: number } | null>(null);
+  const didDragRef = React.useRef(false);
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('a')) {
+      return;
+    }
+    didDragRef.current = false;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+
+    timerRef.current = setTimeout(() => {
+      setIsDragging(true);
+      didDragRef.current = true;
+      if (navigator.vibrate) {
+        try { navigator.vibrate(40); } catch {}
+      }
+      controls.start(e);
+    }, 300);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (timerRef.current && startPosRef.current) {
+      const dist = Math.hypot(e.clientX - startPosRef.current.x, e.clientY - startPosRef.current.y);
+      if (dist > 8) {
+        clearTimer();
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (didDragRef.current || isDragging) {
+      e.stopPropagation();
+      didDragRef.current = false;
+      return;
+    }
+    onClick?.();
+  };
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={todo}
+      dragListener={false}
+      dragControls={controls}
+      onDragEnd={() => {
+        setIsDragging(false);
+        setTimeout(() => { didDragRef.current = false; }, 50);
+      }}
+      className={cn(className, "w-full relative touch-pan-y select-none", isDragging && "z-50 shadow-lg ring-1 ring-indigo-500/30 opacity-95")}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={clearTimer}
+      onPointerCancel={clearTimer}
+      onPointerLeave={clearTimer}
+      onClick={handleClick}
+    >
+      {children}
+    </Reorder.Item>
+  );
+};
+
+export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ 
+  state, 
+  dungeons, 
+  majorDungeons = [], 
+  onClose, 
+  onSave, 
+  initialDateStr, 
+  onUpdateState, 
+  repairStreak 
+}) => {
   useScrollLock(true);
+  
+  const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   
   const today = useMemo(() => {
     const ts = state.timeSettings || {
@@ -150,14 +255,133 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
     return allTodos.filter(t => t.date === todayStr || (!t.date && todayStr === getSettlementDay(new Date(), state.timeSettings)));
   }, [allTodos, todayStr, state.timeSettings]);
 
+  // Memoized O(1) Index Maps for Expeditions & Major Goals
+  const dungeonMap = useMemo(() => {
+    const map = new Map<string, Dungeon>();
+    for (const d of (dungeons || [])) {
+      map.set(d.id, d);
+    }
+    return map;
+  }, [dungeons]);
+
+  const majorDungeonMap = useMemo(() => {
+    const map = new Map<string, MajorDungeon>();
+    for (const m of (majorDungeons || [])) {
+      map.set(m.id, m);
+    }
+    return map;
+  }, [majorDungeons]);
+
+  // Calculate importable tasks: Yesterday's uncompleted agenda + Active expeditions with deadlines
+  const importableTasks = useMemo(() => {
+    const targetDate = new Date(todayStr);
+    const yesterdayDateStr = format(subDays(targetDate, 1), 'yyyy-MM-dd');
+    const existingDungeonIds = new Set(startDayTodos.map(t => t.dungeonId).filter(Boolean));
+    const existingTitles = new Set(startDayTodos.map(t => t.title.toLowerCase().trim()));
+
+    const itemsToAdd: { title: string; dungeonId?: string; durationMinutes?: number; source: 'yesterday' | 'ddl' | 'routine' }[] = [];
+
+    // 1. Yesterday's uncompleted agenda items
+    const yesterdayTodos = allTodos.filter(t => {
+      const isYesterday = t.date === yesterdayDateStr || (!t.date && yesterdayDateStr === getSettlementDay(subDays(new Date(), 1), state.timeSettings));
+      return isYesterday && !t.completed;
+    });
+
+    for (const yTodo of yesterdayTodos) {
+      const cleanTitle = yTodo.title.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+      if (yTodo.dungeonId) {
+        const dungeon = dungeonMap.get(yTodo.dungeonId);
+        if (dungeon && (dungeon.status === 'completed' || dungeon.status === 'archived')) continue;
+        if (existingDungeonIds.has(yTodo.dungeonId)) continue;
+        existingDungeonIds.add(yTodo.dungeonId);
+        itemsToAdd.push({
+          title: cleanTitle,
+          dungeonId: yTodo.dungeonId,
+          durationMinutes: yTodo.durationMinutes,
+          source: 'yesterday'
+        });
+      } else {
+        const normalizedTitle = cleanTitle.toLowerCase().trim();
+        if (existingTitles.has(normalizedTitle)) continue;
+        existingTitles.add(normalizedTitle);
+        itemsToAdd.push({
+          title: cleanTitle,
+          durationMinutes: yTodo.durationMinutes,
+          source: 'yesterday'
+        });
+      }
+    }
+
+    // 2. Uncompleted expeditions with a deadline
+    const activeDungeonsWithDeadline = (dungeons || []).filter(d => {
+      if (d.status === 'completed' || d.status === 'archived') return false;
+      if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
+      const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      const hasDeadline = (d.deadline && d.deadline.trim() !== '') || (parentMajor?.deadline && parentMajor.deadline.trim() !== '');
+      return Boolean(hasDeadline);
+    });
+
+    for (const d of activeDungeonsWithDeadline) {
+      if (existingDungeonIds.has(d.id)) continue;
+      existingDungeonIds.add(d.id);
+      const cleanDungeonName = d.name.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+      itemsToAdd.push({
+        title: cleanDungeonName,
+        dungeonId: d.id,
+        source: 'ddl'
+      });
+    }
+
+    // 3. Uncompleted expeditions with routine attribute
+    const activeRoutineDungeons = (dungeons || []).filter(d => {
+      if (d.status === 'completed' || d.status === 'archived') return false;
+      if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
+      const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      return Boolean(d.isRoutine || parentMajor?.isRoutine);
+    });
+
+    for (const d of activeRoutineDungeons) {
+      if (existingDungeonIds.has(d.id)) continue;
+      existingDungeonIds.add(d.id);
+      const cleanDungeonName = d.name.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+      itemsToAdd.push({
+        title: cleanDungeonName,
+        dungeonId: d.id,
+        source: 'routine'
+      });
+    }
+
+    return itemsToAdd;
+  }, [todayStr, allTodos, startDayTodos, dungeons, dungeonMap, majorDungeonMap, state.timeSettings]);
+
+  const handleImportPendingAndDdl = () => {
+    if (importableTasks.length === 0 || !onUpdateState) return;
+
+    const newTodos: TodayTodo[] = importableTasks.map(item => ({
+      id: Math.random().toString(36).substr(2, 9),
+      title: item.title.replace(/^\[Tier\s*\d+\]\s*/i, '').trim(),
+      dungeonId: item.dungeonId,
+      completed: false,
+      durationMinutes: item.durationMinutes,
+      date: todayStr,
+      source: item.source
+    }));
+
+    onUpdateState({
+      todayTodos: [...allTodos, ...newTodos]
+    });
+  };
+
   const handleAddTodo = (titleText: string, targetDungeonId?: string) => {
     if (!titleText.trim() || !onUpdateState) return;
+    const cleanTitle = titleText.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
     const newTodo: TodayTodo = {
       id: Math.random().toString(36).substr(2, 9),
-      title: titleText.trim(),
+      title: cleanTitle,
       dungeonId: targetDungeonId,
       completed: false,
-      date: todayStr
+      date: todayStr,
+      source: targetDungeonId ? 'expedition' : 'manual'
     };
     onUpdateState({
       todayTodos: [...allTodos, newTodo]
@@ -166,12 +390,56 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
     setShowExpeditionPicker(false);
   };
 
+  // Close expedition picker on outside click / tap
+  useEffect(() => {
+    if (!showExpeditionPicker) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.expedition-picker-container')) {
+        setShowExpeditionPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [showExpeditionPicker]);
+
   const handleToggleTodo = (id: string) => {
     if (!onUpdateState) return;
     const updated = allTodos.map(t => 
       t.id === id ? { ...t, completed: !t.completed } : t
     );
     onUpdateState({ todayTodos: updated });
+  };
+
+  const handleReorderStartDayTodos = (reordered: TodayTodo[]) => {
+    if (!onUpdateState) return;
+    const reorderedIds = new Set(reordered.map(t => t.id));
+    const otherTodos = allTodos.filter(t => !reorderedIds.has(t.id));
+    onUpdateState({ todayTodos: [...reordered, ...otherTodos] });
+  };
+
+  const startDayTodosCompletedCount = useMemo(() => {
+    return startDayTodos.filter(t => {
+      if (t.completed) return true;
+      if (t.dungeonId) {
+        const d = dungeonMap.get(t.dungeonId);
+        return d?.status === 'completed';
+      }
+      return false;
+    }).length;
+  }, [startDayTodos, dungeonMap]);
+
+  const startDayTodosPendingCount = startDayTodos.length - startDayTodosCompletedCount;
+
+  const handleAutoSortStartDayTodos = () => {
+    if (startDayTodos.length <= 1) return;
+    const referenceDate = new Date(todayStr);
+    const sorted = sortAgendaTodos(startDayTodos, dungeons || [], majorDungeons || [], referenceDate);
+    handleReorderStartDayTodos(sorted);
   };
 
   const handleRemoveTodo = (id: string, e: React.MouseEvent) => {
@@ -423,7 +691,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
 
   const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center sm:p-6 lg:p-8 bg-slate-950/90 backdrop-blur-md m-0">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md m-0 p-0">
         <motion.div
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
@@ -433,10 +701,11 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
         />
         
         <motion.div
-           initial={{ opacity: 0, scale: 0.95, y: 20 }}
-           animate={{ opacity: 1, scale: 1, y: 0 }}
-           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-           className="bg-slate-900 border-0 sm:border border-indigo-500/30 rounded-none sm:rounded-[2.5rem] w-[100vw] sm:w-[95vw] sm:max-w-[1400px] h-[100dvh] sm:h-[90vh] shadow-2xl overflow-hidden relative flex flex-col z-10"
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           transition={{ duration: 0.2 }}
+           className="bg-slate-900 border-0 rounded-none w-screen h-screen h-[100dvh] shadow-2xl overflow-hidden relative flex flex-col z-10"
         >
           <div className="py-4 px-6 sm:px-8 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-indigo-500/10 to-transparent relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
@@ -588,9 +857,25 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
                   <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
                      <Target className="text-indigo-400" size={16} /> Today's Agenda
                   </h3>
-                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    {startDayTodos.filter(t => t.completed).length} / {startDayTodos.length}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <span className={cn("font-bold", startDayTodosCompletedCount > 0 ? "text-emerald-400" : "text-slate-400")}>
+                        {startDayTodosCompletedCount}
+                      </span>
+                      <span className="text-slate-500">/</span>
+                      <span className="text-slate-200">{startDayTodos.length}</span>
+                    </span>
+                    {startDayTodos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAutoSortStartDayTodos}
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-[10px] font-semibold bg-slate-900/80 hover:bg-indigo-500/15 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 transition-all active:scale-95 shadow-sm"
+                        title="Auto-Sort: Overdue DDL → Left DDL → Yesterday → Routine → General"
+                      >
+                        <ArrowUpDown size={12} className="text-indigo-400" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Input form */}
@@ -608,56 +893,68 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
                     }}
                     className="flex-grow bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
                   />
-                  
-                  <button 
+
+                  <button
                     type="button"
-                    onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
+                    onClick={handleImportPendingAndDdl}
+                    disabled={importableTasks.length === 0}
                     className={cn(
-                      "p-2 rounded-xl border flex items-center justify-center transition-all shrink-0",
-                      showExpeditionPicker 
-                        ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400" 
-                        : "bg-slate-950/30 border-slate-800 text-slate-400 hover:text-white"
+                      "relative p-2 rounded-xl border flex items-center justify-center transition-all shrink-0",
+                      importableTasks.length > 0
+                        ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/25 hover:border-indigo-500/60 hover:text-indigo-300 shadow-sm"
+                        : "bg-slate-900/40 border-slate-800/60 text-slate-500 cursor-not-allowed opacity-40"
                     )}
-                    title="Select from active expeditions"
+                    title={
+                      importableTasks.length > 0 
+                        ? `Import ${importableTasks.length} pending task${importableTasks.length > 1 ? 's' : ''} (yesterday's unfinished, active deadlines & routines)`
+                        : "No pending, deadline, or routine tasks to import"
+                    }
                   >
-                    <ListPlus size={16} />
+                    <CalendarClock size={16} />
+                    {importableTasks.length > 0 && (
+                      <span className="absolute -bottom-0.5 -right-0.5 px-1 py-0.2 bg-indigo-500 text-white text-[8px] font-black rounded-full leading-tight shadow-sm">
+                        {importableTasks.length}
+                      </span>
+                    )}
                   </button>
+                  
+                  <div className="relative expedition-picker-container">
+                    <button 
+                      type="button"
+                      onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
+                      className={cn(
+                        "p-2 rounded-xl border flex items-center justify-center transition-all shrink-0",
+                        showExpeditionPicker 
+                          ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400" 
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                      )}
+                      title="Select from active expeditions"
+                    >
+                      <ListPlus size={16} />
+                    </button>
+
+                    {showExpeditionPicker && (
+                      <div className="absolute right-0 bottom-[calc(100%+8px)] w-72 sm:w-80 shadow-2xl z-50">
+                        <ExpeditionTreePicker
+                          dungeons={dungeons}
+                          majorDungeons={majorDungeons}
+                          onSelect={(item) => {
+                            handleAddTodo(item.name, item.id);
+                          }}
+                          onClose={() => setShowExpeditionPicker(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   <button 
                     onClick={() => handleAddTodo(newTodoTitle)}
                     disabled={!newTodoTitle.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl px-4 py-2 text-xs font-bold transition-all flex items-center justify-center shrink-0"
+                    className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl px-3.5 py-2 text-xs font-bold transition-all flex items-center justify-center shrink-0"
+                    title="Add Task"
                   >
                     <Plus size={16} />
                   </button>
-
-                  {showExpeditionPicker && (
-                    <div className="absolute right-0 bottom-[calc(100%+8px)] w-60 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50">
-                      <div className="p-2 sm:p-2.5 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center mr-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Expedition</span>
-                        <span className="text-[9px] text-slate-600">Active only</span>
-                      </div>
-                      <div className="max-h-40 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
-                        {activeExpeditions.length === 0 ? (
-                          <div className="text-[11px] text-slate-500 text-center py-4">No active expeditions</div>
-                        ) : (
-                          activeExpeditions.map(d => (
-                            <button
-                              key={d.id}
-                              type="button"
-                              onClick={() => {
-                                handleAddTodo(d.name, d.id);
-                              }}
-                              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-800 text-[11px] font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 truncate"
-                            >
-                              <Target size={12} className="text-indigo-400 shrink-0" />
-                              <span className="truncate">{d.name}</span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Todos List */}
@@ -669,43 +966,252 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ state, dungeon
                       <p className="text-slate-600 text-[10px] mt-0.5 w-full">Let's set goals to start strong!</p>
                     </div>
                   ) : (
-                    startDayTodos.map(todo => (
-                      <div 
-                        key={todo.id}
-                        onClick={() => handleToggleTodo(todo.id)}
-                        className={cn(
-                          "group flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer text-xs",
-                          todo.completed 
-                            ? "bg-slate-900/10 border-slate-900/30 opacity-50" 
-                            : "bg-slate-950/40 border-slate-800 hover:border-indigo-500/30"
-                        )}
-                      >
-                        <button className={cn("flex-shrink-0 transition-colors", todo.completed ? "text-indigo-500" : "text-slate-500 group-hover:text-slate-400")}>
-                          {todo.completed ? <CheckCircle size={16} className="fill-indigo-500/10" /> : <Circle size={16} />}
-                        </button>
-                        
-                        <div className="flex-grow min-w-0 pr-1">
-                          <p className={cn(
-                            "font-medium truncate transition-all text-slate-200",
-                            todo.completed && "text-slate-500 line-through"
-                          )}>
-                            {todo.title}
-                          </p>
-                          {todo.dungeonId && (
-                            <p className="text-[9px] text-slate-500 flex items-center gap-0.5 mt-0.5">
-                              <Calendar size={8} /> Expedition
-                            </p>
-                          )}
-                        </div>
+                    <Reorder.Group
+                      as="div"
+                      axis="y"
+                      values={startDayTodos}
+                      onReorder={handleReorderStartDayTodos}
+                      className="space-y-1.5 w-full"
+                    >
+                      {startDayTodos.map(todo => {
+                        const isExpedition = !!todo.dungeonId;
+                        const isCurrentFocus = isExpedition && state.currentDungeonId === todo.dungeonId;
+                        const dungeonItem = isExpedition ? dungeonMap.get(todo.dungeonId!) : null;
+                        const isDungeonDone = dungeonItem?.status === 'completed';
+                        const isChecked = todo.completed || isDungeonDone;
 
-                        <button 
-                          onClick={(e) => handleRemoveTodo(todo.id, e)}
-                          className="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition-all duration-200 shrink-0"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))
+                        const parentMajor = dungeonItem?.parentId ? majorDungeonMap.get(dungeonItem.parentId) : undefined;
+                        const effectiveDeadline = dungeonItem?.deadline?.trim() || parentMajor?.deadline?.trim();
+
+                        let daysLeft: number | null = null;
+                        if (effectiveDeadline) {
+                          try {
+                            const ddlDate = parseISO(effectiveDeadline);
+                            const baseDate = new Date(todayStr);
+                            daysLeft = differenceInCalendarDays(ddlDate, baseDate);
+                          } catch {
+                            daysLeft = null;
+                          }
+                        }
+
+                        const tagInfo = (() => {
+                          if (todo.source === 'yesterday') {
+                            return {
+                              colorClass: isDarkTheme ? "text-blue-400" : "text-blue-500",
+                              barColor: "bg-blue-500",
+                              label: "Yesterday",
+                              extraText: null,
+                              icon: RotateCcw
+                            };
+                          }
+
+                          // Expedition task has a deadline that is NOT yet expired (daysLeft > 0) -> Orange
+                          if (daysLeft !== null && daysLeft > 0) {
+                            return {
+                              colorClass: isDarkTheme ? "text-orange-400" : "text-orange-500",
+                              barColor: "bg-orange-500",
+                              label: "Expedition",
+                              extraText: daysLeft === 1 ? "1d left" : `${daysLeft}d left`,
+                              icon: CalendarClock
+                            };
+                          }
+
+                          // DDL source or deadline due today / overdue -> Red
+                          if (todo.source === 'ddl' || (daysLeft !== null && daysLeft <= 0)) {
+                            const extra = daysLeft === null
+                              ? null
+                              : daysLeft === 0
+                                ? "Due today"
+                                : `${Math.abs(daysLeft)}d overdue`;
+                            return {
+                              colorClass: isDarkTheme ? "text-rose-400" : "text-rose-500",
+                              barColor: "bg-rose-500",
+                              label: "Deadline",
+                              extraText: extra,
+                              icon: CalendarClock
+                            };
+                          }
+
+                          // Routine task -> Orange (matching bright orange Flame/Streak/Productive theme)
+                          const isRoutine = Boolean(todo.source === 'routine' || dungeonItem?.isRoutine || parentMajor?.isRoutine);
+                          if (isRoutine) {
+                            const rType = dungeonItem?.routineType || parentMajor?.routineType;
+                            const rTypeText = rType ? (rType.charAt(0).toUpperCase() + rType.slice(1)) : null;
+                            return {
+                              colorClass: isDarkTheme ? "text-orange-400" : "text-orange-500",
+                              barColor: "bg-orange-500",
+                              label: "Routine",
+                              extraText: rTypeText,
+                              icon: RefreshCcw
+                            };
+                          }
+
+                          // Standard Expedition
+                          if (isExpedition || todo.source === 'expedition' || dungeonItem) {
+                            return {
+                              colorClass: isDarkTheme ? "text-indigo-400" : "text-indigo-500",
+                              barColor: "bg-indigo-500",
+                              label: "Expedition",
+                              extraText: null,
+                              icon: Layers
+                            };
+                          }
+
+                          return null;
+                        })();
+
+                        const cleanTitle = (dungeonItem?.name || todo.title).replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+
+                        return (
+                          <DraggableStartOfDayTodoItem 
+                            key={todo.id}
+                            todo={todo}
+                            onClick={() => {
+                              if (isExpedition && onUpdateState) {
+                                if (state.currentDungeonId === todo.dungeonId) {
+                                  onUpdateState({ currentDungeonId: undefined });
+                                } else {
+                                  onUpdateState({ currentDungeonId: todo.dungeonId });
+                                }
+                              } else {
+                                handleToggleTodo(todo.id);
+                              }
+                            }}
+                            className={cn(
+                              "group flex items-center gap-2 p-2 rounded-xl border transition-colors cursor-pointer text-xs select-none",
+                              isChecked 
+                                ? "bg-slate-900/10 border-slate-900/30 opacity-50" 
+                                : isCurrentFocus
+                                  ? (isDarkTheme 
+                                      ? "bg-indigo-500/15 border-indigo-500/40 ring-1 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.1)]"
+                                      : "bg-indigo-500/10 border-indigo-500/40 shadow-sm ring-1 ring-indigo-500/20")
+                                  : "bg-slate-950/40 border-slate-800 hover:border-indigo-500/30"
+                            )}
+                          >
+                            <button 
+                              type="button"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isExpedition && onUpdateState) {
+                                  if (state.currentDungeonId === todo.dungeonId) {
+                                    onUpdateState({ currentDungeonId: undefined });
+                                  } else {
+                                    onUpdateState({ currentDungeonId: todo.dungeonId });
+                                  }
+                                } else {
+                                  handleToggleTodo(todo.id);
+                                }
+                              }}
+                              className={cn(
+                                "flex-shrink-0 transition-colors", 
+                                isChecked ? "text-indigo-400" : isCurrentFocus ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-400"
+                              )}
+                            >
+                              {isChecked ? (
+                                <CheckCircle size={16} className="fill-indigo-500/10 text-indigo-400" />
+                              ) : isCurrentFocus ? (
+                                <div className="w-4 h-4 rounded-full border-2 border-indigo-400 flex items-center justify-center bg-indigo-500/20">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                                </div>
+                              ) : (
+                                <Circle size={16} />
+                              )}
+                            </button>
+                            
+                            <div className="flex-grow min-w-0 pr-1">
+                              <p className={cn(
+                                "font-medium truncate transition-all text-slate-200",
+                                isChecked ? "text-slate-500 line-through" : isCurrentFocus ? (isDarkTheme ? "text-indigo-200 font-bold" : "text-indigo-600 font-bold") : ""
+                              )}>
+                                {cleanTitle}
+                              </p>
+                              {tagInfo && (
+                                <div className="text-[9px] text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5">
+                                  <span className={cn("font-medium shrink-0 flex items-center gap-1", tagInfo.colorClass)}>
+                                    <tagInfo.icon size={10} />
+                                    <span>{tagInfo.label}</span>
+                                    {tagInfo.extraText && (
+                                      <span className="font-normal opacity-85 text-[8.5px]">
+                                        · {tagInfo.extraText}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {dungeonItem && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <div className="h-1 w-8 sm:w-10 bg-slate-900 rounded-full overflow-hidden border border-slate-800/50 shrink-0">
+                                        <div 
+                                          className={cn(
+                                            "h-full transition-all", 
+                                            isChecked 
+                                              ? "bg-emerald-500" 
+                                              : tagInfo.barColor
+                                          )}
+                                          style={{ width: `${Math.min(100, (dungeonItem.completedSessions / dungeonItem.totalSessions) * 100)}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[9px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
+                                        {(() => {
+                                          const timePerRoom = (state.standardSessionMinutes || 25) + (state.includeRestTimeInTasks ? (state.standardRestMinutes || 5) : 0);
+                                          const formatTime = (mins: number) => {
+                                            if (mins < 60) return <>{Math.floor(mins)}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>;
+                                            const h = Math.floor(mins / 60);
+                                            const m = Math.floor(mins % 60);
+                                            return m > 0 
+                                              ? <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span> {m}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>
+                                              : <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span></>;
+                                          };
+                                          return (
+                                            <>
+                                              {formatTime(dungeonItem.completedSessions * timePerRoom)}
+                                              <span className="opacity-50 text-[8px] mx-0.5">/</span>
+                                              {formatTime(dungeonItem.totalSessions * timePerRoom)}
+                                            </>
+                                          );
+                                        })()}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {!isChecked && isExpedition && (
+                                <button 
+                                  type="button"
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onUpdateState({ currentDungeonId: todo.dungeonId });
+                                    onClose();
+                                    window.dispatchEvent(new CustomEvent('nav-to-explore'));
+                                  }}
+                                  className={cn(
+                                    "w-7 h-7 rounded-lg transition-all flex items-center justify-center border shrink-0",
+                                    isCurrentFocus
+                                      ? "bg-indigo-500 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.4)] hover:bg-indigo-400"
+                                      : (isDarkTheme ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100")
+                                  )}
+                                  title={isCurrentFocus ? "Currently Focusing (Click to open Explore)" : "Focus in Explore"}
+                                >
+                                  <Play size={11} className={isCurrentFocus ? "fill-current" : ""} />
+                                </button>
+                              )}
+                              <button 
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => handleRemoveTodo(todo.id, e)}
+                                className="w-7 h-7 rounded-lg bg-slate-800/80 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700/50 flex items-center justify-center transition-all duration-200 shrink-0"
+                                title="Remove from agenda"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </DraggableStartOfDayTodoItem>
+                        );
+                      })}
+                    </Reorder.Group>
                   )}
                 </div>
              </div>

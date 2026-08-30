@@ -68,6 +68,56 @@ const formatTimeTick = (val: number) => {
   return `${val}m`;
 };
 
+const computeTimeYAxis = (maxMinutes: number, isFixed: boolean, defaultFixedMax: number = 240) => {
+  if (isFixed) {
+    const targetMax = Math.max(defaultFixedMax, Math.ceil(maxMinutes / 60) * 60);
+    const step = targetMax <= 240 ? 60 : 120;
+    const ticks: number[] = [];
+    for (let t = 0; t <= targetMax; t += step) {
+      ticks.push(t);
+    }
+    return { domain: [0, targetMax] as [number, number], ticks };
+  }
+
+  // Dynamic mode: when 0 recorded minutes, fallback to standard reference scale (0, 30m, 1h or 0, 1h, 2h)
+  if (maxMinutes <= 0) {
+    const fallbackMax = defaultFixedMax === 240 ? 60 : 120;
+    const step = defaultFixedMax === 240 ? 30 : 60;
+    const ticks: number[] = [];
+    for (let t = 0; t <= fallbackMax; t += step) {
+      ticks.push(t);
+    }
+    return { domain: [0, fallbackMax] as [number, number], ticks };
+  }
+  
+  if (maxMinutes <= 30) {
+    return { domain: [0, 30] as [number, number], ticks: [0, 15, 30] };
+  }
+  if (maxMinutes <= 60) {
+    return { domain: [0, 60] as [number, number], ticks: [0, 30, 60] };
+  }
+  if (maxMinutes <= 120) {
+    return { domain: [0, 120] as [number, number], ticks: [0, 60, 120] };
+  }
+  if (maxMinutes <= 240) {
+    return { domain: [0, 240] as [number, number], ticks: [0, 60, 120, 180, 240] };
+  }
+  if (maxMinutes <= 480) {
+    const targetMax = Math.ceil(maxMinutes / 120) * 120;
+    const ticks: number[] = [];
+    for (let t = 0; t <= targetMax; t += 120) {
+      ticks.push(t);
+    }
+    return { domain: [0, targetMax] as [number, number], ticks };
+  }
+  const targetMax = Math.ceil(maxMinutes / 180) * 180;
+  const ticks: number[] = [];
+  for (let t = 0; t <= targetMax; t += 180) {
+    ticks.push(t);
+  }
+  return { domain: [0, targetMax] as [number, number], ticks };
+};
+
 const getSessionDistractionCount = (distractions: any): number => {
   if (!distractions) return 0;
   if (typeof distractions === 'number') {
@@ -110,18 +160,22 @@ const SharedPopoverContent = ({
       const rect = containerRef.current.getBoundingClientRect();
       const padding = 12;
       let shift = 0;
-      if (rect.right > window.innerWidth - padding) {
-        shift = -(rect.right - window.innerWidth + padding);
+      
+      // Calculate viewport constraints
+      const viewportWidth = window.innerWidth;
+      
+      // Ensure it doesn't go off-screen
+      if (rect.right > viewportWidth - padding) {
+        shift = -(rect.right - (viewportWidth - padding));
       } else if (rect.left < padding) {
         shift = padding - rect.left;
       }
+      
       if (shift !== 0) {
         containerRef.current.style.transform = `translateX(${shift}px)`;
-      } else {
-        containerRef.current.style.transform = 'none';
       }
     }
-  });
+  }, []);
 
   const distCount = Number(distractions) || 0;
   const hourlyDistRate = totalSessions > 0 
@@ -131,7 +185,7 @@ const SharedPopoverContent = ({
   return (
     <div 
       ref={containerRef}
-      className="shared-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 sm:p-4 z-[100] w-[190px] sm:w-[210px]"
+      className="shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-[100] w-[200px] sm:w-[220px] max-w-[calc(100vw-24px)] overflow-hidden"
     >
       <p className="text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm">{label}</p>
       <div className="space-y-1.5 text-xs text-slate-300">
@@ -142,18 +196,18 @@ const SharedPopoverContent = ({
             {afternoon > 0 && <div className="flex justify-between gap-4"><span className="text-orange-400">Afternoon</span> <span className="text-slate-200">{formatDuration(afternoon)}</span></div>}
             {night > 0 && <div className="flex justify-between gap-4"><span className="text-indigo-400">Night</span> <span className="text-slate-200">{formatDuration(night)}</span></div>}
             {other > 0 && <div className="flex justify-between gap-4"><span className="text-slate-400">Other</span> <span className="text-slate-200">{formatDuration(other)}</span></div>}
-            <div className="border-t border-slate-800/50 my-1 pt-1 flex justify-between gap-4"><span className="text-yellow-400">Gold</span> <span className="text-slate-200">+{coins}</span></div>
-            <div className="flex justify-between gap-4"><span className="text-cyan-400">XP</span> <span className="text-slate-200">+{xp}</span></div>
+            <div className="border-t border-slate-800/50 my-1.5 pt-1.5 flex justify-between gap-4"><span className="text-yellow-400">Gold</span> <span className="text-slate-200 font-mono">+{coins}</span></div>
+            <div className="flex justify-between gap-4"><span className="text-cyan-400">XP</span> <span className="text-slate-200 font-mono">+{xp}</span></div>
           </>
         ) : (
           <p className="text-slate-500 italic">No activity</p>
         )}
 
         {distCount > 0 && (
-          <div className="border-t border-slate-800/50 my-1 pt-1 space-y-1">
-            <div className="flex justify-between items-center gap-2">
+          <div className="border-t border-slate-800/50 my-1.5 pt-1.5 space-y-1.5">
+            <div className="flex justify-between items-center gap-4">
               <span className="text-rose-400 font-medium">Distracted</span>
-              <span className="text-rose-300 font-bold font-mono">
+              <span className="text-rose-300 font-bold font-mono shrink-0">
                 {distCount}{' '}
                 <span className="text-[10px] text-slate-400 font-normal font-sans">
                   ({hourlyDistRate}/h)
@@ -230,8 +284,8 @@ const SharedPopoverContent = ({
 };
 
 // Moved outside to avoid redefining on every render, which causes extreme lag
-const CustomWeeklyTooltip = ({ active, payload, label, allData }: any) => {
-  if (active) {
+const CustomWeeklyTooltip = ({ active, payload, label, allData, activeChart, chartId }: any) => {
+  if (active && (!activeChart || activeChart === chartId)) {
     let data = payload && payload.length ? payload[0].payload : null;
     if (!data && allData && label) {
       data = allData.find((d: any) => d.fullDate === label || d.dayName === label || d.name === label);
@@ -261,7 +315,7 @@ const CustomWeeklyTooltip = ({ active, payload, label, allData }: any) => {
   return null;
 };
 
-const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: any) => {
+const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, activeChart, chartId }: any) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -283,7 +337,7 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
     }
   });
 
-  if (active) {
+  if (active && (!activeChart || activeChart === chartId)) {
     let data = payload && payload.length ? payload[0].payload : null;
     if (!data && allData && label) {
       data = allData.find((d: any) => d.name === label);
@@ -297,10 +351,10 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
       return (
         <div 
           ref={containerRef}
-          className="shared-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3 z-50 min-w-[140px]"
+          className="shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-50 w-[200px] sm:w-[220px]"
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-slate-50 font-bold mb-1.5 pb-1.5 border-b border-slate-800/50 text-[13px] sm:text-sm">{label || data.name}</p>
+          <p className="text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm">{label || data.name}</p>
           {data.sessions > 0 ? (
             <div className="flex justify-between gap-4 text-xs mb-2">
               <span className="text-slate-400">Time</span>
@@ -311,11 +365,14 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
           )}
 
           {totalDistractions > 0 && (
-            <div className="border-t border-slate-800/50 pt-1.5 mb-2 space-y-1">
-              <div className="flex justify-between items-center text-xs">
+            <div className="border-t border-slate-800/50 my-1.5 pt-1.5 space-y-1.5">
+              <div className="flex justify-between items-center gap-4 text-xs">
                 <span className="text-rose-400 font-medium">Distracted</span>
-                <span className="text-rose-300 font-bold font-mono text-[11px]">
-                  {totalDistractions} <span className="text-slate-400 font-normal text-[10px]">({hourlyRate}/h)</span>
+                <span className="text-rose-300 font-bold font-mono shrink-0">
+                  {totalDistractions}{' '}
+                  <span className="text-[10px] text-slate-400 font-normal font-sans">
+                    ({hourlyRate}/h)
+                  </span>
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[10px] pt-0.5">
@@ -342,7 +399,7 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
           )}
 
           {dateTimestamp && (
-            <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-800/50">
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-800/50 mt-2">
               <button 
                 type="button"
                 style={{ pointerEvents: 'auto' }}
@@ -352,10 +409,10 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
                     detail: { timestamp: dateTimestamp, period: data.periodKey } 
                   })); 
                 }}
-                className="w-full text-emerald-400 hover:text-emerald-300 font-bold text-[10px] uppercase tracking-wider text-center transition-colors hover:bg-slate-800/30 rounded py-1 flex items-center justify-center gap-1"
+                className="w-full text-emerald-400 hover:text-emerald-300 font-medium text-xs text-center transition-colors hover:bg-slate-800/30 rounded py-1 flex items-center justify-center gap-1.5"
               >
-                <LayoutTemplate size={10} />
-                Sessions
+                <LayoutTemplate size={12} />
+                <span>Show Daily Sessions</span>
               </button>
             </div>
           )}
@@ -366,7 +423,7 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData }: 
   return null;
 };
 
-const CustomSleepTooltip = ({ active, payload }: any) => {
+const CustomSleepTooltip = ({ active, payload, activeChart, chartId }: any) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -388,7 +445,7 @@ const CustomSleepTooltip = ({ active, payload }: any) => {
     }
   });
 
-  if (active && payload && payload.length) {
+  if (active && (!activeChart || activeChart === chartId) && payload && payload.length) {
     const data = payload[0].payload;
     if (!data.hasRecord) return null;
     const formatT = (val: number | null) => {
@@ -401,7 +458,7 @@ const CustomSleepTooltip = ({ active, payload }: any) => {
     return (
       <div 
         ref={containerRef}
-        className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl flex flex-col gap-2 z-50 min-w-[140px]"
+        className="animate-popover-enter bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl flex flex-col gap-2 z-50 min-w-[150px]"
       >
         <p className="text-white font-bold text-sm">{data.fullName}</p>
         <div className="text-xs text-slate-300 grid grid-cols-2 gap-x-4 gap-y-2">
@@ -458,6 +515,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     dailyDonutMode: 'compact' as const,
     weeklyDonutMode: 'time_of_day' as const,
     averageCalculationBase: 'total_days' as const,
+    yAxisMaxMode: 'dynamic' as const,
   };
   
   const getInitialPeakDate = () => {
@@ -565,6 +623,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     weeklyLine: Date.now() + 2,
     sleep: Date.now() + 3
   });
+  const [activeChart, setActiveChart] = useState<'daily' | 'weeklyBar' | 'weeklyLine' | 'sleep' | null>(null);
 
   const dateIndicators = React.useMemo(() => {
     const res: Record<string, { highlight?: boolean; star?: boolean }> = {};
@@ -595,6 +654,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     );
 
     if (!hasTarget) {
+      setActiveChart(null);
       setChartKeys({
         daily: Date.now() + Math.random(),
         weeklyBar: Date.now() + Math.random(),
@@ -602,6 +662,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         sleep: Date.now() + Math.random()
       });
     } else {
+      setActiveChart(chart);
       // Keep only the clicked chart active; force-reset all other charts to close their popovers
       setChartKeys(prev => ({
         daily: chart === 'daily' ? prev.daily : Date.now() + Math.random(),
@@ -654,6 +715,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         }
         
         if (!inTooltip && !inChart) {
+          setActiveChart(null);
           setChartKeys({
             daily: Date.now() + Math.random(),
             weeklyBar: Date.now() + Math.random(),
@@ -1395,6 +1457,26 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     });
   }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, getPeriodInfo]);
 
+  const isFixedYAxis = viewOpts.yAxisMaxMode === 'fixed';
+
+  const dailyTimeAxis = useMemo(() => {
+    const maxMins = Math.max(...dailyData.map(d => d.sessions || 0), 0);
+    return computeTimeYAxis(maxMins, isFixedYAxis, 240);
+  }, [dailyData, isFixedYAxis]);
+
+  const weeklyTimeAxis = useMemo(() => {
+    const maxMins = Math.max(
+      ...weeklyData.map(d => 
+        (d.Morning || 0) + 
+        (d.Afternoon || 0) + 
+        (d.Night || 0) + 
+        (state.showOtherInActivityLog !== false ? (d.Other || 0) : 0)
+      ),
+      0
+    );
+    return computeTimeYAxis(maxMins, isFixedYAxis, 480);
+  }, [weeklyData, state.showOtherInActivityLog, isFixedYAxis]);
+
   // --- Heatmap Data ---
   const heatmapDays = useMemo(() => {
     let days: Date[] = [];
@@ -1667,7 +1749,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                       <YAxis 
                         yAxisId="time" 
                         orientation="left"
-                        domain={[0, 'auto']} 
+                        domain={dailyTimeAxis.domain} 
+                        ticks={dailyTimeAxis.ticks}
                         tickFormatter={formatTimeTick}
                         tick={{ fill: '#64748b', fontSize: 10 }}
                         axisLine={false}
@@ -1690,7 +1773,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                     <Tooltip 
                       key={chartKeys.daily}
                       trigger="click"
-                      content={<CustomDailyTooltip dateTimestamp={dailyDate.getTime()} allData={dailyData} />}
+                      content={<CustomDailyTooltip dateTimestamp={dailyDate.getTime()} allData={dailyData} activeChart={activeChart} chartId="daily" />}
                       cursor={false}
                       wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                       allowEscapeViewBox={{ x: true, y: true }}
@@ -2079,7 +2162,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                         <YAxis 
                           yAxisId="time" 
                           orientation="left"
-                          domain={[0, 'auto']} 
+                          domain={weeklyTimeAxis.domain} 
+                          ticks={weeklyTimeAxis.ticks}
                           tickFormatter={formatTimeTick}
                           tick={{ fill: '#64748b', fontSize: 10 }}
                           axisLine={false}
@@ -2102,7 +2186,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                       <Tooltip 
                         key={chartKeys.weeklyBar}
                         trigger="click"
-                        content={<CustomWeeklyTooltip allData={weeklyData} />}
+                        content={<CustomWeeklyTooltip allData={weeklyData} activeChart={activeChart} chartId="weeklyBar" />}
                         cursor={false}
                         wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                         allowEscapeViewBox={{ x: true, y: true }}
@@ -2179,27 +2263,43 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                       <LineChart 
                         key={chartKeys.weeklyLine}
                         data={weeklyData} 
-                        margin={{ top: 10, right: 10, left: 10, bottom: 20 }} 
+                        margin={{ top: 12, right: weeklyLayerMode === 'both' ? 12 : 16, left: 0, bottom: 0 }} 
                         onClick={(state) => handleChartClick(state, 'weeklyLine')} 
-                        style={{ outline: 'none', touchAction: 'pan-y' }}
+                        style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: '#64748b', fontSize: 10 }} />
-                        <YAxis hide domain={[0, 5]} />
+                        <YAxis 
+                          domain={state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? [0, 100] : [0, 5]} 
+                          ticks={state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? [0, 25, 50, 75, 100] : [1, 2, 3, 4, 5]} 
+                          allowDecimals={false}
+                          tick={{ fill: '#64748b', fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={32}
+                          tickFormatter={state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? (val) => `${val}%` : (val) => String(val)}
+                        />
                         <Tooltip 
                           key={chartKeys.weeklyLine}
                           trigger="click"
-                          content={<CustomWeeklyTooltip />}
+                          content={<CustomWeeklyTooltip allData={weeklyData} activeChart={activeChart} chartId="weeklyLine" />}
+                          cursor={false}
                           wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                           allowEscapeViewBox={{ x: true, y: true }}
                         />
                         <Line 
                           type="monotone" 
-                          dataKey={(d) => d.efficiency || 0} 
+                          dataKey={(d) => {
+                            if (state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency') {
+                              return Math.round((d.efficiency || 0) * 20); // Scale 0-5 stars to 0-100%
+                            }
+                            return d.efficiency || 0;
+                          }}
                           stroke="var(--color-indigo-500, #6366f1)" 
-                          strokeWidth={3} 
-                          dot={{ fill: 'var(--color-indigo-500, #6366f1)', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-indigo-400, #818cf8)' }}
+                          strokeWidth={2.5} 
+                          isAnimationActive={false}
+                          dot={{ fill: 'var(--color-indigo-500, #6366f1)', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
+                          activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: 'var(--color-indigo-400, #818cf8)' }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -2243,7 +2343,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   routineId={routineId} 
                   history={state.history} 
                   dungeons={dungeons} 
-                  majorDungeons={majorDungeons}
+                  majorDungeons={majorDungeons} 
                   onUpdateState={onUpdateState} 
                   deleteSession={deleteSession} 
                   completeSession={completeSession}
@@ -2356,7 +2456,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   trigger="click"
                   wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
                   allowEscapeViewBox={{ x: true, y: true }}
-                  content={<CustomSleepTooltip />}
+                  content={<CustomSleepTooltip activeChart={activeChart} chartId="sleep" />}
                   cursor={false}
                 />
                 <Bar yAxisId="right" dataKey="duration" fill="#818cf8" radius={[4, 4, 0, 0]} opacity={0.5} barSize={20} />

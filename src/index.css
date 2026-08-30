@@ -61,6 +61,17 @@ body::-webkit-scrollbar,
   width: 0;
 }
 
+/* Remove default spin buttons from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Custom Scrollbar - Apply specifically to inner scrollable containers */
 .custom-scrollbar::-webkit-scrollbar,
 .show-scrollbar::-webkit-scrollbar {
@@ -724,6 +735,24 @@ svg:focus {
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Popover & Tooltip smooth entrance animation */
+@keyframes popover-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-popover-enter {
+  animation: popover-enter 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform-origin: center bottom;
 }
 
 @layer utilities {

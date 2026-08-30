@@ -38,10 +38,10 @@ import {
 } from 'lucide-react';
 import { format, startOfMonth, startOfWeek, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, subDays, addDays } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
-import { AppState, Dungeon } from '../types';
+import { AppState, Dungeon, MajorDungeon } from '../types';
 import { playSound } from '../lib/sound';
 import { getSageAdvice } from '../services/sageService';
-import { cn, getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate } from '../lib/utils';
+import { cn, getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate, formatDuration } from '../lib/utils';
 import { ExpeditionPlanPreview } from './ExpeditionPlanPreview';
 import { ConfirmModal } from './ConfirmModal';
 import { PopoverPortal } from './PopoverPortal';
@@ -60,6 +60,7 @@ interface DashboardViewProps {
   applyExpeditionPlan?: (plan: any) => void;
   navigateToSettings?: (section: any, settingId?: string) => void;
   dungeons: Dungeon[];
+  majorDungeons?: MajorDungeon[];
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -73,10 +74,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   saveDailyLog,
   applyExpeditionPlan,
   navigateToSettings,
-  dungeons
+  dungeons,
+  majorDungeons = []
 }) => {
   const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
-  const [showTodayView, setShowTodayView] = React.useState(false);
+  const [showTodayView, setShowTodayView] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem('dashboard_showTodayView') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
   const [showSageConsult, setShowSageConsult] = React.useState(false);
   const [selectedDateAnchor, setSelectedDateAnchor] = React.useState<{ day: Date, ddls: Dungeon[], element: HTMLElement } | null>(null);
   const [horizonMode, setHorizonMode] = React.useState<'recent' | 'week'>(() => {
@@ -87,6 +95,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return 'recent';
   });
   const [horizonDate, setHorizonDate] = React.useState<Date>(new Date());
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('dashboard_showTodayView', String(showTodayView));
+    } catch(e) {}
+  }, [showTodayView]);
 
   React.useEffect(() => {
     try {
@@ -247,6 +261,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               state={state} 
               setState={setState} 
               dungeons={dungeons} 
+              majorDungeons={majorDungeons}
               onBack={() => setShowTodayView(false)} 
               setActiveTab={setActiveTab} 
             />
@@ -480,7 +495,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div 
             role="button"
             tabIndex={0}
-            onClick={() => setShowTodayView(true)}
+            onClick={() => {
+              setShowTodayView(true);
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            }}
             className="w-full text-left bg-slate-900 rounded-3xl border border-slate-800 p-6 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:-translate-y-1 cursor-pointer transition-all group overflow-hidden relative"
           >
             <div className="absolute top-0 right-0 p-6 transition-opacity">
@@ -497,7 +515,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl font-bold text-slate-50">
-                {Math.floor(todayEffectiveMinutes)}min
+                {formatDuration(todayEffectiveMinutes)}
               </span>
               {(() => {
                 const timezone = state.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -517,10 +535,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 const dailyGoal = state.useSameDailyProgressGoalEveryDay ?? true 
                   ? (state.dailyProgressGoal ?? 8) 
                   : (state.dailyProgressGoalConfig?.[day] ?? 8);
+                const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
+                const dailyGoalInMinutes = dailyGoal * pomodoroDuration;
 
                 return (
                   <span className="text-slate-500 text-xs text-right">
-                    <span className="opacity-50 mx-1">/</span> {dailyGoal * (state.standardSessionMinutes || 25)}min
+                    <span className="opacity-50 mx-1">/</span> {formatDuration(dailyGoalInMinutes)}
                   </span>
                 );
               })()}
@@ -544,7 +564,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 const dailyGoal = state.useSameDailyProgressGoalEveryDay ?? true 
                   ? (state.dailyProgressGoal ?? 8) 
                   : (state.dailyProgressGoalConfig?.[day] ?? 8);
-                const dailyGoalInMinutes = dailyGoal * (state.standardSessionMinutes || 25);
+                const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
+                const dailyGoalInMinutes = dailyGoal * pomodoroDuration;
                 return (
                   <div 
                     className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.3)] transition-all" 

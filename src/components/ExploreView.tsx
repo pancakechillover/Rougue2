@@ -32,6 +32,7 @@ import { RecentSessions } from './RecentSessions';
 import { TalentIcon } from './TalentIcon';
 import { RewardChestModal } from './RewardChestModal';
 import { TreasureChestIcon } from './icons/TreasureChestIcon';
+import { PopoverPortal } from './PopoverPortal';
 import { TALENTS } from '../constants';
 import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../lib/utils';
 import { playSound } from '../lib/sound';
@@ -161,7 +162,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   setShowStartOfDayModal
 }) => {
   const [showChestModal, setShowChestModal] = React.useState(false);
-  const [activeTooltipId, setActiveTooltipId] = React.useState<string | null>(null);
+  const [activeTalentPopover, setActiveTalentPopover] = React.useState<{ id: string; element: HTMLElement } | null>(null);
 
   const todayEffectiveMinutes = React.useMemo(() => {
     if (!state.history) return 0;
@@ -181,15 +182,16 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 
   // Close tooltip when clicking outside
   React.useEffect(() => {
-    if (!activeTooltipId) return;
+    if (!activeTalentPopover) return;
     const handleGlobalClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.talent-icon-container')) {
-        setActiveTooltipId(null);
+      const target = e.target as HTMLElement;
+      if (!target.closest('.talent-icon-container') && !target.closest('.talent-popover-content')) {
+        setActiveTalentPopover(null);
       }
     };
     window.addEventListener('mousedown', handleGlobalClick);
     return () => window.removeEventListener('mousedown', handleGlobalClick);
-  }, [activeTooltipId]);
+  }, [activeTalentPopover]);
 
   // Handle WakeLock and orientation in fullscreen mode
   React.useEffect(() => {
@@ -694,118 +696,140 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                           'C': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                         };
                         const colorClass = branchColors[talent.branch] || 'text-slate-400 bg-slate-800 border-slate-700';
+                        const isSelected = activeTalentPopover?.id === talent.id;
                         
                         return (
                           <div 
                             key={talent.id} 
                             className="group relative hover:z-[100] talent-icon-container"
+                            onMouseEnter={(e) => {
+                              setActiveTalentPopover({ id: talent.id, element: e.currentTarget });
+                            }}
+                            onMouseLeave={() => {
+                              setActiveTalentPopover((prev) => (prev?.id === talent.id ? null : prev));
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveTooltipId(activeTooltipId === talent.id ? null : talent.id);
+                              if (activeTalentPopover?.id === talent.id) {
+                                setActiveTalentPopover(null);
+                              } else {
+                                setActiveTalentPopover({ id: talent.id, element: e.currentTarget });
+                              }
                             }}
                           >
                             <div className={cn(
                               "w-12 h-12 flex items-center justify-center rounded-xl border transition-all hover:scale-110 cursor-pointer",
                               colorClass,
-                              activeTooltipId === talent.id && "ring-2 ring-indigo-500 scale-110 bg-indigo-500/20 border-indigo-500/40"
+                              isSelected && "ring-2 ring-indigo-500 scale-110 bg-indigo-500/20 border-indigo-500/40"
                             )}>
                               <TalentIcon iconName={talent.icon || 'Scroll'} size={24} />
-                            </div>
-
-                            {/* Tooltip */}
-                            <div className={cn(
-                              "absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-[100] transition-all duration-200 pointer-events-none",
-                              activeTooltipId === talent.id 
-                                ? "visible opacity-100 translate-y-0" 
-                                : "invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0"
-                            )}>
-                              <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl min-w-[240px]">
-                                <div className={cn("text-sm font-black mb-1", branchColors[talent.branch].split(' ')[0])}>
-                                  {talent.name}
-                                </div>
-                                <p className="text-xs text-slate-400 leading-relaxed">
-                                  {talent.description}
-                                </p>
-                                
-                                {['a2', 'a3', 'b2', 'b3'].includes(talent.id) && (() => {
-                                  let requiredMinutes = 480;
-                                  if (talent.id === 'a3' || talent.id === 'b3') requiredMinutes = 240;
-                                  const currentMinutes = todayEffectiveMinutes;
-                                  const canClaim = currentMinutes >= requiredMinutes;
-                                  const hasClaimed = state.claimedDailyTalents?.includes(talent.id);
-
-                                  return (
-                                    <div className="mt-3 bg-slate-950 rounded-xl p-3 border border-slate-800 flex flex-col items-center gap-2">
-                                      <div className="w-full flex justify-between items-center text-[10px] font-bold uppercase text-slate-400">
-                                        <span>Daily Time Required</span>
-                                        <span>{Math.floor(currentMinutes)} / {requiredMinutes}m</span>
-                                      </div>
-                                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                        <div 
-                                          className={cn("h-full transition-all duration-300", 
-                                            canClaim && !hasClaimed ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" : "bg-indigo-500/50"
-                                          )}
-                                          style={{ width: `${Math.min(100, (currentMinutes / requiredMinutes) * 100)}%` }}
-                                        />
-                                      </div>
-                                      
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (canClaim && !hasClaimed) {
-                                            claimDailyTalentReward(talent.id);
-                                          }
-                                        }}
-                                        disabled={!canClaim || hasClaimed}
-                                        className={cn(
-                                          "w-full mt-2 py-1.5 rounded-lg text-xs font-bold uppercase transition-all",
-                                          hasClaimed 
-                                            ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
-                                            : canClaim 
-                                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-emerald-950 cursor-pointer shadow-[0_0_10px_rgba(52,211,153,0.2)] hover:shadow-[0_0_15px_rgba(52,211,153,0.4)]"
-                                              : "bg-slate-800/50 text-slate-500 border border-slate-700/50 cursor-not-allowed"
-                                        )}
-                                      >
-                                        {hasClaimed ? 'Claimed Today' : canClaim ? 'Claim Reward' : 'Not Reached'}
-                                      </button>
-
-                                      {(talent.id === 'a3' || talent.id === 'b3') && (
-                                        <div className="w-full mt-1 pt-2 border-t border-slate-800 flex flex-col gap-1 text-[10px] text-slate-400">
-                                          <div className="flex justify-between">
-                                            <span>Current Streak:</span>
-                                            <span className="font-bold text-orange-400">{state.streak > 10 ? 'Max (≥10)' : `${Math.max(0, state.streak)} Days`}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span>Yield:</span>
-                                            <span className="font-bold">{talent.id === 'a3' ? `${20 * Math.min(10, Math.max(state.streak, 0))} XP` : `${10 * Math.min(10, Math.max(state.streak, 0))} Coins`}</span>
-                                          </div>
-                                          {state.streak >= 10 && (
-                                            <div className="flex justify-between text-rose-400 font-bold">
-                                              <span>Day 10 Bonus:</span>
-                                              <span>+{talent.id === 'a3' ? '1000 XP' : '100 Coins'}</span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-
-                                <div className="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
-                                  <div className={cn("w-1.5 h-1.5 rounded-full", branchColors[talent.branch].split(' ')[1])} />
-                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                    Branch {talent.branch} • Tier {talent.tier}
-                                  </span>
-                                </div>
-                              </div>
-                              {/* Arrow */}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-slate-700" />
                             </div>
                           </div>
                         );
                       })
                   )}
                 </div>
+
+                <PopoverPortal anchorElement={activeTalentPopover?.element || null} offsetY={12}>
+                  {activeTalentPopover && (() => {
+                    const talent = TALENTS.find(t => t.id === activeTalentPopover.id);
+                    if (!talent) return null;
+
+                    const branchColors: Record<string, string> = {
+                      'A': 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+                      'B': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+                      'C': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    };
+
+                    return (
+                      <div 
+                        className="talent-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-2xl shadow-2xl w-[260px] sm:w-[280px] animate-popover-enter"
+                        onMouseEnter={() => {
+                          // Keep open when hovering the popover
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className={cn("text-sm font-black mb-1", branchColors[talent.branch]?.split(' ')[0] || 'text-indigo-400')}>
+                          {talent.name}
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {talent.description}
+                        </p>
+                        
+                        {['a2', 'a3', 'b2', 'b3'].includes(talent.id) && (() => {
+                          let requiredMinutes = 480;
+                          if (talent.id === 'a3' || talent.id === 'b3') requiredMinutes = 240;
+                          const currentMinutes = todayEffectiveMinutes;
+                          const canClaim = currentMinutes >= requiredMinutes;
+                          const hasClaimed = state.claimedDailyTalents?.includes(talent.id);
+
+                          return (
+                            <div className="mt-3 bg-slate-950/80 rounded-xl p-3 border border-slate-800 flex flex-col items-center gap-2">
+                              <div className="w-full flex justify-between items-center text-[10px] font-bold uppercase text-slate-400">
+                                <span>Daily Time Required</span>
+                                <span>{Math.floor(currentMinutes)} / {requiredMinutes}m</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div 
+                                  className={cn("h-full transition-all duration-300", 
+                                    canClaim && !hasClaimed ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" : "bg-indigo-500/50"
+                                  )}
+                                  style={{ width: `${Math.min(100, (currentMinutes / requiredMinutes) * 100)}%` }}
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (canClaim && !hasClaimed) {
+                                    claimDailyTalentReward(talent.id);
+                                  }
+                                }}
+                                disabled={!canClaim || hasClaimed}
+                                className={cn(
+                                  "w-full mt-2 py-1.5 rounded-lg text-xs font-bold uppercase transition-all",
+                                  hasClaimed 
+                                    ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                                    : canClaim 
+                                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-emerald-950 cursor-pointer shadow-[0_0_10px_rgba(52,211,153,0.2)] hover:shadow-[0_0_15px_rgba(52,211,153,0.4)]"
+                                      : "bg-slate-800/50 text-slate-500 border border-slate-700/50 cursor-not-allowed"
+                                )}
+                              >
+                                {hasClaimed ? 'Claimed Today' : canClaim ? 'Claim Reward' : 'Not Reached'}
+                              </button>
+
+                              {(talent.id === 'a3' || talent.id === 'b3') && (
+                                <div className="w-full mt-1 pt-2 border-t border-slate-800 flex flex-col gap-1 text-[10px] text-slate-400">
+                                  <div className="flex justify-between">
+                                    <span>Current Streak:</span>
+                                    <span className="font-bold text-orange-400">{state.streak > 10 ? 'Max (≥10)' : `${Math.max(0, state.streak)} Days`}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Yield:</span>
+                                    <span className="font-bold">{talent.id === 'a3' ? `${20 * Math.min(10, Math.max(state.streak, 0))} XP` : `${10 * Math.min(10, Math.max(state.streak, 0))} Coins`}</span>
+                                  </div>
+                                  {state.streak >= 10 && (
+                                    <div className="flex justify-between text-rose-400 font-bold">
+                                      <span>Day 10 Bonus:</span>
+                                      <span>+{talent.id === 'a3' ? '1000 XP' : '100 Coins'}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        <div className="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", branchColors[talent.branch]?.split(' ')[1] || 'bg-indigo-400')} />
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            Branch {talent.branch} • Tier {talent.tier}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </PopoverPortal>
               </div>
 
               {/* Current Build */}

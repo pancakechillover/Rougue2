@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
@@ -29,16 +29,21 @@ import {
   FileText,
   Indent,
   Heart,
-  Moon
+  Moon,
+  Sparkles,
+  SlidersHorizontal,
+  Calculator
 } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { cn, getSessionSettlementDate, getSettlementDay, getSessionEffectiveMinutes } from '../lib/utils';
+import { cn, getSessionSettlementDate, getSettlementDay, getSessionEffectiveMinutes, formatDuration } from '../lib/utils';
+import { playSound } from '../lib/sound';
 import { AppState, StudySession, RewardHistoryItem, Dungeon, MajorDungeon } from '../types';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../constants';
 
 import { createPortal } from 'react-dom';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
+import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
 
 interface DailySummaryModalProps {
   state: AppState;
@@ -63,6 +68,12 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [templateMode, setTemplateMode] = useState<'empty' | 'example'>('empty');
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+
+  // Efficiency Calculation State
+  const [customTargetHours, setCustomTargetHours] = useState<number | null>(null);
+  const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calcFeedback, setCalcFeedback] = useState<string | null>(null);
 
   const immersiveTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const hasInitializedFromLog = useRef(false);
@@ -142,18 +153,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     };
   }, [state.timeSettings, state.timezone]);
 
-  // Load existing log if one exists for today
-  React.useEffect(() => {
-    if (!hasInitializedFromLog.current && today.dateString) {
-      const existingLog = state.dailyLogs?.[today.dateString];
-      if (existingLog) {
-        setRating(existingLog.rating);
-        setReflection(existingLog.reflection);
-        if (existingLog.mood) setMood(existingLog.mood);
-      }
-      hasInitializedFromLog.current = true;
-    }
-  }, [state.dailyLogs, today.dateString]);
+  // Remove initial placeholder useEffect here as it is moved below dailyStats declarations
 
   // End applyFormat
 
@@ -398,9 +398,18 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       ? (state.dailyProgressGoal ?? 8) 
       : (state.dailyProgressGoalConfig?.[day] ?? 8);
 
+    const getSessionDistractionCount = (distractions?: any): number => {
+      if (!distractions) return 0;
+      if (typeof distractions === 'number') return isNaN(distractions) ? 0 : distractions;
+      return (Number(distractions.internal) || 0) + (Number(distractions.external) || 0) + (Number(distractions.unavoidable) || 0);
+    };
+
+    const totalDistractions = sessionsToday.reduce((sum, s) => sum + getSessionDistractionCount(s.distractions), 0);
+
     return {
       sessions: state.dailySessions,
       effectiveMinutes,
+      totalDistractions,
       gold: goldEarned,
       xp: xpEarned,
       levels: levelsGained,
@@ -414,6 +423,105 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       dailyGoal
     };
   }, [state, today.dateString, dungeons, majorDungeons]);
+
+  // Default target hours based on Sanctum daily goal & pomodoro duration
+  const defaultTargetHours = useMemo(() => {
+    const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
+    return Math.max(0.1, Number(((dailyStats.dailyGoal * pomodoroDuration) / 60).toFixed(2)));
+  }, [dailyStats.dailyGoal, state.standardSessionMinutes, state.standardRestMinutes]);
+
+  // Efficiency calculation logic
+  const calculateEfficiencyRating = useCallback((
+    effectiveMinutes: number,
+    totalDistractions: number,
+    targetH: number,
+    maxDist: number,
+    compWeight: number,
+    focusWeight: number
+  ) => {
+    const actualH = effectiveMinutes / 60;
+    const completionRate = targetH > 0 ? Math.min(actualH / targetH, 1.0) : 0;
+    const distractionsPerHour = actualH > 0 ? (totalDistractions / actualH) : 0;
+    const focusQuality = Math.max(0, 1.0 - (distractionsPerHour / (maxDist > 0 ? maxDist : 10)));
+    const wComp = compWeight / 100;
+    const wFocus = focusWeight / 100;
+    const efficiency = completionRate * (wComp + wFocus * focusQuality);
+    const rawStars = efficiency * 5;
+    const calculatedStars = Math.min(5, Math.max(0, Math.round(rawStars * 2) / 2));
+
+    return {
+      actualH,
+      targetH,
+      completionRate,
+      totalDistractions,
+      distractionsPerHour,
+      focusQuality,
+      efficiency,
+      rawStars,
+      calculatedStars
+    };
+  }, []);
+
+  const handleAutoCalculate = () => {
+    setIsCalculating(true);
+    playSound('success', 0.4);
+
+    const tHours = customTargetHours !== null ? customTargetHours : defaultTargetHours;
+    const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
+    const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
+    const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+
+    const res = calculateEfficiencyRating(
+      dailyStats.effectiveMinutes,
+      dailyStats.totalDistractions,
+      tHours,
+      maxDist,
+      compW,
+      focusW
+    );
+
+    setRating(res.calculatedStars);
+    setCalcFeedback(`Score: ${(res.efficiency * 100).toFixed(0)}% · ${res.calculatedStars.toFixed(1)}★`);
+
+    setTimeout(() => {
+      setIsCalculating(false);
+    }, 600);
+
+    setTimeout(() => {
+      setCalcFeedback(null);
+    }, 3500);
+  };
+
+  // Load existing log if one exists for today, or auto-calculate rating if enabled
+  React.useEffect(() => {
+    if (!hasInitializedFromLog.current && today.dateString) {
+      const existingLog = state.dailyLogs?.[today.dateString];
+      if (existingLog) {
+        setRating(existingLog.rating);
+        setReflection(existingLog.reflection);
+        if (existingLog.mood) setMood(existingLog.mood);
+      } else {
+        // Auto-calculate rating on modal open if enabled (default: true)
+        if (state.efficiencyRatingConfig?.autoCalculateOnOpen !== false) {
+          const tHours = customTargetHours !== null ? customTargetHours : defaultTargetHours;
+          const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
+          const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
+          const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+
+          const res = calculateEfficiencyRating(
+            dailyStats.effectiveMinutes,
+            dailyStats.totalDistractions,
+            tHours,
+            maxDist,
+            compW,
+            focusW
+          );
+          setRating(res.calculatedStars);
+        }
+      }
+      hasInitializedFromLog.current = true;
+    }
+  }, [state.dailyLogs, today.dateString, state.efficiencyRatingConfig, dailyStats, defaultTargetHours, customTargetHours, calculateEfficiencyRating]);
 
   const renderStars = () => {
     const stars = [];
@@ -444,7 +552,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
 
   const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center sm:p-6 lg:p-8 bg-slate-950/90 backdrop-blur-md m-0">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md m-0 p-0">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -454,10 +562,10 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       />
       
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
+        initial={{ scale: 0.98, y: 10 }}
         animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-slate-900 border-0 sm:border border-indigo-500/30 rounded-none sm:rounded-[2.5rem] w-[100vw] sm:w-[95vw] sm:max-w-[1400px] h-[100dvh] sm:h-[90vh] shadow-2xl overflow-hidden relative flex flex-col z-10"
+        exit={{ scale: 0.98, y: 10 }}
+        className="bg-slate-900 border-0 rounded-none w-screen h-screen h-[100dvh] shadow-2xl overflow-hidden relative flex flex-col z-10"
       >
         {/* Header */}
         <div className="py-4 px-6 sm:px-8 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-indigo-500/10 to-transparent relative overflow-hidden flex-shrink-0">
@@ -502,20 +610,28 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           <div className="space-y-2.5 sm:space-y-3 flex flex-col lg:w-1/2 lg:flex-1 lg:h-full">
           {/* Daily Progress */}
           <div className="bg-slate-950/50 rounded-2xl border border-slate-800 p-3.5 sm:p-4">
-            <div className="flex items-center justify-between mb-2.5 px-1">
-              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                <Target size={16} className="text-indigo-400" /> Daily Progress
-              </h3>
-              <span className="text-xs font-bold text-slate-400">
-                {Math.floor(dailyStats.effectiveMinutes)}min <span className="text-slate-600">/</span> {dailyStats.dailyGoal * (state.standardSessionMinutes || 25)}min
-              </span>
-            </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.3)] transition-all" 
-                style={{ width: `${(dailyStats.dailyGoal * (state.standardSessionMinutes || 25)) > 0 ? Math.min((dailyStats.effectiveMinutes / (dailyStats.dailyGoal * (state.standardSessionMinutes || 25))) * 100, 100) : 0}%` }}
-              />
-            </div>
+            {(() => {
+              const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
+              const dailyGoalInMinutes = dailyStats.dailyGoal * pomodoroDuration;
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-2.5 px-1">
+                    <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                      <Target size={16} className="text-indigo-400" /> Daily Progress
+                    </h3>
+                    <span className="text-xs font-bold text-slate-400">
+                      {formatDuration(dailyStats.effectiveMinutes)} <span className="text-slate-600">/</span> {formatDuration(dailyGoalInMinutes)}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.3)] transition-all" 
+                      style={{ width: `${dailyGoalInMinutes > 0 ? Math.min((dailyStats.effectiveMinutes / dailyGoalInMinutes) * 100, 100) : 0}%` }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Summary Stats */}
@@ -542,7 +658,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                 >
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
-                      <StatCard icon={Sword} label={"Time"} value={`${Math.floor(dailyStats.effectiveMinutes)}min`} color="text-indigo-400" />
+                      <StatCard icon={Sword} label={"Time"} value={formatDuration(dailyStats.effectiveMinutes)} color="text-indigo-400" />
                       <StatCard icon={Coins} label="Gold" value={dailyStats.gold} color="text-amber-400" />
                       <StatCard icon={Zap} label="XP" value={dailyStats.xp} color="text-emerald-400" />
                       <StatCard icon={Calendar} label="Streak" value={`${dailyStats.streak} Days`} color="text-orange-400" />
@@ -619,11 +735,65 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
             </div>
           </div>
           <div className="bg-slate-800/20 rounded-xl p-3 sm:p-4 border border-slate-700/30 space-y-2.5 lg:flex-1 lg:flex lg:flex-col lg:justify-between">
-            <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <Star size={16} className="text-amber-400" /> Efficiency Rating
-            </h3>
-            <div className="flex justify-center gap-1 sm:gap-1.5 p-3 sm:p-3.5 bg-slate-950/50 rounded-2xl border border-slate-800 lg:flex-1 lg:flex lg:items-center lg:justify-center">
-              {renderStars()}
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                <Star size={16} className="text-amber-400" /> Efficiency Rating
+              </h3>
+              <div className="flex items-center gap-1.5">
+                <button
+                  id="auto-calculate-rating-button"
+                  onClick={handleAutoCalculate}
+                  disabled={isCalculating}
+                  className={cn(
+                    "px-2.5 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm",
+                    isCalculating && "opacity-80 cursor-wait"
+                  )}
+                  title="Auto-calculate rating using focus duration & distraction metrics"
+                >
+                  <Sparkles size={13} className={cn("text-indigo-400", isCalculating && "animate-spin")} />
+                  <span>Calculate</span>
+                </button>
+                <button
+                  id="efficiency-formula-details-button"
+                  onClick={() => setShowEfficiencyDetails(true)}
+                  className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700/50 text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
+                  title="View formula details, today's metrics, and customize parameters"
+                >
+                  <SlidersHorizontal size={13} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-3 sm:p-3.5 bg-slate-950/50 rounded-2xl border border-slate-800 lg:flex-1 relative overflow-hidden">
+              <motion.div 
+                className="flex justify-center gap-1 sm:gap-1.5"
+                animate={isCalculating ? { scale: [1, 1.2, 1], rotate: [0, -3, 3, 0] } : {}}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+              >
+                {state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? (
+                  <span className="text-3xl font-black text-indigo-400">
+                    {Math.round((rating / 5) * 100)}%
+                  </span>
+                ) : (
+                  renderStars()
+                )}
+              </motion.div>
+
+              <div className="mt-2 text-[11px] font-bold text-slate-400 flex items-center gap-2">
+                <span className="text-amber-400 font-extrabold">
+                  {state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' 
+                    ? `${Math.round((rating / 5) * 100)}% Efficiency` 
+                    : `${rating.toFixed(1)} ★`}
+                </span>
+                <span className="text-slate-600">·</span>
+                {calcFeedback ? (
+                  <span className="text-indigo-300 font-semibold animate-pulse">{calcFeedback}</span>
+                ) : (
+                  <span className="text-slate-500 font-medium">
+                    {rating >= 4.5 ? 'Masterful Focus' : rating >= 3.5 ? 'Productive Day' : rating >= 2.5 ? 'Steady Effort' : rating > 0 ? 'Light Session' : 'Unrated'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           </div>
@@ -760,6 +930,31 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         setIsMarkdownEnabled={setIsMarkdownEnabled}
         renderTemplateControls={renderTemplateControls}
       />
+      {showEfficiencyDetails && (
+        <EfficiencyDetailsModal
+          effectiveMinutes={dailyStats.effectiveMinutes}
+          totalDistractions={dailyStats.totalDistractions}
+          defaultTargetHours={defaultTargetHours}
+          customTargetHours={customTargetHours}
+          onUpdateCustomTargetHours={setCustomTargetHours}
+          config={state.efficiencyRatingConfig || {}}
+          onUpdateConfig={(newConfig) => {
+            onUpdateState?.({
+              efficiencyRatingConfig: {
+                ...(state.efficiencyRatingConfig || {}),
+                ...newConfig
+              }
+            });
+          }}
+          onApplyRating={(calcRating) => {
+            setRating(calcRating);
+            setIsCalculating(true);
+            playSound('success', 0.4);
+            setTimeout(() => setIsCalculating(false), 600);
+          }}
+          onClose={() => setShowEfficiencyDetails(false)}
+        />
+      )}
       {createPortal(
         modalContent, 
         document.body

@@ -229,6 +229,12 @@ export function useGameState() {
       defaultMarkdownEnabled: true,
       standardSessionMinutes: 25,
       includeRestTimeInTasks: true,
+      efficiencyRatingConfig: {
+        autoCalculateOnOpen: true,
+        maxDistractionsPerHour: 10,
+        completionRateWeight: 70,
+        focusQualityWeight: 30,
+      },
       requireFocusConfirmation: false,
       timerBannerCompactMode: false,
       timerSkipVictoryMode: 'none',
@@ -1349,6 +1355,9 @@ export function useGameState() {
         setState(s => ({
           ...s,
           talentPoints: s.talentPoints + addedTalentPoints,
+          todayTodos: (s.todayTodos || []).map(todo => 
+            todo.dungeonId === d.id ? { ...todo, completed: true } : todo
+          ),
           lastCompletionRewards: {
             dungeonName: d.name,
             type: 'dungeon',
@@ -1478,6 +1487,9 @@ export function useGameState() {
     setState(s => ({
       ...s,
       talentPoints: s.talentPoints + addedTalentPoints,
+      todayTodos: (s.todayTodos || []).map(todo => 
+        todo.dungeonId === d.id ? { ...todo, completed: true } : todo
+      ),
       lastCompletionRewards: {
         dungeonName: d.name,
         type: 'dungeon',

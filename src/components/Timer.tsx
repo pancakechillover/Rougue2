@@ -384,15 +384,22 @@ export const Timer = React.memo<TimerProps>(({
 
   useEffect(() => {
     let worker: Worker | null = null;
+    let isDone = false;
     
     const checkTime = () => {
-      if (!isActive || !endTime) return;
+      if (!isActive || !endTime || isDone) return;
       const now = Date.now();
       const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
       
       setTimeLeft(remaining);
       
       if (remaining === 0) {
+        isDone = true;
+        if (worker) {
+          worker.postMessage({ command: 'stop' });
+          worker.terminate();
+          worker = null;
+        }
         setIsActive(false);
         setEndTime(null);
         
@@ -402,12 +409,15 @@ export const Timer = React.memo<TimerProps>(({
 
     if (isActive && endTime) {
       checkTime(); // Check immediately
-      worker = createWorkerTimer();
-      worker.onmessage = checkTime;
-      worker.postMessage({ command: 'start', interval: 1000 });
+      if (!isDone) {
+        worker = createWorkerTimer();
+        worker.onmessage = checkTime;
+        worker.postMessage({ command: 'start', interval: 1000 });
+      }
     }
     
     return () => {
+      isDone = true;
       if (worker) {
         worker.postMessage({ command: 'stop' });
         worker.terminate();
@@ -520,10 +530,10 @@ export const Timer = React.memo<TimerProps>(({
   };
 
   const timerContainerRef = useRef<HTMLDivElement>(null);
-  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 360,
+    height: typeof window !== 'undefined' ? window.innerHeight : 600,
+  }));
 
   useEffect(() => {
     const el = timerContainerRef.current;
@@ -550,11 +560,6 @@ export const Timer = React.memo<TimerProps>(({
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const totalDistractions = distractions.internal + distractions.external + distractions.unavoidable;
-  // User design: Circle starts slightly smaller (0.85 scale) and smoothly expands to max (1.0 scale) at 10 distractions
-  const distractionProgress = Math.min(totalDistractions / 10, 1);
-  const distractionScale = 0.85 + distractionProgress * 0.15;
 
   const showDistractionControls = !isResting;
 
@@ -603,9 +608,7 @@ export const Timer = React.memo<TimerProps>(({
           style={{ width: `${safeDiameter}px`, height: `${safeDiameter}px` }}
           className="relative flex items-center justify-center shrink-0"
         >
-          <motion.div 
-            animate={{ scale: distractionScale }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          <div 
             style={{ width: `${safeDiameter}px`, height: `${safeDiameter}px` }}
             className="relative aspect-square max-w-full max-h-full"
           >
@@ -627,12 +630,13 @@ export const Timer = React.memo<TimerProps>(({
                 strokeWidth="8"
                 fill="transparent"
                 strokeDasharray={2 * Math.PI * 150}
-                initial={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
+                initial={false}
                 animate={{ strokeDashoffset: -(2 * Math.PI * 150) * (1 - timeLeft / ((duration || 25) * 60)) }}
+                transition={{ duration: 0.2, ease: "linear" }}
                 className={isResting ? "text-emerald-500" : "text-indigo-500"}
               />
             </svg>
-            <div className="absolute inset-x-0 top-[20%] flex flex-col items-center justify-end z-10 pointer-events-none pb-2">
+            <div className="absolute inset-x-0 top-[15%] sm:top-[16%] flex flex-col items-center justify-end z-10 pointer-events-none pb-1">
               {isLooping && (
                  <span className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 px-3 py-1 rounded-full text-xs font-bold text-slate-300">
                    {loopCount}/{loopTarget > 0 ? loopTarget : '∞'} loops
@@ -641,8 +645,8 @@ export const Timer = React.memo<TimerProps>(({
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div 
-                style={{ fontSize: `${Math.round(Math.max(30, Math.min(safeDiameter * 0.19, 70)))}px` }}
-                className="font-black font-mono text-white tracking-tighter flex items-center justify-center leading-none"
+                style={{ fontSize: `${Math.round(Math.max(38, Math.min(safeDiameter * 0.285, 112)))}px` }}
+                className="font-black font-mono text-white tracking-tight flex items-center justify-center leading-none select-none"
               >
                 {formatTime(timeLeft).split('').map((char, i) => (
                   <span
@@ -654,9 +658,9 @@ export const Timer = React.memo<TimerProps>(({
                 ))}
               </div>
               <div 
-                style={{ fontSize: `${Math.round(Math.max(10, Math.min(safeDiameter * 0.035, 14)))}px` }}
+                style={{ fontSize: `${Math.round(Math.max(11, Math.min(safeDiameter * 0.038, 15)))}px` }}
                 className={cn(
-                  "font-bold uppercase tracking-widest mt-2 flex items-center gap-1 leading-none",
+                  "font-bold uppercase tracking-widest mt-2.5 sm:mt-3.5 flex items-center gap-1.5 leading-none select-none",
                   isResting ? "text-emerald-500" : "text-indigo-400"
                 )}
               >
@@ -703,7 +707,7 @@ export const Timer = React.memo<TimerProps>(({
                 })()}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
