@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.73
+- **Current Version:** v9.0.74
 - **Last Update Date:** 2026-08-30
-- **Last Update Time:** 06:00:00
+- **Last Update Time:** 06:30:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -64,6 +64,12 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.0.74 (2026-08-30):** PiP Minimalist Distractions Refinement & Fullscreen Progress Bar Restoration
+  - *PiP Minimalist Mode Icon-Only Distraction Buttons:* In ultra-minimalist mode (height $\le$ 165px), simplified distraction buttons to icon-only (`<Brain />`, `<Wind />`, `<Zap />`), removing text labels.
+  - *PiP Rest State Dynamics:* During rest periods in ultra-minimalist mode, dynamically switched countdown font color to green (`text-emerald-400`), disabled distraction button interactions (`disabled={isResting}`), and dimmed button opacity (`opacity-40`).
+  - *PiP Medium Height Distractions Display:* Corrected responsive CSS rules in `CompactTimer.tsx` to ensure distraction buttons are seamlessly visible in medium condensed mode ($166\text{px} \le \text{height} \le 240\text{px}$).
+  - *Fullscreen Mode Top Progress Bar Restoration:* Confirmed and restored the top dungeon progress bar in `ExploreView.tsx` during fullscreen mode.
 
 - **v9.0.73 (2026-08-30):** Full Restoration of Clean Timer CSS Architecture & Distraction Module Integration
   - *Restored Clean Timer CSS Layout:* Fully restored the original responsive CSS layout in `Timer.tsx` (`max-w-[280px] sm:max-w-[360px] lg:max-w-[420px] xl:max-w-[480px]` with `aspect-square`, `text-6xl sm:text-7xl lg:text-7xl` typography, and standard sized circular control buttons `w-24 h-24` / `p-4`), eliminating unstable JavaScript runtime scaling calculations and restores the rock-solid visual proportions.
