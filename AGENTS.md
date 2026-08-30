@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.72
+- **Current Version:** v9.0.73
 - **Last Update Date:** 2026-08-30
-- **Last Update Time:** 05:35:00
+- **Last Update Time:** 06:00:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -65,10 +65,10 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 ## Task History
 
-- **v9.0.72 (2026-08-30):** Ultra-Minimalist PiP Strip Mode (Task Name + Countdown + 3 Distraction Buttons)
-  - *Ultra-Minimalist Strip Mode:* Added a dedicated 3rd mode for Document PiP when the window height is resized to the shortest dimension (`max-height: 165px`).
-  - *Clean Strip Layout:* Stripped all redundant large control buttons, status animations, and vertical margins. The header displays the compact task title and progress, while the main row pairs large clear countdown digits (`2.5rem`, click to toggle play/pause) with the 3 distraction buttons (`INT` / `EXT` / `UNA`) in a neat inline box for one-click logging with zero scrolling.
-  - *3-Tier PiP Responsive Architecture:* Formalized PiP layout into 3 crisp responsive tiers: ① Standard Vertical Card Mode (`> 240px`), ② Condensed Horizontal Split Mode (`166px ~ 240px`), and ③ Ultra-Minimalist Strip Mode (`<= 165px`).
+- **v9.0.73 (2026-08-30):** Full Restoration of Clean Timer CSS Architecture & Distraction Module Integration
+  - *Restored Clean Timer CSS Layout:* Fully restored the original responsive CSS layout in `Timer.tsx` (`max-w-[280px] sm:max-w-[360px] lg:max-w-[420px] xl:max-w-[480px]` with `aspect-square`, `text-6xl sm:text-7xl lg:text-7xl` typography, and standard sized circular control buttons `w-24 h-24` / `p-4`), eliminating unstable JavaScript runtime scaling calculations and restores the rock-solid visual proportions.
+  - *Distractions Module Seamless Integration:* Placed the Distractions module (`Internal` / `External` / `Unavoidable`) cleanly right below the primary control buttons without disturbing the center circle layout or typography.
+  - *Restored Fullscreen Mode & Explore View Parity:* Restored the original clean scaling and top progress bar positioning in `ExploreView.tsx` during fullscreen mode.
 
 - **v9.0.71 (2026-08-30):** Enlarge Countdown Typography & Streamline PiP Dual-Mode Responsive Layout
   - *Enlarge Countdown Typography:* Significantly enlarged the center countdown typography in `Timer.tsx` (scale ratio increased to `0.33 * safeDiameter`, scaling up to 128px) and in `CompactTimer.tsx` (`4.25rem` in Standard Mode, `2.75rem` in Condensed Mode), restoring the bold, prominent timer digits.
