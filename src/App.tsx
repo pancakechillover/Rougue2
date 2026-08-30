@@ -1147,6 +1147,7 @@ function App() {
           <SplashScreen 
             key="splash" 
             variant={shouldShowStartOfDayOnStartup ? 'sunrise' : 'default'}
+            theme={state.theme}
             onComplete={handleSplashComplete} 
           />
         )}

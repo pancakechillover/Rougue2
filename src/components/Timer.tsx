@@ -563,6 +563,12 @@ export const Timer = React.memo<TimerProps>(({
 
   const showDistractionControls = !isResting;
 
+  // Mathematical function to compute the dynamic scale based on distractions (from 0.85 up to 1.0)
+  const totalDistractions = (distractions?.internal || 0) + (distractions?.external || 0) + (distractions?.unavoidable || 0);
+  const distractionScale = showDistractionControls 
+    ? Math.min(1.0, 0.85 + (Math.min(totalDistractions, 10) / 10) * 0.15)
+    : 1.0;
+
   // Mathematical function to compute the exact safe base diameter for the circular arena
   const safeDiameter = React.useMemo(() => {
     const { width: cWidth, height: cHeight } = containerDimensions;
@@ -604,8 +610,10 @@ export const Timer = React.memo<TimerProps>(({
     >
       {/* Timer Display */}
       <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
-        <div 
+        <motion.div 
           style={{ width: `${safeDiameter}px`, height: `${safeDiameter}px` }}
+          animate={{ scale: distractionScale }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="relative flex items-center justify-center shrink-0"
         >
           <div 
@@ -645,7 +653,7 @@ export const Timer = React.memo<TimerProps>(({
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div 
-                style={{ fontSize: `${Math.round(Math.max(38, Math.min(safeDiameter * 0.285, 112)))}px` }}
+                style={{ fontSize: `${Math.round(Math.max(44, Math.min(safeDiameter * 0.33, 128)))}px` }}
                 className="font-black font-mono text-white tracking-tight flex items-center justify-center leading-none select-none"
               >
                 {formatTime(timeLeft).split('').map((char, i) => (
@@ -658,7 +666,7 @@ export const Timer = React.memo<TimerProps>(({
                 ))}
               </div>
               <div 
-                style={{ fontSize: `${Math.round(Math.max(11, Math.min(safeDiameter * 0.038, 15)))}px` }}
+                style={{ fontSize: `${Math.round(Math.max(12, Math.min(safeDiameter * 0.042, 16)))}px` }}
                 className={cn(
                   "font-bold uppercase tracking-widest mt-2.5 sm:mt-3.5 flex items-center gap-1.5 leading-none select-none",
                   isResting ? "text-emerald-500" : "text-indigo-400"
@@ -708,7 +716,7 @@ export const Timer = React.memo<TimerProps>(({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Controls */}

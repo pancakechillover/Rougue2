@@ -23,20 +23,22 @@ interface CompactTimerProps {
 }
 
 const PIP_STYLE = `
-  .pip-container { padding: 1.5rem; }
-  .pip-dungeon-mb { margin-bottom: 1.5rem; }
+  .pip-container { padding: 1.25rem; }
+  .pip-dungeon-mb { margin-bottom: 1rem; }
   .pip-icon svg { width: 14px; height: 14px; }
   .pip-title { font-size: 0.75rem; }
   .pip-stats { font-size: 10px; }
   .pip-bar { height: 0.375rem; }
   .pip-countdown-container { flex-direction: column; padding: 0; }
-  .pip-time { font-size: 3.75rem; }
+  .pip-time { font-size: 4.25rem; line-height: 1; }
   .pip-status { font-size: 0.75rem; margin-top: 0.5rem; }
   .pip-status svg { width: 14px; height: 14px; }
   .pip-status-short { display: none; }
   .pip-status-long { display: block; }
   .pip-controls-condensed { display: none; }
   .pip-controls-standard { display: flex; }
+  .pip-distractions-standard { display: flex; }
+  .pip-distractions-minimal { display: none; }
   .pip-overlay-icon svg { width: 32px; height: 32px; }
   .pip-overlay-title { font-size: 0.875rem; margin-bottom: 0.75rem; }
   .pip-overlay-box { padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0.375rem; padding-bottom: 0.375rem; gap: 0.5rem; }
@@ -44,26 +46,52 @@ const PIP_STYLE = `
   .pip-overlay-gap { gap: 0.5rem; }
   .pip-overlay-footer { font-size: 10px; margin-top: 1rem; }
 
-  @media (max-width: 180px), (max-height: 240px) {
+  /* Mode 2: Condensed Horizontal Split (166px <= height <= 240px) */
+  @media (max-height: 240px) and (min-height: 166px), (max-width: 180px) and (min-height: 166px) {
     .pip-container { padding: 0.75rem; }
-    .pip-dungeon-mb { margin-bottom: 0.75rem; }
+    .pip-dungeon-mb { margin-bottom: 0.5rem; }
     .pip-icon svg { width: 10px; height: 10px; }
     .pip-title { font-size: 10px; }
     .pip-stats { font-size: 8px; }
     .pip-bar { height: 0.25rem; }
-    .pip-countdown-container { flex-direction: row; justify-content: space-between; padding-left: 0.5rem; padding-right: 0.5rem; }
-    .pip-time { font-size: 2.25rem; }
+    .pip-countdown-container { flex-direction: row; justify-content: space-between; padding-left: 0.25rem; padding-right: 0.25rem; }
+    .pip-time { font-size: 2.75rem; line-height: 1; }
     .pip-status { font-size: 8px; margin-top: 0.125rem; }
     .pip-status svg { width: 10px; height: 10px; }
     .pip-status-short { display: block; }
     .pip-status-long { display: none; }
     .pip-controls-condensed { display: flex; }
     .pip-controls-standard { display: none; }
+    .pip-distractions-standard { display: none; }
+    .pip-distractions-minimal { display: none; }
     .pip-overlay-icon svg { width: 16px; height: 16px; margin-bottom: 0.25rem; }
     .pip-overlay-title { font-size: 10px; margin-bottom: 0.25rem; }
     .pip-overlay-box { padding-left: 0.5rem; padding-right: 0.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem; gap: 0.25rem; }
     .pip-overlay-text { font-size: 10px; }
     .pip-overlay-gap { gap: 0.25rem; }
+    .pip-overlay-footer { display: none; }
+  }
+
+  /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
+  @media (max-height: 165px) {
+    .pip-container { padding: 0.5rem 0.625rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.25rem; }
+    .pip-icon svg { width: 10px; height: 10px; }
+    .pip-title { font-size: 10px; }
+    .pip-stats { font-size: 8px; }
+    .pip-bar { height: 2px; }
+    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; }
+    .pip-time { font-size: 2.5rem; line-height: 1; }
+    .pip-status { display: none; }
+    .pip-controls-condensed { display: none; }
+    .pip-controls-standard { display: none; }
+    .pip-distractions-standard { display: none; }
+    .pip-distractions-minimal { display: flex; }
+    .pip-overlay-icon svg { width: 14px; height: 14px; margin-bottom: 0.125rem; }
+    .pip-overlay-title { font-size: 9px; margin-bottom: 0.125rem; }
+    .pip-overlay-box { padding: 0.25rem; gap: 0.25rem; }
+    .pip-overlay-text { font-size: 9px; }
+    .pip-overlay-gap { gap: 0.125rem; }
     .pip-overlay-footer { display: none; }
   }
 `;
@@ -232,7 +260,11 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
       {/* Countdown Module */}
       <div className="pip-countdown-container relative flex items-center w-full">
         <div className="flex flex-col items-center">
-          <div className="pip-time font-black font-mono tracking-tighter tabular-nums text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <div 
+            onClick={toggleTimer}
+            className="pip-time font-black font-mono tracking-tighter tabular-nums text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer"
+            title={isActive ? "Click to Pause" : "Click to Start"}
+          >
             {formatTime(displayTime)}
           </div>
           
@@ -317,14 +349,91 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {isActive ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
           </button>
         </div>
+
+        {/* Ultra-Minimalist Mode Distractions (Right Side in Shortest Height) */}
+        {!isResting && (
+          <div className="pip-distractions-minimal items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800 shrink-0">
+            <button 
+              onClick={() => {
+                playSound('click', 0.5, true);
+                setDistractions(d => ({ ...d, internal: d.internal + 1 }));
+              }}
+              className="px-1.5 py-1 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded text-[9px] font-bold flex items-center gap-1 relative overflow-hidden active:scale-95 transition-all"
+              title="Internal Distraction"
+            >
+              <Brain size={11} className="text-indigo-400" />
+              <span>INT</span>
+              {distractions.internal > 0 && (
+                <span className="px-1 py-0.2 bg-indigo-500/30 text-indigo-300 rounded text-[8px] font-black">{distractions.internal}</span>
+              )}
+            </button>
+            <button 
+              onClick={() => {
+                playSound('pop', 0.5, true);
+                setDistractions(d => ({ ...d, external: d.external + 1 }));
+              }}
+              className="px-1.5 py-1 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded text-[9px] font-bold flex items-center gap-1 relative overflow-hidden active:scale-95 transition-all"
+              title="External Distraction"
+            >
+              <Wind size={11} className="text-orange-400" />
+              <span>EXT</span>
+              {distractions.external > 0 && (
+                <span className="px-1 py-0.2 bg-orange-500/30 text-orange-300 rounded text-[8px] font-black">{distractions.external}</span>
+              )}
+            </button>
+            <button 
+              onClick={() => {
+                playSound('error', 0.5, true);
+                setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
+              }}
+              className="px-1.5 py-1 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded text-[9px] font-bold flex items-center gap-1 relative overflow-hidden active:scale-95 transition-all"
+              title="Unavoidable Distraction"
+            >
+              <Zap size={11} className="text-red-400" />
+              <span>UNA</span>
+              {distractions.unavoidable > 0 && (
+                <span className="px-1 py-0.2 bg-red-500/30 text-red-300 rounded text-[8px] font-black">{distractions.unavoidable}</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Distractions Module */}
+      {/* Controls (Standard Mode - Middle) */}
+      <div className="pip-controls-standard items-center space-x-6 mt-6 mb-1">
+        <button
+          onClick={resetTimer}
+          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          title="Reset Timer"
+        >
+          <RotateCcw size={20} />
+        </button>
+        <button
+          onClick={toggleTimer}
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-2xl shrink-0 outline-none",
+            isActive 
+              ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
+              : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
+          )}
+        >
+          {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+        </button>
+        <button
+          onClick={skipSession}
+          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          title="Skip Session"
+        >
+          <SkipForward size={20} />
+        </button>
+      </div>
+
+      {/* Distractions Module (Below Controls) */}
       {!isResting && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
+          className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
         >
           <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
             <button 
@@ -372,35 +481,6 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
           </div>
         </motion.div>
       )}
-
-      {/* Controls (Standard Mode - Bottom) */}
-      <div className="pip-controls-standard items-center space-x-6 mt-8">
-        <button
-          onClick={resetTimer}
-          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
-          title="Reset Timer"
-        >
-          <RotateCcw size={20} />
-        </button>
-        <button
-          onClick={toggleTimer}
-          className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-2xl shrink-0 outline-none",
-            isActive 
-              ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
-              : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
-          )}
-        >
-          {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-        </button>
-        <button
-          onClick={skipSession}
-          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
-          title="Skip Session"
-        >
-          <SkipForward size={20} />
-        </button>
-      </div>
 
     </div>
   );

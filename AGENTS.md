@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.66
+- **Current Version:** v9.0.72
 - **Last Update Date:** 2026-08-30
-- **Last Update Time:** 01:46:00
+- **Last Update Time:** 05:35:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -64,6 +64,26 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.0.72 (2026-08-30):** Ultra-Minimalist PiP Strip Mode (Task Name + Countdown + 3 Distraction Buttons)
+  - *Ultra-Minimalist Strip Mode:* Added a dedicated 3rd mode for Document PiP when the window height is resized to the shortest dimension (`max-height: 165px`).
+  - *Clean Strip Layout:* Stripped all redundant large control buttons, status animations, and vertical margins. The header displays the compact task title and progress, while the main row pairs large clear countdown digits (`2.5rem`, click to toggle play/pause) with the 3 distraction buttons (`INT` / `EXT` / `UNA`) in a neat inline box for one-click logging with zero scrolling.
+  - *3-Tier PiP Responsive Architecture:* Formalized PiP layout into 3 crisp responsive tiers: ① Standard Vertical Card Mode (`> 240px`), ② Condensed Horizontal Split Mode (`166px ~ 240px`), and ③ Ultra-Minimalist Strip Mode (`<= 165px`).
+
+- **v9.0.71 (2026-08-30):** Enlarge Countdown Typography & Streamline PiP Dual-Mode Responsive Layout
+  - *Enlarge Countdown Typography:* Significantly enlarged the center countdown typography in `Timer.tsx` (scale ratio increased to `0.33 * safeDiameter`, scaling up to 128px) and in `CompactTimer.tsx` (`4.25rem` in Standard Mode, `2.75rem` in Condensed Mode), restoring the bold, prominent timer digits.
+  - *PiP Dual-Mode Layout Clarification:* Clarified the architecture of the 2 responsive PiP modes (① Standard Vertical Card Mode, ② Condensed Horizontal Split Mode) and ensured the Distractions module seamlessly hides in ultra-short condensed mode (`max-height: 240px`) to prevent squeezing the countdown.
+
+- **v9.0.69 (2026-08-30):** Soften Dark Mode Sunrise Solar Disc Brightness & Glow
+  - *Calibrated Solar Glow:* Softened the glaring bright yellow overexposure on dark backgrounds by switching the solar disc to a rich, warm golden-amber gradient (`from-amber-300 via-amber-500 to-orange-600`) and reducing the drop-shadow radius/opacity (`shadow-[0_0_30px_rgba(245,158,11,0.35)]`).
+  - *Gentle Ambient Atmosphere:* Muted the outer radial atmosphere aurora and sunbeam line intensities to eliminate neon glare, presenting a soft, atmospheric dawn warmth against dark theme backgrounds.
+
+- **v9.0.68 (2026-08-30):** Sunrise Splash Light Theme Adaptation & Center Emblem Alignment
+  - *Light Theme Color & Contrast Parity:* Fully adapted `SplashScreen.tsx` for Light Themes (`Daylight`, `Warm Sun`, `Candy`). Replaced washed-out pale yellow text and screen blends with crisp, high-contrast headings (`text-slate-900`), warm dawn sky ambient gradients, high-contrast golden-amber subtitles (`text-amber-700`), and balanced version tags.
+  - *Logo & Rising Sun Unity:* Redesigned the Sunrise animation hierarchy to embed the App Emblem (Sword & Quill) directly into the mathematical and optical center of the glowing golden sun orb, with 12-ray rotating sunbeams and radiant halos expanding symmetrically from the center.
+
+- **v9.0.67 (2026-08-30):** Reposition PiP Mode Distraction Module Below Controls
+  - *PiP Layout Hierarchy Alignment:* Reordered the layout hierarchy in `CompactTimer.tsx` to position the distraction module (`[INT] [EXT] [UNA]`) directly below the primary timer controls (`Reset`, `Play/Pause`, `Skip`), matching the main Explore dashboard layout and improving one-handed touch/click ergonomics in Picture-in-Picture mode.
 
 - **v9.0.66 (2026-08-30):** Remove Explore Ring Zoom Animation & Enlarge Center Countdown Typography
   - *Remove Ring Scale Animation:* Eliminated the spring scale-up animation and initial layout resizing artifacts when entering the Explore tab, ensuring the circular timer appears instantly and steadily without visual jump or magnification.
