@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.3
+- **Current Version:** v9.1.4
 - **Last Update Date:** 2026-09-03
-- **Last Update Time:** 04:30:00
+- **Last Update Time:** 04:45:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -64,6 +64,12 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.1.4 (2026-09-03):** Fellowship Member Auto-Healing & "Not a member" Resolution
+  - *Multi-Factor Member Resolution (`api/teams.ts`):* Implemented `resolveMember` engine supporting fallback resolution across `userId`, `userUniqueId`, and `userName`. Even if client `secretCode` / session identity shifts across devices or clears, existing guild members are seamlessly recognized.
+  - *Automatic Self-Healing & Member Migration:* When a member is resolved via their persistent `userUniqueId` or matching `userName`, the system automatically migrates their Redis membership record and active proposal votes to their current session key, completely eliminating 403 "Not a member" errors.
+  - *Universal Action Coverage:* Wired `resolveMember` across all guild endpoints (`GET team`, `join`, `message`, `event`, `settings`, `vote`, `handle_applicant`, `leave`, `transfer`, `kick`, `reclaim`).
+  - *Client Identity Resiliency:* Updated focus session broadcast and guild member interactions (`TeamModule.tsx`, `useGameState.ts`) to reliably transmit `userUniqueId` and fallback identity codes.
 
 - **v9.1.3 (2026-09-03):** Restore Vibrant Light Theme Accent Colors
   - *Accent Palette Restoration:* Completely removed the artificial dark/inverted color overrides (`amber`, `emerald`, `rose`, `indigo`, `blue`, etc.) in Daylight, Warm Sun, and Candy light themes.

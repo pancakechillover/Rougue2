@@ -28,6 +28,104 @@ const getRedisClient = async () => {
   return null;
 };
 
+// Robust Member Resolution: Finds member by userId, userUniqueId, or userName
+// Automatically migrates old userId keys to current incoming userId to fix "Not a member" issues
+async function resolveMember(
+  client: any,
+  teamId: string,
+  incomingUserId: string,
+  userUniqueId?: string,
+  userName?: string
+): Promise<{ member: any; memberKey: string } | null> {
+  if (!teamId) return null;
+  const membersKey = `scholar_team:${teamId}:members`;
+
+  // 1. Direct lookup by incomingUserId
+  if (incomingUserId) {
+    const directStr = await client.hGet(membersKey, incomingUserId);
+    if (directStr) {
+      try {
+        const m = JSON.parse(directStr);
+        if (userUniqueId && (!m.uniqueId || m.uniqueId !== userUniqueId)) {
+          m.uniqueId = userUniqueId;
+          await client.hSet(membersKey, incomingUserId, JSON.stringify(m));
+        }
+        return { member: m, memberKey: incomingUserId };
+      } catch (e) {}
+    }
+  }
+
+  // 2. Scan all members to match by userUniqueId or userName
+  const allMembersData = await client.hGetAll(membersKey);
+  if (!allMembersData || Object.keys(allMembersData).length === 0) return null;
+
+  let matchedKey: string | null = null;
+  let matchedMember: any = null;
+
+  // Search by uniqueId first (highest confidence, permanent ID across sessions/devices)
+  if (userUniqueId) {
+    for (const [key, val] of Object.entries(allMembersData)) {
+      try {
+        const m = JSON.parse(val as string);
+        if (m && m.uniqueId && m.uniqueId === userUniqueId) {
+          matchedKey = key;
+          matchedMember = m;
+          break;
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Fallback search by exact userName (if uniqueId not matched or not present, for legacy records)
+  if (!matchedMember && userName && userName !== 'Scholar') {
+    for (const [key, val] of Object.entries(allMembersData)) {
+      try {
+        const m = JSON.parse(val as string);
+        if (m && m.name === userName) {
+          matchedKey = key;
+          matchedMember = m;
+          break;
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (!matchedMember || !matchedKey) {
+    return null;
+  }
+
+  // 3. Self-healing / Migration if key has changed
+  if (incomingUserId && matchedKey !== incomingUserId) {
+    console.log(`[Fellowship] Auto-migrating member "${matchedMember.name}" from old key ${matchedKey} to new key ${incomingUserId}`);
+    // Delete old key
+    await client.hDel(membersKey, matchedKey);
+    // Update member object
+    matchedMember.userId = incomingUserId;
+    if (userUniqueId) matchedMember.uniqueId = userUniqueId;
+    // Save under new key
+    await client.hSet(membersKey, incomingUserId, JSON.stringify(matchedMember));
+
+    // Migrate any active proposal votes
+    try {
+      const propStr = await client.get(`scholar_team:${teamId}:proposal`);
+      if (propStr) {
+        const prop = JSON.parse(propStr);
+        if (prop && prop.votes && prop.votes[matchedKey] !== undefined) {
+          prop.votes[incomingUserId] = prop.votes[matchedKey];
+          delete prop.votes[matchedKey];
+          await client.set(`scholar_team:${teamId}:proposal`, JSON.stringify(prop));
+        }
+      }
+    } catch (e) {
+      console.error("[Fellowship] Error migrating proposal vote:", e);
+    }
+
+    return { member: matchedMember, memberKey: incomingUserId };
+  }
+
+  return { member: matchedMember, memberKey: matchedKey };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const client = await getRedisClient();
@@ -37,19 +135,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const method = req.method;
     const { action } = req.query; // e.g. action=create, action=join, action=leave, action=settings, action=message, action=event
-    
-    // Auth & Identity
-    // Instead of complex auth, users pass their secretCode in req.body or headers
-    const secretCode = req.body?.secretCode || req.headers['x-secret-code'] || req.query?.secretCode;
-    if (!secretCode && method !== 'GET') {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    // Hash the secretCode to get a public userId
-    let userId = "";
-    if (secretCode) {
-      userId = crypto.createHash('sha256').update(secretCode as string).digest('hex').substring(0, 16);
-    }
     
     const decodeHeader = (val: any) => {
       if (!val) return "";
@@ -65,6 +150,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userAvatar = req.body?.userAvatar || req.headers['x-user-avatar'] || req.query?.userAvatar || '';
     const userBio = req.body?.userBio || decodeHeader(req.headers['x-user-bio']) || req.query?.userBio || '';
     const userTitle = req.body?.userTitle || decodeHeader(req.headers['x-user-title']) || req.query?.userTitle || '';
+
+    // Auth & Identity: Support either secretCode or permanent userUniqueId
+    const secretCode = req.body?.secretCode || req.headers['x-secret-code'] || req.query?.secretCode;
+    const identitySeed = (secretCode as string) || (userUniqueId as string) || "";
+    if (!identitySeed && method !== 'GET') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Hash the identity seed to get a public userId
+    let userId = "";
+    if (identitySeed) {
+      userId = crypto.createHash('sha256').update(identitySeed).digest('hex').substring(0, 16);
+    }
     
     // Parse userLevel ensuring it is a valid positive number
     const userLevelRaw = req.body?.userLevel || req.headers['x-user-level'] || req.query?.userLevel;
@@ -105,6 +203,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const teamData = await client.hGetAll(`scholar_team:${teamId}`);
        if (!teamData || !teamData.id) return res.status(404).json({ error: 'Team not found' });
        
+       // Resolve member first to heal key if needed
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (resolved) {
+          userId = resolved.memberKey;
+       }
+
        const membersData = await client.hGetAll(`scholar_team:${teamId}:members`);
        if (userId && membersData[userId]) {
           try {
@@ -160,8 +264,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const applicants = Object.values(applicantsData)
           .map((m: any) => safeJsonParse(m, null))
           .filter(Boolean);
-        const isMember = userId ? members.some((m: any) => m.userId === userId) : false;
-        const isPending = userId ? applicants.some((r: any) => r.userId === userId) : false;
+        const isMember = !!resolved || (userId ? members.some((m: any) => m.userId === userId || (userUniqueId && m.uniqueId === userUniqueId)) : false);
+        const isPending = userId ? applicants.some((r: any) => r.userId === userId || (userUniqueId && r.uniqueId === userUniqueId)) : false;
 
        return res.json({
           team: {
@@ -235,8 +339,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const exists = await client.hExists(`scholar_team:${teamId}`, 'id');
        if (!exists) return res.status(404).json({ error: 'Team not found' });
        
-       const isMember = await client.hExists(`scholar_team:${teamId}:members`, userId);
-       if (isMember) return res.json({ success: true, teamId });
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (resolved) return res.json({ success: true, teamId });
 
        const teamData = await client.hGetAll(`scholar_team:${teamId}`);
        const joinRule = teamData.config_joinRule || 'direct';
@@ -302,8 +406,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const teamExists = await client.exists(`scholar_team:${teamId}`);
        if (!teamExists) return res.status(404).json({ error: 'Team not found' });
 
-       const isMember = await client.hExists(`scholar_team:${teamId}:members`, userId);
-       if (!isMember) return res.status(403).json({ error: 'Not a member' });
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not a member' });
+       userId = resolved.memberKey;
 
        const msg = {
           id: crypto.randomUUID(),
@@ -329,9 +434,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        
        if (timeVal > 0) {
           const teamData = await client.hGetAll(`scholar_team:${teamId}`);
-          const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-          if (memberStr && teamData) {
-             const m = JSON.parse(memberStr);
+          const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+          const m = resolved?.member;
+          const targetMemberKey = resolved?.memberKey || userId;
+          if (m && teamData) {
              m.totalFocusTime = (m.totalFocusTime || 0) + timeVal;
              
              // Evaluate cycle limits
@@ -367,7 +473,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
              }
 
-             await client.hSet(`scholar_team:${teamId}:members`, userId, JSON.stringify(m));
+             await client.hSet(`scholar_team:${teamId}:members`, targetMemberKey, JSON.stringify(m));
           }
        }
        
@@ -390,9 +496,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const teamData = await client.hGetAll(`scholar_team:${teamId}`);
        if (!teamData || !teamData.id) return res.status(404).json({ error: 'Not found' });
        
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not a member' });
-       const reqMember = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not a member' });
+       const reqMember = resolved.member;
+       userId = resolved.memberKey;
 
        if (reqMember.isCaptain) {
           const adminUpdates: Record<string, string> = {};
@@ -472,6 +579,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const propStr = await client.get(`scholar_team:${teamId}:proposal`);
        if (!propStr) return res.status(404).json({ error: 'No proposal' });
        
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not a member' });
+       userId = resolved.memberKey;
+
        const proposal = JSON.parse(propStr);
        proposal.votes[userId] = !!accept;
        
@@ -512,9 +623,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST: Approve or reject applicant
     if (method === 'POST' && action === 'handle_applicant') {
        const { teamId, applicantId, accept } = req.body;
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not a member' });
-       const reqMember = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not a member' });
+       const reqMember = resolved.member;
        if (!reqMember.isCaptain) return res.status(403).json({ error: 'Only captain can manage applicants' });
 
        const applicantStr = await client.hGet(`scholar_team:${teamId}:applicants`, applicantId);
@@ -563,9 +674,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST: Leave or Disband
     if (method === 'POST' && action === 'leave') {
        const { teamId, disband } = req.body;
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not member' });
-       const member = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not member' });
+       const member = resolved.member;
+       userId = resolved.memberKey;
        
        if (member.isCaptain) {
           if (!disband) return res.status(400).json({ error: 'Captain cannot just leave. Please transfer leadership or disband the guild.' });
@@ -593,9 +705,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST: Transfer Captain
     if (method === 'POST' && action === 'transfer') {
        const { teamId, targetMemberId } = req.body;
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not member' });
-       const member = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not member' });
+       const member = resolved.member;
+       userId = resolved.memberKey;
        if (!member.isCaptain) return res.status(403).json({ error: 'Only captain can transfer leadership' });
        
        const targetStr = await client.hGet(`scholar_team:${teamId}:members`, targetMemberId);
@@ -618,9 +731,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST: Kick Member
     if (method === 'POST' && action === 'kick') {
        const { teamId, targetMemberId } = req.body;
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not member' });
-       const member = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not member' });
+       const member = resolved.member;
+       userId = resolved.memberKey;
        if (!member.isCaptain) return res.status(403).json({ error: 'Only captain can banish members' });
        
        const targetStr = await client.hGet(`scholar_team:${teamId}:members`, targetMemberId);
@@ -642,9 +756,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST: Reclaim
     if (method === 'POST' && action === 'reclaim') {
        const { teamId } = req.body;
-       const memberStr = await client.hGet(`scholar_team:${teamId}:members`, userId);
-       if (!memberStr) return res.status(403).json({ error: 'Not member' });
-       const member = JSON.parse(memberStr);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       if (!resolved) return res.status(403).json({ error: 'Not member' });
+       const member = resolved.member;
+       userId = resolved.memberKey;
 
        const allMembersData = await client.hGetAll(`scholar_team:${teamId}:members`);
        let currentCaptainId: string | null = null;

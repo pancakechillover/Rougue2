@@ -293,6 +293,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
           teamId: state.teamId,
           secretCode: identityCode,
           userName: state.userName || 'Scholar',
+          userUniqueId: state.userUniqueId || '',
           applicantId,
           accept
         })
@@ -378,6 +379,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
           teamId: state.teamId, 
           secretCode: identityCode,
           userName: state.userName || 'Scholar',
+          userUniqueId: state.userUniqueId || '',
           ...cfg
         })
       });
@@ -397,7 +399,13 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
        await fetch('/api/teams?action=vote', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ teamId: state.teamId, secretCode: identityCode, accept })
+         body: JSON.stringify({ 
+           teamId: state.teamId, 
+           secretCode: identityCode, 
+           userName: state.userName || 'Scholar',
+           userUniqueId: state.userUniqueId || '',
+           accept 
+         })
        });
        fetchTeam();
      } catch (e) {
@@ -670,7 +678,13 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                                  await fetch('/api/teams?action=kick', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ teamId: team.id, secretCode: identityCode, targetMemberId: m.userId })
+                                    body: JSON.stringify({ 
+                                      teamId: team.id, 
+                                      secretCode: identityCode, 
+                                      userName: state.userName || 'Scholar',
+                                      userUniqueId: state.userUniqueId || '',
+                                      targetMemberId: m.userId 
+                                    })
                                  });
                                  fetchTeam();
                               }, "Banish Member", "danger", "Banish");
@@ -895,7 +909,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                 await fetch('/api/teams?action=leave', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ teamId: team.id, secretCode: identityCode, userName: state.userName || 'Scholar' })
+                  body: JSON.stringify({ teamId: team.id, secretCode: identityCode, userName: state.userName || 'Scholar', userUniqueId: state.userUniqueId || '' })
                 });
                 setState(s => ({ ...s, teamId: undefined }));
                 setShowSettings(false);
@@ -1002,15 +1016,21 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
         <TeamMemberProfileModal 
            member={team.members.find(m => m.userId === viewingProfile)!}
            onClose={() => setViewingProfile(null)}
-           isCurrentUserCaptain={team.members.find(m => m.userId === team.myUserId)?.isCaptain}
-           isTargetSelf={viewingProfile === team.myUserId}
+           isCurrentUserCaptain={team.members.find(m => m.userId === team.myUserId || (!!m.uniqueId && !!state.userUniqueId && m.uniqueId === state.userUniqueId))?.isCaptain}
+           isTargetSelf={viewingProfile === team.myUserId || (!!state.userUniqueId && team.members.find(m => m.userId === viewingProfile)?.uniqueId === state.userUniqueId)}
            onTransferCaptain={(targetId) => {
               customConfirm("Are you sure you want to transfer guild leadership? You will become a regular member.", async () => {
                  const identityCode = state.secretCode || getOrGenerateIdentity();
                  await fetch('/api/teams?action=transfer', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ teamId: team.id, secretCode: identityCode, targetMemberId: targetId })
+                    body: JSON.stringify({ 
+                      teamId: team.id, 
+                      secretCode: identityCode, 
+                      userName: state.userName || 'Scholar',
+                      userUniqueId: state.userUniqueId || '',
+                      targetMemberId: targetId 
+                    })
                  });
                  setViewingProfile(null);
               }, "Transfer Leadership", "warning", "Transfer");
@@ -1021,7 +1041,13 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                  await fetch('/api/teams?action=kick', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ teamId: team.id, secretCode: identityCode, targetMemberId: targetId })
+                    body: JSON.stringify({ 
+                      teamId: team.id, 
+                      secretCode: identityCode, 
+                      userName: state.userName || 'Scholar',
+                      userUniqueId: state.userUniqueId || '',
+                      targetMemberId: targetId 
+                    })
                  });
                  setViewingProfile(null);
                  // Optimistically UI update
@@ -1035,7 +1061,12 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                  await fetch('/api/teams?action=reclaim', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ teamId: team.id, secretCode: identityCode })
+                    body: JSON.stringify({ 
+                      teamId: team.id, 
+                      secretCode: identityCode,
+                      userName: state.userName || 'Scholar',
+                      userUniqueId: state.userUniqueId || ''
+                    })
                  });
                  setViewingProfile(null);
                  fetchTeam();

@@ -1416,13 +1416,23 @@ export function useGameState() {
     }
 
     // Broadcast focus session to Guild Team
-    if (state.teamId && state.secretCode) {
+    if (state.teamId && (state.secretCode || state.userUniqueId)) {
       const finalDuration = Math.max(1, Math.round(sessionDurationVal));
+      let identityCode = state.secretCode;
+      if (!identityCode && typeof window !== 'undefined') {
+        try {
+          identityCode = localStorage.getItem('team_identity_code') || '';
+        } catch (e) {}
+      }
+      if (!identityCode) {
+        identityCode = state.userUniqueId || '';
+      }
+
       fetch('/api/teams?action=event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-secret-code': state.secretCode || '',
+          'x-secret-code': identityCode || '',
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',
           'x-user-level': String(state.level || 1),
@@ -1432,6 +1442,8 @@ export function useGameState() {
           teamId: state.teamId,
           type: 'focus',
           duration: finalDuration,
+          secretCode: identityCode,
+          userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId,
           content: `${state.userName || 'Scholar'} just finished a ${finalDuration}m focus session.`
         })
