@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
 import { Dungeon, MajorDungeon, DungeonReward } from '../../types';
 import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, FolderPlus, Folder, ChevronDown, ChevronUp, Gift, X, Edit2, Coins, Zap, Trophy, HelpCircle, Square, CheckSquare, EyeOff, Eye, Archive, Search, Filter, Calendar, GripVertical, Scroll, RefreshCcw } from 'lucide-react';
-import { PageHeader } from '../PageHeader';
+import { PageHeader } from '../common/PageHeader';
 import { cn } from '../../lib/utils';
-import { SpinnerInput } from '../SpinnerInput';
-import { ConfirmModal } from '../ConfirmModal';
-import { PresetControl, getAutoLoadedPreset } from '../PresetControl';
-import { DatePicker } from '../DatePicker';
+import { SpinnerInput } from '../common/SpinnerInput';
+import { ConfirmModal } from '../modals/ConfirmModal';
+import { PresetControl, getAutoLoadedPreset } from '../common/PresetControl';
+import { DatePicker } from '../common/DatePicker';
 import { format } from 'date-fns';
 
 const DraggableItem = ({ item, isEditMode, children, className, handleClassName, onMove, onDragStart }: any) => {

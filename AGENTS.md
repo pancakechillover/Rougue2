@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.4
+- **Current Version:** v9.1.11
 - **Last Update Date:** 2026-09-03
-- **Last Update Time:** 04:45:00
+- **Last Update Time:** 09:30:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -64,6 +64,35 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.1.11 (2026-09-03):** Reward Chest Button Hover Style Optimization
+  - *Translucent Warm Amber Hover Tint (`ExploreView.tsx`):* Replaced the heavy, dark `hover:bg-slate-700/80` background on the header Reward Chest button with a soft, translucent warm amber wash (`hover:bg-amber-500/20 hover:border-amber-500/40`). In both light themes (Daylight, Warm Sun, Candy) and dark themes (Night, Forest, Ocean), hovering over the treasure chest button now creates a harmonious, luminous, and elegant feedback effect without dark or muddy patches.
+
+- **v9.1.10 (2026-09-03):** Sleek & Compact Ultra-Narrow PiP Strip Mode
+  - *Mode 3 Vertical Thinning (`CompactTimer.tsx`):* Tightened the ultra-minimalist strip mode (height $\le 165\text{px}$) layout. Reduced container padding (`0.25rem 0.5rem`), minimized bottom margins (`0.125rem`), tuned timer digits to a sleek, compact size (`1.85rem` with tight tracking), and refined distraction buttons (`1.5rem` / `24px` with `12px` icons).
+  - *Extreme Height Resilience ($\le 110\text{px}$):* Added dedicated micro-height media queries enabling the PiP strip to shrink effortlessly down to 70px~100px without vertical clipping or awkward bloated margins.
+
+- **v9.1.9 (2026-09-03):** Multi-line Text Wrapping for PiP Victory Reward Choices
+  - *Mode 3 Ultra-Minimalist Wrapping (`CompactTimer.tsx`):* Removed single-line `truncate` constraint from card names in Mode 3 (`pip-overlay-minimal`), allowing text to cleanly wrap onto two lines (`line-clamp-2 leading-[1.15] break-words text-left flex-1`). Titles like "Lucky Penny", "One Song", "Page Marker", and "Tiny Scroll" now render completely without being cut off by ellipses.
+  - *Mode 1 & Mode 2 Text Wrapping Parity:* Applied multi-line text wrapping (`line-clamp-2 leading-tight break-words`) to card names and descriptions across all PiP sizing overlays, ensuring full readability across varying aspect ratios.
+
+- **v9.1.8 (2026-09-03):** Preserve Distraction Controls in PiP Medium & Standard Modes During Rest
+  - *Continuous Distraction Module Display (`CompactTimer.tsx`):* Removed the conditional `!isResting` wrapper that previously hid the standard distraction module (`pip-distractions-standard`) during rest. In medium flat/condensed mode ($166\text{px} \le \text{height} \le 240\text{px}$), the three distraction buttons (`[INT]`, `[EXT]`, `[UNA]`) now remain persistently rendered along the bottom row, perfectly balancing the layout and eliminating the empty white space.
+  - *Harmonized Interactivity & Minimal Mode Parity:* Maintained full theme-adaptive responsiveness across all themes and made Mode 3 minimal distraction buttons consistently accessible and crisp without faded opacity.
+
+- **v9.1.7 (2026-09-03):** PiP Victory Screen Card Styling Parity with Main Victory Page
+  - *Unified Card Palette (`CompactTimer.tsx`):* Replaced hardcoded dark tinted backgrounds (`bg-emerald-950/40`, `bg-blue-950/40`, etc.) in `getRarityConfig` with theme-adaptive `bg-slate-900 hover:bg-slate-800/90`. In light themes (Daylight, Warm Sun, Candy), this renders as a crisp, bright slate container matching the main Victory modal, eliminating muddy dark boxes.
+  - *Border & Badge Harmonization:* Applied 2px borders (`border-2`) with rarity-specific colors (`border-emerald-500/50`, `border-blue-500/50`, `border-purple-500/50`, `border-amber-500/50`, `border-rose-500/50`, and `border-slate-800` for Common). Harmonized rarity badge styling (`bg-emerald-600 text-white`, `bg-blue-600 text-white`, etc.) with high contrast text.
+  - *Chest Action & Emerald XP Alignment:* Swapped generic package icon with `TreasureChestIcon` (`text-amber-400`), aligned button labels ("Defer to Chest" / "Chest"), and tuned XP indicator to standard `text-emerald-500` across all three PiP sizing modes.
+
+- **v9.1.6 (2026-09-03):** Resting Timer Green Color Tuning to Standard Emerald
+  - *Standard Green Color Harmonization (`CompactTimer.tsx`):* Replaced the excessively bright, neon `text-emerald-400` on the resting countdown display with standard, comfortable `text-emerald-500` to maintain harmony with the rest of the application's timer and status indicators.
+  - *Resting Controls Color Alignment:* Harmonized resting status icon, prompt badges, and active button text to standard `text-emerald-500`.
+
+- **v9.1.5 (2026-09-03):** Component Architecture Reorganization by Page Domain
+  - *Page-Domain Directory Clustering:* Reorganized 60 loose `.tsx` files in `src/components/` into structured, page-oriented subdirectories (`expedition/`, `record/`, `journal/`, `shop/`, `talents/`, `vault/`, `guild/`, `modals/`, `common/`, `dashboard/`, `settings/`, `dungeons/`, `icons/`).
+  - *Zero Logic Breakage:* Updated all relative imports and dynamic module references across the entire codebase to match the new nested directory structure, achieving 100% type safety and zero runtime compilation regression.
+  - *Root Cleanliness:* Cleared the root of `src/components/` of all loose files, ensuring maximum maintainability and clear separation of concerns before upcoming user system developments.
 
 - **v9.1.4 (2026-09-03):** Fellowship Member Auto-Healing & "Not a member" Resolution
   - *Multi-Factor Member Resolution (`api/teams.ts`):* Implemented `resolveMember` engine supporting fallback resolution across `userId`, `userUniqueId`, and `userName`. Even if client `secretCode` / session identity shifts across devices or clears, existing guild members are seamlessly recognized.
