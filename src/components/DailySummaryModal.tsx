@@ -1,6 +1,8 @@
+import { MarkdownEditor } from "./MarkdownEditor";
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+
   X, 
   Star, 
   StarHalf, 
@@ -35,6 +37,8 @@ import {
   Calculator
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { cn, getSessionSettlementDate, getSettlementDay, getSessionEffectiveMinutes, formatDuration } from '../lib/utils';
 import { playSound } from '../lib/sound';
 import { AppState, StudySession, RewardHistoryItem, Dungeon, MajorDungeon } from '../types';
@@ -73,7 +77,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   const [customTargetHours, setCustomTargetHours] = useState<number | null>(null);
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [calcFeedback, setCalcFeedback] = useState<string | null>(null);
 
   const immersiveTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const hasInitializedFromLog = useRef(false);
@@ -440,14 +443,27 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     focusWeight: number
   ) => {
     const actualH = effectiveMinutes / 60;
+    if (actualH <= 0) {
+      return {
+        actualH: 0,
+        targetH,
+        completionRate: 0,
+        totalDistractions: 0,
+        distractionsPerHour: 0,
+        focusQuality: 0,
+        efficiency: 0,
+        rawStars: 0,
+        calculatedStars: 0
+      };
+    }
     const completionRate = targetH > 0 ? Math.min(actualH / targetH, 1.0) : 0;
-    const distractionsPerHour = actualH > 0 ? (totalDistractions / actualH) : 0;
+    const distractionsPerHour = totalDistractions / actualH;
     const focusQuality = Math.max(0, 1.0 - (distractionsPerHour / (maxDist > 0 ? maxDist : 10)));
     const wComp = compWeight / 100;
     const wFocus = focusWeight / 100;
-    const efficiency = completionRate * (wComp + wFocus * focusQuality);
+    const efficiency = (wComp * completionRate) + (wFocus * focusQuality);
     const rawStars = efficiency * 5;
-    const calculatedStars = Math.min(5, Math.max(0, Math.round(rawStars * 2) / 2));
+    const calculatedStars = Math.min(5, Math.max(0, rawStars));
 
     return {
       actualH,
@@ -464,7 +480,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
 
   const handleAutoCalculate = () => {
     setIsCalculating(true);
-    playSound('success', 0.4);
 
     const tHours = customTargetHours !== null ? customTargetHours : defaultTargetHours;
     const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
@@ -480,16 +495,11 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       focusW
     );
 
-    setRating(res.calculatedStars);
-    setCalcFeedback(`Score: ${(res.efficiency * 100).toFixed(0)}% · ${res.calculatedStars.toFixed(1)}★`);
-
     setTimeout(() => {
+      setRating(res.calculatedStars);
       setIsCalculating(false);
-    }, 600);
-
-    setTimeout(() => {
-      setCalcFeedback(null);
-    }, 3500);
+      playSound('calculate', 0.4);
+    }, 450);
   };
 
   // Load existing log if one exists for today, or auto-calculate rating if enabled
@@ -524,10 +534,11 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   }, [state.dailyLogs, today.dateString, state.efficiencyRatingConfig, dailyStats, defaultTargetHours, customTargetHours, calculateEfficiencyRating]);
 
   const renderStars = () => {
+    const displayRating = Math.round(rating * 2) / 2;
     const stars = [];
     for (let i = 1; i <= 5; i++) {
-      const isFull = rating >= i;
-      const isHalf = rating >= i - 0.5 && rating < i;
+      const isFull = displayRating >= i;
+      const isHalf = displayRating >= i - 0.5 && displayRating < i;
       
       stars.push(
         <button
@@ -710,7 +721,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         {/* Mood Selection */}
           <div className="bg-slate-800/20 rounded-xl p-3 sm:p-4 border border-slate-700/30 space-y-2.5">
             <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <Heart size={16} className="text-rose-400" /> Daily Feelings
+              <Heart size={16} className="text-rose-400" /> Feelings
             </h3>
             <div className="flex flex-wrap justify-center gap-2.5 py-1.5 overflow-y-visible">
               {MOOD_OPTIONS.filter(m => (state.enabledMoods || DEFAULT_ENABLED_MOODS).includes(m.id)).map((m) => {
@@ -721,14 +732,15 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                     key={m.id}
                     onClick={() => setMood(isSelected ? "" : m.id)}
                     className={cn(
-                      "flex flex-col items-center justify-center min-w-[60px] sm:min-w-[64px] p-2 rounded-xl border transition-all pointer-events-auto",
+                      "flex flex-col items-center justify-center min-w-[48px] sm:min-w-[64px] p-2 rounded-xl border transition-all pointer-events-auto",
                       isSelected 
                         ? `${m.bg} ${m.border} ${m.color} scale-125 shadow-xl z-10` 
                         : "bg-slate-950/50 border-slate-800 text-slate-500 hover:bg-slate-800 hover:border-slate-700 hover:scale-110"
                     )}
+                    title={`Select ${m.label}`}
                   >
-                    <Icon size={20} className="mb-1.5" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">{m.label}</span>
+                    <Icon size={20} className="sm:mb-1.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:block">{m.label}</span>
                   </button>
                 );
               })}
@@ -737,7 +749,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           <div className="bg-slate-800/20 rounded-xl p-3 sm:p-4 border border-slate-700/30 space-y-2.5 lg:flex-1 lg:flex lg:flex-col lg:justify-between">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                <Star size={16} className="text-amber-400" /> Efficiency Rating
+                <Star size={16} className="text-amber-400" /> Efficiency
               </h3>
               <div className="flex items-center gap-1.5">
                 <button
@@ -745,12 +757,12 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                   onClick={handleAutoCalculate}
                   disabled={isCalculating}
                   className={cn(
-                    "px-2.5 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm",
+                    "px-2.5 py-1 bg-slate-800 hover:bg-slate-700/90 border border-slate-700/70 text-slate-300 hover:text-slate-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm group",
                     isCalculating && "opacity-80 cursor-wait"
                   )}
                   title="Auto-calculate rating using focus duration & distraction metrics"
                 >
-                  <Sparkles size={13} className={cn("text-indigo-400", isCalculating && "animate-spin")} />
+                  <Calculator size={13} className={cn("text-indigo-400 group-hover:text-indigo-300", isCalculating && "animate-spin")} />
                   <span>Calculate</span>
                 </button>
                 <button
@@ -771,29 +783,16 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                 transition={{ duration: 0.5, ease: "easeInOut" }}
               >
                 {state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? (
-                  <span className="text-3xl font-black text-indigo-400">
-                    {Math.round((rating / 5) * 100)}%
+                  <span className={cn(
+                    "text-3xl font-black font-mono",
+                    rating > 0 ? "text-indigo-400" : "text-slate-500"
+                  )}>
+                    {rating > 0 ? `${((rating / 5) * 100).toFixed(1).replace(/\.0$/, '')}%` : 'None'}
                   </span>
                 ) : (
                   renderStars()
                 )}
               </motion.div>
-
-              <div className="mt-2 text-[11px] font-bold text-slate-400 flex items-center gap-2">
-                <span className="text-amber-400 font-extrabold">
-                  {state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' 
-                    ? `${Math.round((rating / 5) * 100)}% Efficiency` 
-                    : `${rating.toFixed(1)} ★`}
-                </span>
-                <span className="text-slate-600">·</span>
-                {calcFeedback ? (
-                  <span className="text-indigo-300 font-semibold animate-pulse">{calcFeedback}</span>
-                ) : (
-                  <span className="text-slate-500 font-medium">
-                    {rating >= 4.5 ? 'Masterful Focus' : rating >= 3.5 ? 'Productive Day' : rating >= 2.5 ? 'Steady Effort' : rating > 0 ? 'Light Session' : 'Unrated'}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
           </div>
@@ -807,19 +806,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                 <MessageSquare size={16} className="text-sky-400" /> Daily Reflection
               </h3>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setIsMarkdownEnabled(!isMarkdownEnabled)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                    isMarkdownEnabled 
-                      ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
-                      : "bg-slate-800 text-slate-500 border border-slate-700"
-                  )}
-                >
-                  {isMarkdownEnabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                  <span>MD {isMarkdownEnabled ? 'On' : 'Off'}</span>
-                </button>
-                
                 <div className="relative flex items-center gap-0 h-[26px]">
                   {renderTemplateControls()}
                 </div>
@@ -872,28 +858,15 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
               </div>
             </div>
             
-            {/* Split Markdown Pane (Regular Modal View) */}
-            <div className={cn(
-              "grid gap-4 transition-all duration-300 flex-1 h-full min-h-[300px]",
-              isMarkdownEnabled ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" : "grid-cols-1"
-            )}>
-              <textarea
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-                placeholder="Write down your thoughts, achievements, or what you learned today..."
-                className="w-full h-full min-h-[160px] bg-slate-950 border border-slate-800 rounded-3xl p-4 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all resize-none"
-              />
-              {isMarkdownEnabled && (
-                <div className="w-full h-full min-h-[160px] bg-slate-950/30 border border-slate-800/50 rounded-3xl p-4 overflow-y-auto custom-scrollbar">
-                  {reflection ? (
-                    <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-headings:text-slate-100 prose-strong:text-slate-200 prose-li:text-slate-300">
-                      <Markdown>{reflection}</Markdown>
-                    </div>
-                  ) : (
-                    <p className="text-slate-600 text-sm italic pr-1">Preview will appear here...</p>
-                  )}
-                </div>
-              )}
+            {/* Single Markdown Editor Pane (Regular Modal View) */}
+            <div className="flex flex-col flex-1 h-full min-h-[300px] bg-slate-950 border border-slate-800 rounded-3xl p-4 focus-within:border-indigo-500 transition-all overflow-hidden">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                <MarkdownEditor 
+                  value={reflection}
+                  onChange={setReflection}
+                  placeholder="Write down your thoughts, achievements, or what you learned today... (Markdown shortcuts supported)"
+                />
+              </div>
             </div>
           </div>
 
@@ -949,7 +922,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           onApplyRating={(calcRating) => {
             setRating(calcRating);
             setIsCalculating(true);
-            playSound('success', 0.4);
+            playSound('calculate', 0.4);
             setTimeout(() => setIsCalculating(false), 600);
           }}
           onClose={() => setShowEfficiencyDetails(false)}

@@ -63,23 +63,23 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
 
   // Live calculation based on current parameters
   const actualHours = effectiveMinutes / 60;
-  const completionRate = localTargetHours > 0 
+  const completionRate = (localTargetHours > 0 && actualHours > 0)
     ? Math.min(actualHours / localTargetHours, 1.0) 
     : 0;
   const distractionsPerHour = actualHours > 0 
     ? totalDistractions / actualHours 
     : 0;
-  const focusQuality = Math.max(
-    0, 
-    1.0 - (distractionsPerHour / (maxDistractions > 0 ? maxDistractions : 10))
-  );
+  const focusQuality = actualHours > 0
+    ? Math.max(0, 1.0 - (distractionsPerHour / (maxDistractions > 0 ? maxDistractions : 10)))
+    : 0;
 
   const wComp = completionWeight / 100;
   const wFocus = focusWeight / 100;
-  const efficiency = completionRate * (wComp + wFocus * focusQuality);
+  const efficiency = actualHours > 0 ? (wComp * completionRate) + (wFocus * focusQuality) : 0;
   const rawStars = efficiency * 5;
-  const calculatedStars = Math.min(5, Math.max(0, Math.round(rawStars * 2) / 2));
+  const calculatedStars = Math.min(5, Math.max(0, rawStars));
   const calculatedEfficiency = Math.round(efficiency * 1000) / 10;
+  const displayStarIcon = Math.round(calculatedStars * 2) / 2;
 
   // Rate penalty per distraction string (e.g. "10%" when max=10)
   const penaltyPerDistractionPercent = maxDistractions > 0 
@@ -222,55 +222,35 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                 </p>
               </div>
             </div>
-            <button
-              id="close-efficiency-details-button"
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-3 bg-slate-950/80 border border-indigo-500/20 shadow-inner px-3 py-1.5 rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-1.5">
+                  <Sparkles size={12} /> Result
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-black text-white font-mono">
+                    {ratingDisplay === 'efficiency' 
+                      ? (actualHours > 0 ? `${calculatedEfficiency}%` : 'None') 
+                      : (actualHours > 0 ? calculatedStars.toFixed(1) : 'None')}
+                  </span>
+                  {ratingDisplay === 'star' && actualHours > 0 && (
+                    <span className="text-sm text-amber-400 font-bold">★</span>
+                  )}
+                </div>
+              </div>
+              <button
+                id="close-efficiency-details-button"
+                onClick={onClose}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar text-slate-200">
             
-            {/* Clean Resulting Rating Card */}
-            <div className="p-4 sm:p-5 bg-slate-950/70 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                  <Sparkles size={13} /> Resulting Rating
-                </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white">
-                    {ratingDisplay === 'efficiency' ? `${calculatedEfficiency}%` : calculatedStars.toFixed(1)}
-                  </span>
-                  {ratingDisplay === 'star' && (
-                    <span className="text-xl text-amber-400 font-bold">★</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Star Badges */}
-              {ratingDisplay === 'star' && (
-                <div className="flex items-center gap-1 bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star 
-                      key={s}
-                      size={22}
-                      className={cn(
-                        "transition-all",
-                        calculatedStars >= s 
-                          ? "text-amber-400 fill-amber-400" 
-                          : calculatedStars >= s - 0.5 
-                            ? "text-amber-400 fill-amber-400/50" 
-                            : "text-slate-700"
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Formula Breakdown Card */}
             <div className="bg-slate-950/50 rounded-2xl border border-slate-800/80 p-4 sm:p-5 space-y-3">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
@@ -278,17 +258,31 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
               </h3>
               
               <div className="space-y-2 text-xs font-mono">
-                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-300">
-                  <span className="text-indigo-400 font-bold">Completion Rate</span> = min(Actual Focus Time / <span className="text-amber-400 font-bold">{localTargetHours.toFixed(1)}h</span>, 100%)
+                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <div className="text-slate-300">
+                    <span className="text-indigo-400 font-bold">Completion Rate</span> = min(Actual / Target, 100%)
+                  </div>
+                  <div className="text-slate-400 bg-slate-950/50 px-2 py-1 rounded-lg border border-slate-800/50 whitespace-nowrap">
+                    = min({actualHours.toFixed(1)}h / {localTargetHours.toFixed(1)}h) = <span className="text-indigo-400 font-bold">{Math.round(completionRate * 100)}%</span>
+                  </div>
                 </div>
-                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-300">
-                  <span className="text-sky-400 font-bold">Focus Degree</span> = max(0, 100% - Distractions/hr × <span className="text-amber-400 font-bold">{penaltyPerDistractionPercent}%</span>)
+
+                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <div className="text-slate-300">
+                    <span className="text-sky-400 font-bold">Focus Degree</span> = max(0, 100% - Distractions/hr × {penaltyPerDistractionPercent}%)
+                  </div>
+                  <div className="text-slate-400 bg-slate-950/50 px-2 py-1 rounded-lg border border-slate-800/50 whitespace-nowrap">
+                    = max(0, 100% - {distractionsPerHour.toFixed(1)} × {penaltyPerDistractionPercent}%) = <span className="text-sky-400 font-bold">{Math.round(focusQuality * 100)}%</span>
+                  </div>
                 </div>
-                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-300">
-                  <span className="text-emerald-400 font-bold">Efficiency</span> = Completion Rate × (<span className="text-amber-400 font-bold">{completionWeight}%</span> + <span className="text-amber-400 font-bold">{focusWeight}%</span> × Focus Degree)
-                </div>
-                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-300">
-                  <span className="text-amber-400 font-bold">Star Rating</span> = Efficiency × 5 (Rounded to 0.5★)
+
+                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <div className="text-slate-300">
+                    <span className="text-emerald-400 font-bold">Efficiency</span> = (<span className="text-indigo-400 font-bold">Comp</span> × {completionWeight}%) + (<span className="text-sky-400 font-bold">Focus</span> × {focusWeight}%)
+                  </div>
+                  <div className="text-slate-400 bg-slate-950/50 px-2 py-1 rounded-lg border border-slate-800/50 whitespace-nowrap">
+                    = ({Math.round(completionRate * 100)}% × {completionWeight}%) + ({Math.round(focusQuality * 100)}% × {focusWeight}%) = <span className="text-emerald-400 font-bold">{calculatedEfficiency}%</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -358,14 +352,9 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
 
               {/* 0. Rating Display Preference Toggle */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
-                <div>
-                  <span className="text-xs font-semibold text-slate-200 block">
-                    Rating Display Preference
-                  </span>
-                  <span className="text-[11px] text-slate-500 block">
-                    Choose whether to display your efficiency as a percentage or a star rating globally.
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-slate-200">
+                  Global Display Format
+                </span>
                 <div className="flex bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => setRatingDisplay('efficiency')}
@@ -388,112 +377,109 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* 1. Target Focus Time (Today only) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Target Focus Time for Today (hours)
-                  </label>
-                  <button
-                    onClick={() => setLocalTargetHours(defaultTargetHours)}
-                    className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline"
-                    title="Reset to Sanctum Today Goal"
-                  >
-                    <RotateCcw size={11} /> Reset Goal ({defaultTargetHours.toFixed(1)}h)
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLocalTargetHours(prev => Math.max(0.5, Number((prev - 0.5).toFixed(1))))}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
-                    title="Decrease by 0.5h"
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0.5"
-                      max="24"
-                      value={localTargetHours}
-                      onChange={(e) => handleTargetHoursInput(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
-                      hours
+              {/* 1 & 2. Targets & Distractions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {/* Target Focus Time (Today only) */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-300 block">
+                      Target Focus Time <span className="text-slate-500 font-normal tracking-normal">(Today)</span>
                     </span>
+                    <button
+                      onClick={() => setLocalTargetHours(defaultTargetHours)}
+                      className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline"
+                      title="Reset to Sanctum Today Goal"
+                    >
+                      <RotateCcw size={10} /> {defaultTargetHours.toFixed(1)}h
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setLocalTargetHours(prev => Math.min(24, Number((prev + 0.5).toFixed(1))))}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
-                    title="Increase by 0.5h"
-                  >
-                    <Plus size={15} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLocalTargetHours(prev => Math.max(0.5, Number((prev - 0.5).toFixed(1))))}
+                      className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
+                      title="Decrease by 0.5h"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        max="24"
+                        value={localTargetHours}
+                        onChange={(e) => handleTargetHoursInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-2 text-sm font-bold text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
+                        hours
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLocalTargetHours(prev => Math.min(24, Number((prev + 0.5).toFixed(1))))}
+                      className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
+                      title="Increase by 0.5h"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Precision limited to ±0.5h increments. Modifying applies to today's calculation only.
-                </p>
-              </div>
 
-              {/* 2. Acceptable Distraction Rate (Global) */}
-              <div className="space-y-2 pt-2 border-t border-slate-800/60">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Acceptable Distraction Rate (times / hr)
-                  </label>
-                  <span className="text-[11px] text-slate-400">
-                    Penalty: -{penaltyPerDistractionPercent}% per dist/h
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMaxDistractions(prev => Math.max(1, prev - 1))}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
-                    title="Decrease by 1"
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="1"
-                      min="1"
-                      max="50"
-                      value={maxDistractions}
-                      onChange={(e) => handleMaxDistractionsInput(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
-                      / hr
+                {/* Acceptable Distraction Rate (Global) */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-300 block">
+                      Max Distractions <span className="text-slate-500 font-normal tracking-normal">(/hr)</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      -{penaltyPerDistractionPercent}% per dist
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setMaxDistractions(prev => Math.min(50, prev + 1))}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
-                    title="Increase by 1"
-                  >
-                    <Plus size={15} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setMaxDistractions(prev => Math.max(1, prev - 1))}
+                      className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
+                      title="Decrease by 1"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        max="50"
+                        value={maxDistractions}
+                        onChange={(e) => handleMaxDistractionsInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-2 text-sm font-bold text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
+                        / hr
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMaxDistractions(prev => Math.min(50, prev + 1))}
+                      className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-xl border border-slate-700/60 font-bold transition-colors shrink-0"
+                      title="Increase by 1"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Global setting (Default: 10). When distraction frequency reaches this threshold, focus degree drops to 0%.
-                </p>
               </div>
 
               {/* 3. Weight Preferences (Global - with Left/Right Steppers ±10%) */}
               <div className="space-y-2 pt-2 border-t border-slate-800/60">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-slate-300">
-                    Rating Weight Preference (%)
+                    Formula Weights <span className="text-slate-500 font-normal tracking-normal">(Global)</span>
                   </label>
-                  <span className="text-[11px] text-slate-400">
-                    Total: 100% (±10% step)
+                  <span className="text-[10px] text-slate-500">
+                    Total: 100%
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -575,21 +561,13 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                     </div>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Global setting (Default: 70% / 30%). Balancing target duration achievement against deep concentration.
-                </p>
               </div>
 
               {/* 4. Auto Calculate on Open Toggle */}
               <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-slate-200 block">
-                    Auto-Calculate Rating On Open
-                  </span>
-                  <span className="text-[11px] text-slate-500 block">
-                    Automatically computes and sets efficiency stars whenever End of the Day is opened.
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-slate-200">
+                  Auto-Calculate on Open
+                </span>
                 <button
                   type="button"
                   onClick={() => setAutoCalcOnOpen(!autoCalcOnOpen)}
@@ -661,9 +639,6 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                   </tbody>
                 </table>
               </div>
-              <p className="text-[11px] text-slate-500">
-                Dynamically updates in real-time as you modify today's target time, acceptable distraction threshold, or weight preferences.
-              </p>
             </div>
 
           </div>

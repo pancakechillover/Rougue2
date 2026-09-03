@@ -1,8 +1,10 @@
+import { MarkdownEditor } from "./MarkdownEditor";
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
 import { format, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
 import { 
+
   X, 
   Moon, 
   Sun, 
@@ -35,6 +37,8 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { TimePicker } from './TimePicker';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../types';
@@ -1227,16 +1231,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
                   </h3>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => setIsMarkdownEnabled(!isMarkdownEnabled)}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                        isMarkdownEnabled ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-slate-300"
-                      )}
-                    >
-                      {isMarkdownEnabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                      <span>MD {isMarkdownEnabled ? 'On' : 'Off'}</span>
-                    </button>
+
                     
                     {renderTemplateControls()}
 
@@ -1288,27 +1283,14 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
                   </div>
                 </div>
                 
-                <div className={cn(
-                  "grid gap-4 transition-all duration-300 flex-1 h-full min-h-[300px]",
-                  isMarkdownEnabled ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" : "grid-cols-1"
-                )}>
-                  <textarea
-                    value={reflection}
-                    onChange={(e) => setReflection(e.target.value)}
-                    placeholder="What are your main focuses today? How are you feeling?"
-                    className="w-full h-full min-h-[160px] bg-slate-950 border border-slate-800 rounded-3xl p-4 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all resize-none"
-                  />
-                  {isMarkdownEnabled && (
-                    <div className="w-full h-full min-h-[160px] bg-slate-950/30 border border-slate-800/50 rounded-3xl p-4 overflow-y-auto custom-scrollbar">
-                      {reflection ? (
-                        <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-headings:text-slate-100 prose-strong:text-slate-200 prose-li:text-slate-300">
-                          <Markdown>{reflection}</Markdown>
-                        </div>
-                      ) : (
-                        <p className="text-slate-600 text-sm italic pr-1">Preview will appear here...</p>
-                      )}
-                    </div>
-                  )}
+                <div className="flex flex-col flex-1 h-full min-h-[300px] bg-slate-950 border border-slate-800 rounded-3xl p-4 focus-within:border-indigo-500 transition-all overflow-hidden">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    <MarkdownEditor 
+                      value={reflection}
+                      onChange={setReflection}
+                      placeholder="What are your main focuses today? How are you feeling? (Markdown shortcuts supported)"
+                    />
+                  </div>
                 </div>
              </div>
 

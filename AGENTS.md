@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.0.74
-- **Last Update Date:** 2026-08-30
-- **Last Update Time:** 06:30:00
+- **Current Version:** v9.1.3
+- **Last Update Date:** 2026-09-03
+- **Last Update Time:** 04:30:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -64,6 +64,180 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
+
+- **v9.1.3 (2026-09-03):** Restore Vibrant Light Theme Accent Colors
+  - *Accent Palette Restoration:* Completely removed the artificial dark/inverted color overrides (`amber`, `emerald`, `rose`, `indigo`, `blue`, etc.) in Daylight, Warm Sun, and Candy light themes.
+  - *Record Page Vibrancy:* Restored the original bright, vibrant, and clean tones for Gold (amber-400), Exp (indigo-400), Time (emerald-400), and Distracted (rose-400) stats cards, eliminating the dull and muddy appearance.
+
+- **v9.1.2 (2026-09-03):** True Silent Cloud Sync & Modal Suppression
+  - *Conflict Modal Suppression on Auto-Sync:* Updated `decideCloudSyncAction` with an explicit `isAutoSync` flag. When auto-sync (Immediate, Debounce, Interval Polling, or Visibility API) runs for the same device identity, it favors silent upload instead of raising a conflict modal.
+  - *Background Check Modal Guard:* In `checkCloudSync`, guarded against interrupting the user with the "Echoes of the Past Found" modal when performing background or return-to-tab checks on the same device.
+  - *Concurrency & Race Condition Elimination:* Added `activeCheckRequestRef` to decouple check requests from write/sync requests, preventing stale or out-of-order check responses from overwriting the UI state or popping up spurious modals while local edits are occurring.
+  - *Dirty State Visibility Check:* Bypassed tab-return `checkCloudSync` when local uncommitted edits are pending (`hasUnsyncedChanges`), giving priority to auto-sync to save changes silently.
+
+- **v9.1.1 (2026-09-03):** Light Theme UI Readability & Export Button
+  - *Export Layout Fix:* Moved the Export button to the left of the Date Navigator in the Journal banner for better ergonomic flow.
+  - *Export Button Contrast:* Replaced the purple transparent styling of the Export button with high-contrast theme-aware slate styling to ensure it remains legible in light themes like Candy.
+  - *Global Light Theme Contrast Fix:* Implemented a sweeping fix for low-contrast text across all light themes (Candy, Daylight, Warm). We algorithmically inverted the standard Tailwind accent color scales (indigo, emerald, amber, rose, purple, sky, red, blue) exclusively for light themes. This ensures that any component using transparent colored backgrounds with colored text (e.g., `text-indigo-400` on `bg-indigo-500/10`) automatically uses a darker, highly readable text color on light backgrounds, solving hundreds of readability issues globally.
+
+- **v9.1.0 (2026-09-02):** Dark Theme Splash Screen Optimization
+  - *Color Palette Harmony:* Removed the clashing amber/yellow colors from the Sunrise special splash screen in Dark Mode.
+  - *Unified Branding:* Enforced the clean, high-contrast `indigo` branding colors (indigo-400 text/icons, indigo-500/50 dividers, slate-400 subtitle) across all splash variants to ensure visual consistency and elegance in Night/Forest/Ocean themes.
+  - *Animated Sunrise Glyph:* Replaced the circular `AppIcon` logo with a custom-built, highly elegant `motion.svg` animated `Sunrise` line-drawing effect specifically for the Start of the Day splash screen, delivering a premium sketching visual.
+  - *Session Note Import Formatting:* Prefixed automatically imported session notes with a markdown bullet (`- `) to ensure they are neatly formatted as list items within the daily reflection.
+  - *Batch Export Modal:* Added a new 'Export' button to the Journal banner, allowing users to export their daily logs. Users can specify a date range and choose to merge all logs into a single Markdown file or export them as separate files in a ZIP archive.
+
+- **v9.0.100 (2026-09-02):** Reflection Editor Header Clean-up & Export/Import
+  - *Title Simplification:* Renamed "Immersive Reflection" to "Reflection".
+  - *Clutter Removal:* Removed the redundant "WYSIWYG ACTIVE" badge from the editor header.
+  - *Template Controls Consolidation:* Moved the "Blank" and "Example" template mode toggle buttons directly inside the Templates dropdown menu to save toolbar space across all modal views.
+  - *Import/Export Action:* Added dedicated markdown file Upload/Import and Download/Export buttons inside the Reflection header toolbar.
+
+- **v9.0.99 (2026-09-02):** Obsidian-Style Live WYSIWYG Markdown Editor
+  - *Unified Single-Pane Editor:* Completely replaced the outdated raw-text + split-preview Markdown editing architecture with a true Obsidian-style Live Preview WYSIWYG editor using TipTap and `tiptap-markdown`. 
+  - *Render While Writing:* Users can now write naturally with Markdown shortcuts (e.g. `# Heading`, `**bold**`, `> quote`) and see them rendered instantly in-place, eliminating the need for a secondary preview pane.
+  - *Universal Deployment:* Integrated the new unified `MarkdownEditor` across all journal interfaces including `ImmersiveReflectionModal`, `JournalView` Quick Edit, `DailySummaryModal`, and `StartOfDayModal`.
+  - *Toolbar Sync:* Kept the immersive toolbar completely functional, mapping directly to TipTap chain commands for seamless rich-text formatting.
+
+- **v9.0.99 (2026-09-02):** Concise Tooltips & Parameter Descriptions
+  - *Concise Parameters:* Stripped out all overly verbose explanatory texts from the "Adjustable Parameters" configuration section, making it extremely minimalist and easy to read.
+  - *Record Bubble Efficiency Fix:* Resolved a critical bug where the Stats (Record) page's hover tooltip (bubble) incorrectly displayed the raw star score (e.g. `3.5`) for Efficiency instead of the expected percentage format. The popover now accurately renders efficiency as a percentage (e.g., `70.0%`).
+
+- **v9.0.99 (2026-09-02):** Efficiency Details Modal Restructuring
+  - *Banner Result Integration:* Removed the bulky standalone "Resulting Rating" card entirely, instead embedding the final calculated efficiency or star rating cleanly into the top modal banner for immediate, unobstructed visibility.
+  - *Side-by-Side Formula Breakdown:* Overhauled the "Active Mathematical Formula" section. Instead of a single column of abstract formulas, it now features a responsive `flex-row` side-by-side layout: the left side displays the mathematical equation, while the right side displays the exact live values plugged in for that step (e.g. `min(4.2h / 8.0h) = 52.5%`).
+  - *Redundancy Removal:* Eliminated the `Star Rating = Efficiency * 5` row from the active mathematical steps to keep the panel focused purely on the core weightings.
+
+- **v9.0.99 (2026-09-02):** Efficiency Formula Display Optimization
+  - *Unified Formula Syntax Coloring (`EfficiencyDetailsModal.tsx`):* Added rigorous, color-coded variable highlighting (`text-emerald-400` for Efficiency, `text-indigo-400` for Completion Rate, `text-sky-400` for Focus Degree) across all steps of the Active Mathematical Formula to visually link parameters with their calculated outputs.
+  - *Formula Accuracy Correction:* Corrected a visual math typo where the formula mistakenly displayed `Completion Rate × (70% + 30% × Focus Degree)`, updating it to accurately reflect the true weighted codebase formula: `(Completion Rate × 70%) + (Focus Degree × 30%)`.
+  - *Removed Stale Rounding Text:* Stripped the `(Rounded to 0.5★)` sub-text from the Star Rating formula, reflecting the recent underlying high-precision tracking logic update.
+
+- **v9.0.99 (2026-09-02):** Efficiency Rounding Precision Fix & Sound Deduplication
+  - *Calculation Precision (`JournalView.tsx`, `DailySummaryModal.tsx`):* Changed the core calculated rating to preserve exact decimal values instead of unnecessarily snapping to the nearest 0.5.
+  - *UI Decimal Formatting:* Updated percentage displays to accurately reflect a single decimal place precision (e.g. `68.4%`), providing significantly more granular progression feedback, while stripping any trailing zeros for cleaner visuals.
+  - *Star Visual Integrity (`EfficiencyDetailsModal.tsx`):* Maintained the logic that rounds visual SVG stars (Full or Half) to the nearest 0.5 solely for UI rendering purposes without permanently distorting the underlying data value.
+  - *Sound Optimization:* Removed a redundant `playSound('reward')` call that was overlapping with the newly implemented `calculate` chime when using the manual calculate button.
+
+- **v9.0.95 (2026-09-02):** Dedicated Magic Chime Sound for Efficiency Calculation
+  - *Calculation Specific Audio (`sound.ts`):* Implemented a brand new `'calculate'` audio profile featuring a rapid, high-pitch magical chime arpeggio specifically designed for the efficiency auto-calculate action.
+  - *Audio Separation (`JournalView.tsx`, `DailySummaryModal.tsx`):* Decoupled the auto-calculate action from the global `'success'` timer completion sound to ensure the timer's victory sound remains exclusive and distinguished.
+
+- **v9.0.94 (2026-09-02):** Zero-Data Efficiency Formula Fix & Icon-Only Calculate Action
+  - *Zero-Data Formula Correction (`JournalView.tsx`, `DailySummaryModal.tsx`, `EfficiencyDetailsModal.tsx`):* Fixed the formula anomaly where days with 0 focus minutes previously defaulted to 30% efficiency because 0 distractions per hour incorrectly assigned full focus quality weight (`focusDegree = 1.0`). When focus duration is 0, calculated efficiency is now strictly 0 and the display clearly presents `None`.
+  - *Icon-Only Calculate Button (`JournalView.tsx`):* Removed the `"Calculate"` text label from the efficiency card, turning it into a clean, minimalist `p-1.5` square icon button (`<Calculator />`) that seamlessly mirrors the formula customization button (`<SlidersHorizontal />`).
+
+- **v9.0.93 (2026-09-02):** Realistic Central-Spine Book Page-Turn Dynamics
+  - *Spine-Anchored Split-Spread Architecture (`JournalView.tsx`):* Decoupled the dual-page book spread into two independent page sub-layers anchored by a stationary central leather spine and stitching ribbon.
+  - *Realistic Unidirectional Page Turning:* When turning forward (`Next Entry` / right arrow), the right page flips along the center spine (`transformOrigin: 'left center'`, 3D `rotateY: 28deg -> 0deg`) while the left page remains steady. When turning backward (`Previous Entry` / left arrow), the left page flips along the spine (`transformOrigin: 'right center'`, 3D `rotateY: -28deg -> 0deg`) while the right page remains steady.
+  - *Spine-Emanating Paper Lighting Shimmer:* Dynamic ambient paper gradient sweeps outward naturally from the central binding crease upon page turn.
+  - *Zero-Lag GPU Compositing:* Powered entirely by CSS 3D perspectives (`perspective: 1400px`, `transformStyle: 'preserve-3d'`, and `will-change-transform`), ensuring smooth 60fps/120fps response with zero layout thrashing or stutter.
+
+- **v9.0.92 (2026-09-02):** Realistic & High-Performance 3D Book Page-Turn Dynamics
+  - *Authentic 3D Paper Curvature (`JournalView.tsx`):* Upgraded the flat 2D slide animation to an authentic 3D book spread turn utilizing hardware-accelerated CSS 3D perspectives (`perspective: 1600px`, dynamic `rotateY`, `transformOrigin` pinned to spine edges, and subtle depth scaling `0.985 -> 1`).
+  - *Dynamic Page Turn Light Shimmer:* Added a soft, GPU-accelerated paper fold shimmer gradient that sweeps dynamically in the direction of the turn, recreating natural ambient light reflection across turning parchment.
+  - *Zero-Overhead Performance:* Powered purely by browser GPU composited transforms and cubic-bezier easing (`ease: [0.22, 1, 0.36, 1]`, duration 0.32s), delivering instant 60fps/120fps tactile response with zero DOM thrashing or lag.
+
+- **v9.0.91 (2026-09-02):** Patchouli Bookmark Seamless Attachment & Date Typography Color Parity
+  - *Seamless Tome Attachment (`JournalView.tsx`):* Anchored the bookmark tabs stack directly inside the Tome main container (`absolute left-full top-8 -ml-px`), completely eliminating the 12px separation gap and making the tabs stick out directly from the book's leather border.
+  - *Bookmark Typography Color Parity:* Configured both the month (`monthText: 'text-indigo-100 font-bold'`) and date (`dateText: 'text-indigo-100 font-black'`) in selected tabs to share the same clean, high-contrast light color, resolving the issue where the day number (e.g. `03`) appeared dark/brownish in light/warm themes.
+
+- **v9.0.90 (2026-09-02):** Restore Original Splash Screen Style & Typography Color Parity
+  - *Restored Original Classic Splash Layout (`SplashScreen.tsx`):* Restored the user's preferred classic, minimalist splash structure featuring the centered `AppIcon (size 80)`, `text-3xl font-bold text-indigo-400 tracking-widest uppercase` title, smooth animated accent divider (`h-0.5 bg-indigo-500/50`), and `text-slate-400` subtitle.
+  - *Eliminated Chunky White Font & Glare on Special Splash:* Completely removed all white text overlays and chunky background blobs from special splash mode, ensuring the title and subtitles retain high contrast and clean branding colors (`text-indigo-400` / `text-slate-400`).
+
+- **v9.0.89 (2026-09-02):** Efficiency Subtitle Feedback Removal & Section Header Renaming Parity
+  - *Redundant Subtitle Removal (`JournalView.tsx`, `DailySummaryModal.tsx`):* Completely eliminated the animated `Score: XX%` / `Score: XX% · X.X★` sub-line from under the rating cards when clicking Calculate, preventing visual clutter and overlapping frames.
+  - *Header Renaming Parity:* Renamed "Daily Assessment" to clean **"Log"** in `JournalView`, and renamed "Daily Feelings" to **"Feelings"** across `JournalView`, `DailySummaryModal`, and `Stats`.
+  - *Auto-Calculate Icon Update:* Replaced the sparkle icon `<Sparkles />` with a mathematical calculator icon `<Calculator />` for the Auto-Calculate action across both `JournalView` and `DailySummaryModal`.
+
+- **v9.0.88 (2026-09-02):** Journal Reflection Header Simplification & Redundancy Removal
+  - *Title Simplification (`JournalView.tsx`):* Renamed the right page header from "Daily Chronicle" to clean "Reflection".
+  - *Minimalist Icon-Only Header Actions:* Converted the top action controls (Quick Edit `<Edit3 />`, Immersive Editor `<Maximize2 />`, Export `<Download />`, Copy `<Copy />`) into clean, icon-only button squares with descriptive tooltips, removing wordy text labels.
+  - *Empty State Redundancy Removal:* Removed the duplicate action buttons ("Quick Write" & "Immersive Editor") from the center of the Unwritten Parchment empty state, keeping the interface uncluttered and relying on the unified top toolbar.
+
+- **v9.0.87 (2026-09-02):** Light Theme Button Contrast & Hover State Readability Overhaul
+  - *Auto-Calculate Button Contrast Fix (`JournalView.tsx`, `DailySummaryModal.tsx`):* Replaced transparent `bg-indigo-500/15 text-indigo-300 hover:text-indigo-200` with high-contrast theme-aware slate styling (`bg-slate-800 hover:bg-slate-700/90 border-slate-700/70 text-slate-300 hover:text-slate-100`). This completely eliminates washed-out text on hover in Light Themes (`Daylight`, `Warm Sun`, `Candy`) while maintaining sleek contrast in Dark Themes.
+  - *Defer to Chest Button Contrast Fix (`Timer.tsx`):* Replaced low-contrast `bg-emerald-600/20 text-emerald-400` with unified, high-contrast dark slate capsule button (`bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-slate-200 hover:text-white`) with amber chest icon, ensuring crisp legibility across all 6 themes.
+  - *Explore View Reward Chest Trigger Button Styling (`ExploreView.tsx`):* Harmonized chest trigger button styling to theme-aware slate capsule (`bg-slate-800/80 text-amber-400`).
+
+- **v9.0.86 (2026-09-02):** Sleek Stationery Book Index Tab Geometry & Clean Theme-Adaptive Palette
+  - *Sleek Index Tab Geometry:* Replaced bulky half-capsule/sausage domes (`rounded-r-2xl`) with crisp, compact stationery index tabs (`w-11 py-2 px-1 rounded-r-md` with flat top/bottom and subtle 6px corner radius), cleanly sticking out from the tome leather border.
+  - *Refined Color Palette Across All Themes:* Configured inactive tabs with crisp slate borders and soft slate backgrounds (`bg-slate-900/95 border-slate-800`), and selected tabs with vibrant solid theme indigo (`bg-indigo-600 border-indigo-400 text-white shadow-md`), eliminating muddy gradients and washed-out halos in light themes.
+  - *Minimalist Quick Bookmark & Delete Action:* Streamlined the top quick bookmark button to match the sleek `rounded-r-md` geometry with an elegant amber accent, and refined the mini delete button.
+
+- **v9.0.85 (2026-09-02):** Refined Grimoire Bookmark Palette, Responsive Mood Glyphs & Minimalist Efficiency Header
+  - *Refined Grimoire Bookmark Tabs:* Replaced harsh electric violet/blue and bright orange bookmark tabs with elegant, subtle dark grimoire leather/slate tones (`bg-slate-900/95` and `bg-slate-850/95` with delicate slate borders and high-contrast font-mono dates; selected state features refined indigo theme glow with left accent notch). Quick bookmark tab upgraded to a subtle slate tab with glowing amber fill icon on bookmark.
+  - *Responsive Daily Feelings Glyphs:* Configured mood selection buttons on narrower containers/screens to cleanly hide text labels (`hidden 2xl:block` / `hidden sm:block`) and center mood icons vertically, completely eliminating truncated text strings like `GR...` or `OK...`.
+  - *Streamlined Efficiency Header & Subtitle Removal:* Renamed all instances of "Efficiency Rating" to "Efficiency" across `JournalView`, `DailySummaryModal`, and `Stats`, and removed the redundant bottom subtitle line ("20% Efficiency · Light Session") from rating cards for clean minimalism.
+
+- **v9.0.84 (2026-09-02):** Markdown Ordered List Numbers & Text Contrast Fix Across All Themes
+  - *Comprehensive Theme-Aware Typography Variables (`index.css`):* Bound `--tw-prose-counters`, `--tw-prose-invert-counters`, `--tw-prose-body`, `--tw-prose-invert-body`, `--tw-prose-bullets`, and `--tw-prose-headings` directly to theme variables `var(--color-slate-*)`.
+  - *High-Contrast Markers & Text:* Explicitly enforced `color: var(--color-slate-200) !important` and `font-weight: 700` for `ol > li::marker`, and `color: var(--color-slate-300) !important` for bullet list markers, completely resolving the washed-out / faint text issue on Light Themes (`Warm Sun`, `Daylight`, `Candy`) and maintaining crisp readability on Dark Themes.
+  - *Unified Component Classes:* Updated `ImmersiveReflectionModal`, `JournalView`, `DailySummaryModal`, `StartOfDayModal`, and `Stats` with explicit `text-slate-200 prose-p:text-slate-200 prose-li:text-slate-200 prose-ol:text-slate-200 prose-ul:text-slate-200 marker:text-slate-200 marker:font-bold`.
+
+- **v9.0.83 (2026-09-02):** Patchouli Bookmark Tabs Layout Fix & Theme Alternating Palette
+  - *Full Render & Layout Integrity:* Added dedicated right-padding offset (`pr-0 md:pr-14`) to the tome container and positioned bookmark tabs cleanly at `absolute right-0 top-10`, preventing screen overflow, clipping, or incomplete rendering across all viewports.
+  - *Theme Dark & Light Alternating Colors:* Replaced static color array with dynamic theme-aware alternating cycles (`index % 2 === 0` for Theme Dark `indigo-600`, `index % 2 === 1` for Theme Light `indigo-400`), ensuring 100% theme-adaptive contrast and aesthetic harmony.
+  - *Banner Clutter Removal:* Completely removed the redundant bookmark button from the top banner header, keeping the top bar focused purely on date navigation and back action.
+  - *Refined Tooltips & Actions:* Positioned tab hover tooltips to pop out inward towards the tome, preventing any edge clipping.
+
+- **v9.0.82 (2026-09-02):** Immersive Reflection Interface Unification, Markdown Shortcuts & Patchouli Bookmark Tabs
+  - *Unified Immersive Reflection Modal (`ImmersiveReflectionModal.tsx`):*
+    - Standardized the Immersive Reflection interface across all views (`JournalView`, `DailySummaryModal`, `StartOfDayModal`, `Stats`).
+    - **Markdown Editing Shortcuts:** Added hotkeys for `Ctrl/Cmd + B` (Bold), `Ctrl/Cmd + I` (Italic), `Ctrl/Cmd + U` (Underline), `Ctrl/Cmd + K` (Link), `Ctrl/Cmd + E` (Code/Inline Code), `Ctrl/Cmd + Shift + X/S` (Strikethrough), and `Tab` (2-space soft indent).
+    - **Expanded Header Markdown Toolbar:** Added quick formatting glyphs for H1, H2, H3 headings, bullet list (`- `), blockquote (`> `), inline/block code, and links with auto-selection wrapping and cursor placement.
+  - *Patchouli Side-Index Bookmark Tabs (`JournalView.tsx`):*
+    - Added Patchouli-style right-side bookmark index tabs sticking out from the journal leather tome edge on desktop with palette cycling colors and date pills (`MMM dd`).
+    - Added one-click Add/Remove bookmark action in the header banner and on the side tabs with hover quick-delete triggers (`<Trash2 />`).
+    - Added horizontal bookmark strip on mobile devices for fast switching between bookmarked entries.
+    - Persistent bookmark storage in `AppState.journalBookmarks`.
+  - *Clutter Removal:* Removed `Page I` and `Page II` label pills from the journal tome spread, creating a cleaner reading atmosphere.
+
+- **v9.0.81 (2026-09-02):** Minecraft Patchouli Style Open-Tome Journal Redesign
+  - *Tome / Open Book Layout Structure:* Transformed the Journal view below the banner into an immersive, open-book spread (Left Page & Right Page) inspired by Minecraft Patchouli / Arcane Scholar's Grimoire with central binding crease, leather cover border, and bookmark ribbon styling.
+  - *Page I (Left Page - Daily Assessment & Focus Vitals):*
+    - **Daily Feelings (`<Heart />`):** Elegant interactive mood glyph selectors with active glow.
+    - **Efficiency Rating (`<Star />`):** Prominent rating display (Stars or Efficiency % mode), live auto-calculation trigger (`<Sparkles />`), and parameter formula adjustments (`<SlidersHorizontal />`).
+    - **Expedition Vitals:** Compact daily lore cards showing Focus Time, Distraction counts & rate, and logged session counts.
+  - *Page II (Right Page - Daily Chronicle & Reading View):*
+    - **Markdown Reading Focus:** Pristine formatted Markdown reading presentation supporting soft line breaks, headings, blockquotes, lists, and code blocks.
+    - **Parchment Action Suite:** One-click Fullscreen Immersive Writing Mode trigger (`<Maximize2 />`), quick inline edit mode (`<Edit3 />`), Export Markdown (`<Download />`), and clipboard copy (`<Copy />`).
+    - **Unwritten Parchment State:** Atmospheric empty state with feather quill icon and direct write triggers when no reflection is logged for the day.
+  - *Page Flip Navigation & Parity:* Smooth animated page-turn transitions with authentic page flip sound feedback across day-by-day navigation.
+
+- **v9.0.80 (2026-09-02):** Markdown Soft Line Breaks Support (`remark-breaks` & `remark-gfm`)
+  - *Hard Break Conversion for Single Newlines:* Installed and integrated `remark-breaks` and `remark-gfm` across all Markdown rendering views (`ImmersiveReflectionModal`, `JournalView`, `DailySummaryModal`, `StartOfDayModal`, `ShareRecordModal`, `Stats`, `DashboardView`, `SageSettingsSection`).
+  - *Live Preview Parity:* Single `\n` line breaks in reflections, notes, and Sage chat responses now immediately render as `<br />` line breaks in the preview, resolving the issue where lines only broke after typing double newlines (`\n\n`).
+
+- **v9.0.79 (2026-09-02):** Journal Banner Redesign Aligned with Agenda & Clutter Removal
+  - *Unified Agenda Banner Hierarchy:* Restructured `JournalView.tsx` top banner to match `TodayView.tsx` (Agenda) typography and layout conventions (`font-black uppercase italic tracking-tighter` title with BookOpen icon, clean subtitle displaying the full formatted date).
+  - *Redundancy Removal:* Eradicated the superfluous `Daily Log` pill and `Entry Logged / No Entry Yet` status badge, streamlining the header to a clean, minimal interface.
+  - *Standardized Right Toolbar:* Placed the unified Date Navigator pill (`ChevronLeft`, interactive `MMMM do` DatePicker trigger, `ChevronRight`) and the standard right-aligned back button (`<ArrowLeft />`), ensuring 100% visual consistency with the Agenda page.
+
+- **v9.0.78 (2026-08-30):** Journal Page UI Simplification & Unified Assessment Rating
+  - *Unified Aesthetic & Layout Alignment:* Streamlined `JournalView.tsx` into a clean, minimalist 2-column layout adhering strictly to the Record / Stats card design language (`bg-slate-900 border border-slate-800 rounded-3xl`).
+  - *Daily Assessment Module Parity:* Fully aligned the Daily Assessment module with the End of the Day modal (`DailySummaryModal.tsx`):
+    - **Daily Feelings (`<Heart />`):** Mood selector pills matching the design system.
+    - **Efficiency Rating (`<Star />`):** Integrated live Auto-Calculate formula button (`<Sparkles />`), formula/parameter customization modal (`<SlidersHorizontal />` opening `EfficiencyDetailsModal`), half-star precision click detection, and seamless dynamic efficiency percentage / star mode support.
+  - *Module Redundancy Removal:* Completely removed the cluttered secondary widgets (`Expedition Snapshot`, `Session Log`, and `Recent Entries`), keeping the page purely focused on daily feelings, efficiency rating, and the rich Markdown reflection editor.
+
+- **v9.0.77 (2026-08-30):** Dedicated Journal Studio Page & Persistent Sub-View Navigation
+  - *Dedicated Journal Studio Page (`JournalView.tsx`):* Created a dedicated full-page Journal experience featuring:
+    - **Top Date Navigator:** Day-by-day navigation with interactive DatePicker (displaying study and journal indicator dots), Jump to Today button, and Entry Logged status badge.
+    - **Daily Assessment Studio:** Interactive 5-star rating with auto-calculate formula button, efficiency percentage/star mode toggle support, and daily feeling mood selector pills.
+    - **Reflection & Chronicle Studio:** Rich Markdown writing editor with Edit/Split/Preview mode switches, Fullscreen Immersive Editor portal trigger, quick prompt insertion pills (+Summary, +Achievements, +Lessons, +Tomorrow), and custom Blank/Example template management.
+    - **Day Expedition Snapshot:** Real-time focus time, session counts, Gold/XP gains, and 3-category distraction counts (Internal, External, Unavoidable) alongside Morning/Afternoon/Night period distribution cards.
+    - **Session Stream & Recent Timeline:** List of all expeditions logged for the selected date with tags/notes, plus quick-switch timeline of recent chronicle entries.
+  - *Daily Record Entry Point & Sub-View State Persistence:* Added a prominent "Journal ›" entrance button in the `Daily Record` section header of `Stats.tsx`. Persisted the active sub-view state in `localStorage` (`record_showJournalView`), allowing users to switch tabs or navigate across sidebar/bottom bar without losing their place in the Journal view.
+
+- **v9.0.75 (2026-08-30):** PiP Victory Reward Selection & Rest Over Overlays Adaptation
+  - *PiP 3-Tier Responsive Victory & Reward Selection:* Fully adapted the session completion screen in `CompactTimer.tsx` across all 3 PiP responsive modes:
+    - **Standard Mode ($h > 240\text{px}$):** Displays full Victory header (`+XP`, `+Gold`, Crit indicator), scrollable stack of 3 rarity-styled reward cards with 1-click select, and "Save to Chest" button.
+    - **Condensed Mode ($166\text{px} \le h \le 240\text{px}$):** Compact single-row stats header with horizontal card cards and a compact "Chest" action.
+    - **Ultra-Minimalist Mode ($h \le 165\text{px}$):** Ultra-slim 2-row layout featuring a compact summary row and 3 horizontal clickable card pills with rarity color dots for instant selection.
+  - *PiP Rest Over Prompt Adaptation:* Implemented dedicated responsive overlays across all 3 PiP modes when rest ends (`showFocusPrompt`), allowing users to seamlessly click "Start Focus" or dismiss directly within Picture-in-Picture.
+  - *Store Synchronization:* Synchronized `activeRewardSession` and `showFocusPrompt` through `useTimerStore` and `App.tsx` portal callbacks, ensuring instant two-way state updates between the main window and PiP window without window jumping or resizing glitches.
 
 - **v9.0.74 (2026-08-30):** PiP Minimalist Distractions Refinement & Fullscreen Progress Bar Restoration
   - *PiP Minimalist Mode Icon-Only Distraction Buttons:* In ultra-minimalist mode (height $\le$ 165px), simplified distraction buttons to icon-only (`<Brain />`, `<Wind />`, `<Zap />`), removing text labels.

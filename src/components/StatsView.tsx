@@ -1,6 +1,7 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Stats } from './Stats';
+import { JournalView } from './JournalView';
 import { AppState, Dungeon, MajorDungeon, StudySession } from '../types';
 
 interface StatsViewProps {
@@ -26,25 +27,63 @@ export const StatsView: React.FC<StatsViewProps> = ({
   majorDungeons,
   setShowStartOfDayModal
 }) => {
+  const [showJournalView, setShowJournalView] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('record_showJournalView') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('record_showJournalView', String(showJournalView));
+    } catch (e) {}
+  }, [showJournalView]);
+
   return (
-    <motion.div
-      key="stats"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="w-full p-4 sm:p-6 lg:p-8"
-    >
-      <Stats 
-        state={state} 
-        saveDailyLog={saveDailyLog} 
-        onUpdateState={onUpdateState}
-        updateSession={updateSession}
-        deleteSession={deleteSession}
-        completeSession={completeSession}
-        dungeons={dungeons}
-        majorDungeons={majorDungeons}
-        setShowStartOfDayModal={setShowStartOfDayModal}
-      />
-    </motion.div>
+    <div className="w-full p-4 sm:p-6 lg:p-8">
+      <AnimatePresence mode="wait">
+        {showJournalView ? (
+          <JournalView
+            key="journal-view"
+            state={state}
+            saveDailyLog={saveDailyLog}
+            onUpdateState={onUpdateState}
+            dungeons={dungeons}
+            majorDungeons={majorDungeons}
+            onBack={() => {
+              setShowJournalView(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        ) : (
+          <motion.div
+            key="stats-overview"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="w-full"
+          >
+            <Stats 
+              state={state} 
+              saveDailyLog={saveDailyLog} 
+              onUpdateState={onUpdateState}
+              updateSession={updateSession}
+              deleteSession={deleteSession}
+              completeSession={completeSession}
+              dungeons={dungeons}
+              majorDungeons={majorDungeons}
+              setShowStartOfDayModal={setShowStartOfDayModal}
+              onOpenJournal={() => {
+                setShowJournalView(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
+

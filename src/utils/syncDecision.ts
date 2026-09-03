@@ -16,6 +16,7 @@ interface SyncDecisionParams {
   cloudReadError?: boolean;
   forceOverwrite: boolean;
   identitiesMatch?: boolean;
+  isAutoSync?: boolean;
 }
 
 export function decideCloudSyncAction({
@@ -26,7 +27,8 @@ export function decideCloudSyncAction({
   cloudExists,
   cloudReadError,
   forceOverwrite,
-  identitiesMatch = true
+  identitiesMatch = true,
+  isAutoSync = false
 }: SyncDecisionParams): SyncDecision {
   if (cloudReadError) {
     return 'block_read_failed';
@@ -55,6 +57,14 @@ export function decideCloudSyncAction({
       return 'block_cloud_newer';
     }
     return 'device_mismatch_conflict';
+  }
+
+  // Same-device auto-sync: When syncing on the same device (identitiesMatch === true)
+  // in automatic background mode (e.g. debounce, interval, active local edits),
+  // local edits represent the user's latest active state on this device.
+  // Silently upload without disrupting the user with a conflict modal.
+  if (isAutoSync) {
+    return 'silent_upload';
   }
 
   // Fingerprints differ. Check timestamps.

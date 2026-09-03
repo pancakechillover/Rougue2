@@ -242,7 +242,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
       const existingReflection = existingLog?.reflection || '';
       
       const timeStr = studyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const appendText = `${timeStr} - ${duration}m - ${dungeonName} - ${noteText}`;
+      const appendText = `- ${timeStr} - ${duration}m - ${dungeonName} - ${noteText}`;
       
       const newReflection = existingReflection ? `${existingReflection}\n${appendText}` : appendText;
       
@@ -345,6 +345,34 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
       );
     }
 
+    const handleTimerStart = () => {
+      const isTouchOrMobile = ('ontouchstart' in window) || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+      
+      if (isTouchOrMobile) {
+        const autoFullscreen = state.timerMobileAutoFullscreen !== false; // Default is true
+        if (autoFullscreen && !isFullscreenExplore) {
+          setIsFullscreenExplore(true);
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }
+      } else {
+        const desktopAction = state.timerDesktopAutoAction || 'pip'; // Default is 'pip'
+        if (desktopAction === 'pip') {
+          if (!pipWindow && canPip) {
+            togglePip();
+          }
+        } else if (desktopAction === 'fullscreen') {
+          if (!isFullscreenExplore) {
+            setIsFullscreenExplore(true);
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            }
+          }
+        }
+      }
+    };
+
     return (
       <Timer 
         currentDungeon={currentDungeon || null}
@@ -357,6 +385,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         pendingRewardChest={state.pendingRewardChest}
         critChance={state.devModeEnabled ? (state.devCritChance ?? 0.05) : 0.05}
         critMultiplier={state.devModeEnabled ? (state.devCritMultiplier ?? 5) : 5}
+        onTimerStart={handleTimerStart}
         onComplete={(duration, fDur, rDur, distractions) => {
           const result = completeSession(state.currentDungeonId || null, duration, fDur, rDur, undefined, distractions);
           playSound('success', state.soundVolume, state.soundEnabled);
@@ -563,7 +592,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                     {state.pendingRewardChest && state.pendingRewardChest.length > 0 && (
                       <button 
                         onClick={() => setShowChestModal(true)}
-                        className="relative p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-xl transition-all border border-emerald-500/30 hover:border-emerald-400/50 group"
+                        className="relative p-2 bg-slate-800/80 hover:bg-slate-700/80 text-amber-400 hover:text-amber-300 rounded-xl transition-all border border-slate-700/50 hover:border-amber-500/30 group"
                         title="Reward Chest"
                       >
                         <TreasureChestIcon size={20} className="group-hover:scale-110 transition-transform" />

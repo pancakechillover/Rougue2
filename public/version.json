@@ -1,6 +1,6 @@
 {
-  "version": "v9.0.6",
-  "date": "2026-08-27",
+  "version": "v9.1.0",
+  "date": "2026-09-02",
   "latestRelease": {
     "version": "v9.0.0",
     "date": "2026-06-23",
@@ -33,5 +33,5 @@
       }
     ]
   },
-  "timestamp": 1787843487804
+  "timestamp": 1788407376131
 }

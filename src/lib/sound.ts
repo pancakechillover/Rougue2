@@ -16,7 +16,7 @@ export const initAudio = () => {
   }
 };
 
-type SoundType = 'success' | 'reward' | 'gacha' | 'redeem' | 'click' | 'levelUp' | 'pageTurn' | 'pop' | 'error';
+type SoundType = 'success' | 'reward' | 'gacha' | 'redeem' | 'click' | 'levelUp' | 'pageTurn' | 'pop' | 'error' | 'calculate';
 
 export const playSound = (type: SoundType, volume: number = 0.5, enabled: boolean = true) => {
   if (!enabled || volume <= 0) return;
@@ -56,6 +56,19 @@ export const playSound = (type: SoundType, volume: number = 0.5, enabled: boolea
   gain.connect(audioCtx.destination);
 
   switch (type) {
+    case 'calculate': // A soft magical chime for efficiency calculation
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, t); // high pitch
+      osc.frequency.setValueAtTime(1600, t + 0.1);
+      osc.frequency.setValueAtTime(2400, t + 0.2);
+      
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(v * 0.15, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+      
+      osc.start(t);
+      osc.stop(t + 0.4);
+      break;
     case 'pop':
       osc.type = 'sine';
       osc.frequency.setValueAtTime(300, t);

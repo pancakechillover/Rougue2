@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
 import { INITIAL_GACHA, INITIAL_REWARD_POOL } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket } from 'lucide-react';
+import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, PictureInPicture, Maximize, Smartphone, Monitor, MinusCircle, Play } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
 import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
@@ -252,6 +252,105 @@ export const TimerSettingsSection = ({
             >
               <span>Skip Rewards</span>
               <span className="text-[10px] font-normal opacity-80">Discard drawn</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Timer Startup Behavior */}
+        <div id="setting-timer-startup" className="flex flex-col gap-4 p-4 bg-slate-900/50 rounded-2xl border border-slate-800 mt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+                <Play size={20} />
+              </div>
+              <div>
+                <div className="font-bold text-white">Timer Startup Behavior</div>
+                <div className="text-xs text-slate-500">Automate window and display mode when the timer starts</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Startup Action */}
+          <div className="pt-4 border-t border-slate-800/50 space-y-3">
+            <div className="flex items-center gap-2">
+              <Monitor size={15} className="text-indigo-400" />
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Desktop / PC Startup Action</label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                onClick={() => setState(prev => ({ ...prev, timerDesktopAutoAction: 'pip' }))}
+                className={cn(
+                  "p-3 rounded-xl border text-sm font-medium transition-all text-left flex flex-col gap-1",
+                  (!state.timerDesktopAutoAction || state.timerDesktopAutoAction === 'pip')
+                    ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-300 shadow-sm"
+                    : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  <PictureInPicture size={14} className={(!state.timerDesktopAutoAction || state.timerDesktopAutoAction === 'pip') ? "text-indigo-400" : "text-slate-500"} />
+                  <span>Auto PiP</span>
+                </div>
+                <span className="text-[11px] font-normal opacity-75">Floating mini window (Default)</span>
+              </button>
+
+              <button
+                onClick={() => setState(prev => ({ ...prev, timerDesktopAutoAction: 'fullscreen' }))}
+                className={cn(
+                  "p-3 rounded-xl border text-sm font-medium transition-all text-left flex flex-col gap-1",
+                  state.timerDesktopAutoAction === 'fullscreen'
+                    ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-300 shadow-sm"
+                    : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  <Maximize size={14} className={state.timerDesktopAutoAction === 'fullscreen' ? "text-indigo-400" : "text-slate-500"} />
+                  <span>Auto Fullscreen</span>
+                </div>
+                <span className="text-[11px] font-normal opacity-75">Expand to full screen</span>
+              </button>
+
+              <button
+                onClick={() => setState(prev => ({ ...prev, timerDesktopAutoAction: 'none' }))}
+                className={cn(
+                  "p-3 rounded-xl border text-sm font-medium transition-all text-left flex flex-col gap-1",
+                  state.timerDesktopAutoAction === 'none'
+                    ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-300 shadow-sm"
+                    : "bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  <MinusCircle size={14} className={state.timerDesktopAutoAction === 'none' ? "text-indigo-400" : "text-slate-500"} />
+                  <span>None</span>
+                </div>
+                <span className="text-[11px] font-normal opacity-75">Remain in standard view</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Startup Action */}
+          <div className="pt-4 border-t border-slate-800/50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn("p-2 rounded-xl", state.timerMobileAutoFullscreen !== false ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
+                <Smartphone size={20} />
+              </div>
+              <div>
+                <div className="font-bold text-white">Mobile Auto Fullscreen</div>
+                <div className="text-xs text-slate-500">Automatically enter fullscreen mode when starting the timer on mobile</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setState(prev => ({ ...prev, timerMobileAutoFullscreen: prev.timerMobileAutoFullscreen === false ? true : false }))}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+                state.timerMobileAutoFullscreen !== false ? "bg-indigo-500" : "bg-slate-700"
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                  state.timerMobileAutoFullscreen !== false ? "translate-x-6" : "translate-x-1"
+                )}
+              />
             </button>
           </div>
         </div>

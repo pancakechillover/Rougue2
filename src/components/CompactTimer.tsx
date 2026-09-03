@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind } from 'lucide-react';
+import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Dungeon } from '../types';
+import { Dungeon, RewardCard, StudySession } from '../types';
 import { useTimerStore } from '../hooks/useTimerStore';
 import { playSound } from '../lib/sound';
 
@@ -20,6 +20,10 @@ interface CompactTimerProps {
   lastCompletionRewards?: any | null;
   pipVictorySummary?: { xp: number, coins: number, ts: number } | null;
   standardSessionMinutes?: number;
+  onRewardSelect?: (reward: RewardCard, sessionId: string) => void;
+  onInventoryAdd?: (id: string) => void;
+  onDeferReward?: (session: StudySession, choices: RewardCard[]) => void;
+  onStartFocus?: () => void;
 }
 
 const PIP_STYLE = `
@@ -39,12 +43,9 @@ const PIP_STYLE = `
   .pip-controls-standard { display: flex; }
   .pip-distractions-standard { display: flex; }
   .pip-distractions-minimal { display: none; }
-  .pip-overlay-icon svg { width: 32px; height: 32px; }
-  .pip-overlay-title { font-size: 0.875rem; margin-bottom: 0.75rem; }
-  .pip-overlay-box { padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0.375rem; padding-bottom: 0.375rem; gap: 0.5rem; }
-  .pip-overlay-text { font-size: 0.75rem; }
-  .pip-overlay-gap { gap: 0.5rem; }
-  .pip-overlay-footer { font-size: 10px; margin-top: 1rem; }
+  .pip-overlay-standard { display: flex; }
+  .pip-overlay-condensed { display: none; }
+  .pip-overlay-minimal { display: none; }
 
   /* Mode 2: Condensed Horizontal Split (166px <= height <= 240px) */
   @media (max-height: 240px) and (min-height: 166px), (max-width: 180px) and (min-height: 166px) {
@@ -64,12 +65,9 @@ const PIP_STYLE = `
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: flex; margin-top: 0.25rem; }
     .pip-distractions-minimal { display: none; }
-    .pip-overlay-icon svg { width: 16px; height: 16px; margin-bottom: 0.25rem; }
-    .pip-overlay-title { font-size: 10px; margin-bottom: 0.25rem; }
-    .pip-overlay-box { padding-left: 0.5rem; padding-right: 0.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem; gap: 0.25rem; }
-    .pip-overlay-text { font-size: 10px; }
-    .pip-overlay-gap { gap: 0.25rem; }
-    .pip-overlay-footer { display: none; }
+    .pip-overlay-standard { display: none; }
+    .pip-overlay-condensed { display: flex; }
+    .pip-overlay-minimal { display: none; }
   }
 
   /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
@@ -87,14 +85,64 @@ const PIP_STYLE = `
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
     .pip-distractions-minimal { display: flex; }
-    .pip-overlay-icon svg { width: 14px; height: 14px; margin-bottom: 0.125rem; }
-    .pip-overlay-title { font-size: 9px; margin-bottom: 0.125rem; }
-    .pip-overlay-box { padding: 0.25rem; gap: 0.25rem; }
-    .pip-overlay-text { font-size: 9px; }
-    .pip-overlay-gap { gap: 0.125rem; }
-    .pip-overlay-footer { display: none; }
+    .pip-overlay-standard { display: none; }
+    .pip-overlay-condensed { display: none; }
+    .pip-overlay-minimal { display: flex; }
   }
 `;
+
+const getRarityConfig = (rarity?: string) => {
+  switch (rarity?.toLowerCase()) {
+    case 'mythic':
+      return {
+        badge: 'bg-rose-500 text-white',
+        border: 'border-rose-500/50 hover:border-rose-400',
+        bg: 'bg-rose-950/40 hover:bg-rose-900/50',
+        text: 'text-rose-300',
+        dot: 'bg-rose-400'
+      };
+    case 'legendary':
+      return {
+        badge: 'bg-amber-500 text-white',
+        border: 'border-amber-500/50 hover:border-amber-400',
+        bg: 'bg-amber-950/40 hover:bg-amber-900/50',
+        text: 'text-amber-300',
+        dot: 'bg-amber-400'
+      };
+    case 'epic':
+      return {
+        badge: 'bg-purple-500 text-white',
+        border: 'border-purple-500/50 hover:border-purple-400',
+        bg: 'bg-purple-950/40 hover:bg-purple-900/50',
+        text: 'text-purple-300',
+        dot: 'bg-purple-400'
+      };
+    case 'rare':
+      return {
+        badge: 'bg-blue-500 text-white',
+        border: 'border-blue-500/50 hover:border-blue-400',
+        bg: 'bg-blue-950/40 hover:bg-blue-900/50',
+        text: 'text-blue-300',
+        dot: 'bg-blue-400'
+      };
+    case 'uncommon':
+      return {
+        badge: 'bg-emerald-500 text-white',
+        border: 'border-emerald-500/50 hover:border-emerald-400',
+        bg: 'bg-emerald-950/40 hover:bg-emerald-900/50',
+        text: 'text-emerald-300',
+        dot: 'bg-emerald-400'
+      };
+    default:
+      return {
+        badge: 'bg-slate-700 text-slate-200',
+        border: 'border-slate-700 hover:border-slate-500',
+        bg: 'bg-slate-900/70 hover:bg-slate-800/80',
+        text: 'text-slate-200',
+        dot: 'bg-slate-400'
+      };
+  }
+};
 
 export const CompactTimer: React.FC<CompactTimerProps> = ({
   endTime,
@@ -109,51 +157,37 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   requireFocusConfirmation,
   lastCompletionRewards,
   pipVictorySummary,
-  standardSessionMinutes
+  standardSessionMinutes,
+  onRewardSelect,
+  onInventoryAdd,
+  onDeferReward,
+  onStartFocus
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const { timeLeft, distractions, setDistractions } = useTimerStore();
+  const { timeLeft, distractions, setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
   const [displayTime, setDisplayTime] = React.useState(timeLeft);
-  const [showRewardSummary, setShowRewardSummary] = React.useState(false);
-  const [showFocusPrompt, setShowFocusPrompt] = React.useState(false);
+  const [showTransientSummary, setShowTransientSummary] = React.useState(false);
 
   React.useEffect(() => {
     setDisplayTime(timeLeft);
   }, [timeLeft]); // Sync when main thread ticks or prop changes
 
-  // Handle Reward Summary Transient State
+  // Handle Reward Summary Transient State for auto-pick/skip modes
   React.useEffect(() => {
-    // We only trigger this transient overlay if:
-    // 1. It's a Major or Quest completion (lastCompletionRewards) OR it's a standard focus completion (pipVictorySummary)
-    // 2. AND 'Skip Victory Screen' mode allows us to interrupt or requires UI ('none' -> wait, NO, user wants it when NOT 'none')
     const hasData = !!(lastCompletionRewards || (pipVictorySummary && pipVictorySummary.ts > Date.now() - 5000));
-    
-    // We do NOT block it if showFocusPrompt is false. If showFocusPrompt is true, they overlay.
-    if (hasData && timerSkipVictoryMode && timerSkipVictoryMode !== 'none' && !showFocusPrompt) {
-      setShowRewardSummary(true);
-      const timer = setTimeout(() => setShowRewardSummary(false), 5000); // Show for 5 seconds
+    if (hasData && timerSkipVictoryMode && timerSkipVictoryMode !== 'none' && !showFocusPrompt && !activeRewardSession) {
+      setShowTransientSummary(true);
+      const timer = setTimeout(() => setShowTransientSummary(false), 5000);
       return () => clearTimeout(timer);
     } else {
-      setShowRewardSummary(false);
+      setShowTransientSummary(false);
     }
-  }, [lastCompletionRewards, pipVictorySummary, timerSkipVictoryMode, showFocusPrompt]);
-
-  // Handle Focus Prompt State
-  React.useEffect(() => {
-    // Determine if we the most recently finished thing was a rest session
-    // In our state logic, isResting flips to false when rest is done.
-    // If requireFocusConfirmation is true, isActive will be false.
-    if (requireFocusConfirmation && !isActive && !isResting && displayTime === duration * 60 && displayTime > 0) {
-      setShowFocusPrompt(true);
-    } else {
-      setShowFocusPrompt(false);
-    }
-  }, [requireFocusConfirmation, isActive, isResting, displayTime, duration]);
+  }, [lastCompletionRewards, pipVictorySummary, timerSkipVictoryMode, showFocusPrompt, activeRewardSession]);
 
   React.useEffect(() => {
     if (!isActive || !endTime) return;
     
-    // We want to tick locally inside the PIP window to avoid main-window background throttling
+    // Tick locally inside the PIP window
     const win = containerRef.current?.ownerDocument.defaultView || window;
     
     let reqId: number;
@@ -176,59 +210,306 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const xpReward = lastCompletionRewards?.rewards?.find((r: any) => r.type === 'xp')?.amount || pipVictorySummary?.xp;
-  const coinReward = lastCompletionRewards?.rewards?.find((r: any) => r.type === 'coins')?.amount || pipVictorySummary?.coins;
+  const handleSelectRewardCard = (card: RewardCard) => {
+    if (!activeRewardSession) return;
+    if (onRewardSelect) {
+      onRewardSelect(card, activeRewardSession.session.id);
+    }
+    if (card.type === 'item' && card.itemType !== 'talent_shard' && card.itemType !== 'death_defying_medal' && onInventoryAdd) {
+      onInventoryAdd(card.id);
+    }
+    playSound('reward', 0.5, true);
+    setActiveRewardSession(null);
+  };
+
+  const handleDeferRewardToChest = () => {
+    if (!activeRewardSession) return;
+    if (onDeferReward) {
+      onDeferReward(activeRewardSession.session, activeRewardSession.choices);
+    }
+    playSound('click', 0.5, true);
+    setActiveRewardSession(null);
+  };
+
+  const handleStartFocus = () => {
+    setShowFocusPrompt(false);
+    if (onStartFocus) {
+      onStartFocus();
+    } else {
+      toggleTimer();
+    }
+  };
+
+  const handleDismissFocusPrompt = () => {
+    setShowFocusPrompt(false);
+  };
+
+  const xpReward = activeRewardSession?.session?.xpEarned || lastCompletionRewards?.rewards?.find((r: any) => r.type === 'xp')?.amount || pipVictorySummary?.xp || 0;
+  const coinReward = activeRewardSession?.session?.coinsEarned || lastCompletionRewards?.rewards?.find((r: any) => r.type === 'coins')?.amount || pipVictorySummary?.coins || 0;
+  const isCrit = activeRewardSession?.session?.isCrit;
 
   return (
     <div ref={containerRef} className="pip-container flex flex-col items-center justify-start h-[100dvh] w-[100dvw] bg-slate-950 text-white font-sans overflow-hidden select-none relative">
       <style>{PIP_STYLE}</style>
       <AnimatePresence>
-        {showRewardSummary && !showFocusPrompt && (
+        {/* Victory Screen & Reward Selection Overlay */}
+        {activeRewardSession && !showFocusPrompt && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md text-center overflow-hidden"
+          >
+            {/* Mode 1: Standard Mode (height > 240px) */}
+            <div className="pip-overlay-standard flex-col h-full w-full p-3 justify-between">
+              {/* Header */}
+              <div className="flex flex-col items-center space-y-1 shrink-0">
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Trophy size={18} />
+                  <span className="font-black text-xs uppercase tracking-widest text-white">
+                    {isCrit ? '🔥 Critical Victory!' : 'Victory!'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-[11px] font-black">
+                  <span className="text-emerald-400 flex items-center gap-0.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <Zap size={11} /> +{xpReward} XP
+                  </span>
+                  <span className="text-amber-400 flex items-center gap-0.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    <Coins size={11} /> +{coinReward} Gold
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Selectable Reward Cards */}
+              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[140px] my-1 scrollbar-hide">
+                {activeRewardSession.choices.map((card) => {
+                  const rarity = getRarityConfig(card.rarity);
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={() => handleSelectRewardCard(card)}
+                      className={cn(
+                        "w-full text-left p-2 rounded-xl border transition-all flex flex-col gap-0.5 active:scale-95",
+                        rarity.bg,
+                        rarity.border
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-bold text-white truncate max-w-[140px]">{card.name}</span>
+                        <span className={cn("text-[8px] font-black uppercase px-1 py-0.5 rounded", rarity.badge)}>
+                          {card.rarity}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 leading-tight line-clamp-1">{card.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Actions */}
+              <button
+                onClick={handleDeferRewardToChest}
+                className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold border border-slate-800 flex items-center justify-center gap-1 transition-all shrink-0"
+              >
+                <Package size={12} />
+                Save to Chest
+              </button>
+            </div>
+
+            {/* Mode 2: Condensed Horizontal Mode (166px <= height <= 240px) */}
+            <div className="pip-overlay-condensed flex-col h-full w-full p-2 justify-between">
+              <div className="flex items-center justify-between px-1 shrink-0">
+                <div className="flex items-center gap-1">
+                  <Trophy size={14} className="text-amber-400" />
+                  <span className="font-black text-[10px] text-white">Victory!</span>
+                  <span className="text-emerald-400 text-[9px] font-bold">+{xpReward}XP</span>
+                  <span className="text-amber-400 text-[9px] font-bold">+{coinReward}G</span>
+                </div>
+                <button
+                  onClick={handleDeferRewardToChest}
+                  className="px-2 py-0.5 bg-slate-900 text-slate-400 hover:text-white rounded text-[9px] font-bold border border-slate-800 flex items-center gap-1"
+                  title="Save to Chest"
+                >
+                  <Package size={10} />
+                  Chest
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 h-full my-1 overflow-x-auto scrollbar-hide">
+                {activeRewardSession.choices.map((card) => {
+                  const rarity = getRarityConfig(card.rarity);
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={() => handleSelectRewardCard(card)}
+                      className={cn(
+                        "flex-1 h-full min-w-[65px] p-1.5 rounded-lg border text-center flex flex-col justify-between items-center transition-all active:scale-95",
+                        rarity.bg,
+                        rarity.border
+                      )}
+                    >
+                      <span className={cn("text-[7px] font-black uppercase px-1 py-0.2 rounded", rarity.badge)}>
+                        {card.rarity}
+                      </span>
+                      <span className="text-[9px] font-bold text-white truncate w-full">{card.name}</span>
+                      <span className="text-[8px] text-slate-400 truncate w-full">{card.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) */}
+            <div className="pip-overlay-minimal flex-col h-full w-full p-1 justify-between">
+              <div className="flex items-center justify-between px-1 h-4 shrink-0">
+                <div className="flex items-center gap-1 text-[9px] font-black">
+                  <Trophy size={10} className="text-amber-400" />
+                  <span className="text-white">Victory!</span>
+                  <span className="text-emerald-400">+{xpReward}XP</span>
+                  <span className="text-amber-400">+{coinReward}G</span>
+                </div>
+                <button
+                  onClick={handleDeferRewardToChest}
+                  className="px-1.5 py-0.2 bg-slate-900 text-slate-400 hover:text-white rounded text-[8px] font-bold border border-slate-800 flex items-center gap-0.5"
+                >
+                  <Package size={8} /> Chest
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 flex-1 mt-0.5">
+                {activeRewardSession.choices.map((card) => {
+                  const rarity = getRarityConfig(card.rarity);
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={() => handleSelectRewardCard(card)}
+                      className={cn(
+                        "flex-1 h-full rounded border flex items-center justify-center gap-1 px-1 transition-all active:scale-95 overflow-hidden",
+                        rarity.bg,
+                        rarity.border
+                      )}
+                      title={card.description}
+                    >
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", rarity.dot)} />
+                      <span className="text-[9px] font-bold text-white truncate">{card.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Transient Summary Overlay (when auto-skip/deferred without choices) */}
+        {showTransientSummary && !activeRewardSession && !showFocusPrompt && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1, y: 10 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 text-center"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 text-center"
           >
-            <div className="pip-overlay-icon text-amber-400 mb-2">
-              <Trophy />
+            <div className="text-amber-400 mb-1">
+              <Trophy size={20} />
             </div>
-            <h4 className="pip-overlay-title font-black uppercase tracking-widest text-white">Victory!</h4>
-            <div className="flex flex-col pip-overlay-gap w-full max-w-[160px]">
-              <div className="flex items-center pip-overlay-box bg-emerald-500/10 rounded-lg border border-emerald-500/20 justify-center">
-                <Zap className="text-emerald-400 w-[14px] h-[14px]" />
-                <span className="pip-overlay-text font-black text-white">+{xpReward || 0} XP</span>
+            <h4 className="font-black uppercase tracking-widest text-white text-xs mb-1.5">Victory!</h4>
+            <div className="flex flex-col gap-1 w-full max-w-[140px]">
+              <div className="flex items-center px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20 justify-center gap-1">
+                <Zap className="text-emerald-400 w-3 h-3" />
+                <span className="text-xs font-black text-white">+{xpReward} XP</span>
               </div>
-              <div className="flex items-center pip-overlay-box bg-amber-500/10 rounded-lg border border-amber-500/20 justify-center">
-                <Coins className="text-amber-400 w-[14px] h-[14px]" />
-                <span className="pip-overlay-text font-black text-white">+{coinReward || 0} Gold</span>
+              <div className="flex items-center px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-center gap-1">
+                <Coins className="text-amber-400 w-3 h-3" />
+                <span className="text-xs font-black text-white">+{coinReward} Gold</span>
               </div>
             </div>
-            <p className="pip-overlay-footer text-slate-500 italic">Rewards saved</p>
+            <p className="text-[9px] text-slate-500 italic mt-2">Rewards saved</p>
           </motion.div>
         )}
 
+        {/* Rest Over Prompt Overlay */}
         {showFocusPrompt && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 p-4 text-center space-y-4"
+            exit={{ opacity: 0, scale: 1.05 }}
+            className="absolute inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md text-center overflow-hidden"
           >
-            <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center text-indigo-400">
-               <RotateCcw size={24} />
+            {/* Mode 1: Standard Mode (height > 240px) */}
+            <div className="pip-overlay-standard flex-col h-full w-full p-4 items-center justify-center space-y-4">
+              <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center text-emerald-400 shrink-0">
+                <Coffee size={24} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">Rest Over!</h4>
+                <p className="text-[10px] text-slate-400">Ready to start Focus?</p>
+              </div>
+              <div className="flex flex-col gap-2 w-full max-w-[180px]">
+                <button
+                  onClick={handleStartFocus}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                >
+                  <Play size={12} fill="currentColor" />
+                  Start Focus
+                </button>
+                <button
+                  onClick={handleDismissFocusPrompt}
+                  className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[9px] font-bold transition-all border border-slate-800"
+                >
+                  Maybe Later
+                </button>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-black text-white uppercase tracking-wider">Rest Over!</h4>
-              <p className="text-[10px] text-slate-500">Ready to start Focus?</p>
+
+            {/* Mode 2: Condensed Horizontal Mode (166px <= height <= 240px) */}
+            <div className="pip-overlay-condensed flex-row h-full w-full p-3 items-center justify-between">
+              <div className="flex items-center gap-2 text-left">
+                <div className="w-9 h-9 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">
+                  <Coffee size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Rest Over!</h4>
+                  <p className="text-[9px] text-slate-400">Ready to delve?</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleStartFocus}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-1.5"
+                >
+                  <Play size={11} fill="currentColor" />
+                  Start
+                </button>
+                <button
+                  onClick={handleDismissFocusPrompt}
+                  className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-[10px] border border-slate-800"
+                  title="Later"
+                >
+                  Later
+                </button>
+              </div>
             </div>
-            <button
-              onClick={toggleTimer}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-            >
-              <Play size={12} fill="currentColor" />
-              Start Focus
-            </button>
+
+            {/* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) */}
+            <div className="pip-overlay-minimal flex-row h-full w-full px-3 py-1 items-center justify-between">
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <Coffee size={14} className="text-emerald-400 shrink-0" />
+                <span className="text-[11px] font-black text-white truncate">Rest Over! Ready?</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handleStartFocus}
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
+                >
+                  <Play size={10} fill="currentColor" /> Start
+                </button>
+                <button
+                  onClick={handleDismissFocusPrompt}
+                  className="p-1 text-slate-500 hover:text-slate-300 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -501,3 +782,4 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
     </div>
   );
 };
+

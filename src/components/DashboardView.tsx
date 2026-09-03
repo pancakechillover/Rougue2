@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { format, startOfMonth, startOfWeek, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, subDays, addDays } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../types';
 import { playSound } from '../lib/sound';
 import { getSageAdvice } from '../services/sageService';
@@ -1191,7 +1193,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                           Thought Process
                         </summary>
                         <div className={cn("px-3 pb-3 pt-1 text-[11px] opacity-80 border-t", "border-indigo-500/20")}>
-                          <ReactMarkdown>{msg.reasoningContent}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.reasoningContent}</ReactMarkdown>
                         </div>
                       </details>
                     )}
@@ -1236,6 +1238,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                         <>
                           {(textToRender.trim().length > 0) && (
                             <ReactMarkdown
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
                               components={{
                                 code({node, inline, className, children, ...props}: any) {
                                   const match = /language-(\w+)/.exec(className || '');

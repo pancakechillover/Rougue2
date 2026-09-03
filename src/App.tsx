@@ -531,7 +531,7 @@ function App() {
     }
 
     if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
+      return; // Already scheduled by data change effect
     }
 
     const syncOptions = { 
@@ -558,7 +558,7 @@ function App() {
         lastSyncTimeRef.current = Date.now();
       }, timeToNextSync);
     }
-  }, [isInitialSyncCheckDone, hasUnsyncedChanges, state.autoSyncMode, state.autoSyncDebounceSeconds, state.autoSyncIntervalMinutes, state.secretCode, state.syncProvider]);
+  }, [isInitialSyncCheckDone]);
 
   React.useEffect(() => {
     const isCloudSyncConfigured = !!state.secretCode || state.syncProvider === 'WebDAV' || state.syncProvider === 'Google Drive';
@@ -575,8 +575,8 @@ function App() {
           });
         }
       } else if (!document.hidden) {
-        // Silent check on return to the page
-        if (isCloudSyncConfigured) {
+        // Silent check on return to the page (only if no local unsynced edits are pending)
+        if (isCloudSyncConfigured && !hasUnsyncedChanges) {
           if (isInitialSyncCheckDone) {
             checkCloudSync(false, false);
           } else {
@@ -1168,6 +1168,26 @@ function App() {
           lastCompletionRewards={state.lastCompletionRewards}
           pipVictorySummary={pipVictorySummary}
           standardSessionMinutes={state.standardSessionMinutes}
+          onRewardSelect={(reward, sessionId) => {
+            selectReward(reward, sessionId);
+            if (state.secretCode) {
+              syncToCloud(false, undefined, 'Manual');
+            }
+          }}
+          onInventoryAdd={(id) => setState(prev => ({ ...prev, inventory: [...(prev.inventory || []), id] }))}
+          onDeferReward={(session, choices) => {
+            setState(prev => ({
+              ...prev,
+              pendingRewardChest: [...(prev.pendingRewardChest || []), { session, choices }]
+            }));
+          }}
+          onStartFocus={() => {
+            setIsResting(false);
+            setDuration(focusDuration);
+            useTimerStore.getState().setTimeLeft(focusDuration * 60);
+            setIsTimerActive(true);
+            setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
+          }}
         />,
         pipWindow.document.body
       )}

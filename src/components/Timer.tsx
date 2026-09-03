@@ -55,6 +55,7 @@ interface TimerProps {
   endTime: number | null;
   critChance: number;
   critMultiplier: number;
+  onTimerStart?: () => void;
 }
 
 export interface TimerRef {
@@ -106,14 +107,28 @@ export const Timer = React.memo<TimerProps>(({
   setEndTime,
   endTime,
   critChance,
-  critMultiplier
+  critMultiplier,
+  onTimerStart
 }) => {
-  const { timeLeft, setTimeLeft, distractions, setDistractions } = useTimerStore();
+  const { timeLeft, setTimeLeft, distractions, setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt: storeFocusPrompt, setShowFocusPrompt: setStoreFocusPrompt } = useTimerStore();
   const [showRewards, setShowRewards] = useState<{ session: StudySession; choices: RewardCard[] } | null>(null);
   const [studyNote, setStudyNote] = useState('');
   const [showTalentPopup, setShowTalentPopup] = useState<StudySession['triggeredTalents'] | null>(null);
   const [showFocusPrompt, setShowFocusPrompt] = useState(false);
   const [hasRerolled, setHasRerolled] = useState(false);
+
+  // Sync activeRewardSession and showFocusPrompt with store for PiP integration
+  useEffect(() => {
+    if (!activeRewardSession && showRewards) {
+      setShowRewards(null);
+    }
+  }, [activeRewardSession, showRewards]);
+
+  useEffect(() => {
+    if (storeFocusPrompt !== showFocusPrompt) {
+      setShowFocusPrompt(storeFocusPrompt);
+    }
+  }, [storeFocusPrompt]);
 
   // Long press to skip
   const [skipProgress, setSkipProgress] = useState(0);
@@ -134,29 +149,9 @@ export const Timer = React.memo<TimerProps>(({
   useEffect(() => {
     if (isActive) {
       setShowFocusPrompt(false);
+      setStoreFocusPrompt(false);
     }
-  }, [isActive]);
-
-  // Maximize PIP window when showing rewards in PIP, and restore when closed
-  const [pipBounds, setPipBounds] = useState<{w: number, h: number} | null>(null);
-  useEffect(() => {
-    if (showRewards && pipWindow && pipWindow.resizeTo) {
-      if (!pipBounds) setPipBounds({ w: pipWindow.outerWidth, h: pipWindow.outerHeight });
-      try {
-        pipWindow.moveTo(0, 0);
-        pipWindow.resizeTo(window.screen.availWidth, window.screen.availHeight);
-      } catch (e) {
-        console.warn('Could not resize PIP window', e);
-      }
-    } else if (!showRewards && pipWindow && pipBounds && pipWindow.resizeTo) {
-      try {
-        pipWindow.resizeTo(pipBounds.w, pipBounds.h);
-        setPipBounds(null);
-      } catch (e) {
-        console.warn('Could not restore PIP window size', e);
-      }
-    }
-  }, [showRewards, pipWindow]);
+  }, [isActive, setStoreFocusPrompt]);
 
   // Push Notification Scheduling
   useEffect(() => {
@@ -199,7 +194,8 @@ export const Timer = React.memo<TimerProps>(({
     }
     
     setShowRewards(null);
-  }, [onRewardSelect, onInventoryAdd, setShowTalentPopup]);
+    setActiveRewardSession(null);
+  }, [onRewardSelect, onInventoryAdd, setShowTalentPopup, setActiveRewardSession]);
 
   const completingRef = useRef(false);
 
@@ -270,6 +266,7 @@ export const Timer = React.memo<TimerProps>(({
         if (requireFocusConfirmation) {
           // Pause and show prompt
           setShowFocusPrompt(true);
+          setStoreFocusPrompt(true);
           setIsActive(false);
           setEndTime(null);
         } else {
@@ -337,6 +334,7 @@ export const Timer = React.memo<TimerProps>(({
           if (choicesList.length > 0) {
             // Only popup the first one directly. The others can be opened from the chest sequentially.
             setShowRewards(choicesList[0]);
+            setActiveRewardSession(choicesList[0]);
             setHasRerolled(false);
             triggerSimpleConfetti();
             if (session.isCrit) {
@@ -515,6 +513,7 @@ export const Timer = React.memo<TimerProps>(({
       }
       setIsActive(true);
       setEndTime(Date.now() + timeLeft * 1000);
+      onTimerStart?.();
     }
   };
 
@@ -897,10 +896,10 @@ export const Timer = React.memo<TimerProps>(({
                         setShowRewards(null);
                         setStudyNote('');
                       }}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-full font-bold uppercase text-[10px] md:text-xs hover:bg-emerald-600/30 transition-all"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white rounded-full font-bold uppercase text-[10px] md:text-xs transition-all shadow-sm group"
                     >
-                      <TreasureChestIcon size={14} />
-                      Defer to Chest
+                      <TreasureChestIcon size={14} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>Defer to Chest</span>
                     </button>
                     {activeTalents.includes('c2') && !hasRerolled && (
                       <button
@@ -1078,7 +1077,7 @@ export const Timer = React.memo<TimerProps>(({
           </div>
           )}
         </AnimatePresence>,
-        pipWindow ? pipWindow.document.body : document.body
+        document.body
       )}
 
       {typeof document !== 'undefined' && createPortal(
@@ -1169,8 +1168,10 @@ export const Timer = React.memo<TimerProps>(({
                   <button
                     onClick={() => {
                       setShowFocusPrompt(false);
+                      setStoreFocusPrompt(false);
                       setIsActive(true);
                       setEndTime(Date.now() + focusDuration * 60 * 1000);
+                      onTimerStart?.();
                     }}
                     className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                   >

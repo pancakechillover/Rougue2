@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, Image as ImageIcon, Download, Settings, Loader2, FileText, Calendar, BarChart2, Star, Clock, Trash2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { AppIcon } from './icons/AppIcon';
 import { cn } from '../lib/utils';
 import { ShareConfig } from './Stats';
@@ -894,7 +896,7 @@ export const ShareRecordModal: React.FC<ShareRecordModalProps> = ({ onClose, con
                       diaryConfig.fontSize,
                       diaryConfig.indentParagraphs ? "prose-p:indent-8" : ""
                     )}>
-                      <Markdown>{processReflection(item.log.reflection)}</Markdown>
+                      <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{processReflection(item.log.reflection)}</Markdown>
                     </div>
                   </div>
                   );
@@ -956,7 +958,7 @@ export const ShareRecordModal: React.FC<ShareRecordModalProps> = ({ onClose, con
                         diaryConfig.fontSize,
                         diaryConfig.indentParagraphs ? "prose-p:indent-8" : ""
                       )}>
-                        <Markdown>{processReflection(item.log.reflection)}</Markdown>
+                        <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{processReflection(item.log.reflection)}</Markdown>
                       </div>
                     </div>
                   </div>

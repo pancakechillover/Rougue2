@@ -25,6 +25,7 @@ export function useCloudSync(
 
   const [isInitialSyncCheckDone, setIsInitialSyncCheckDone] = useState(false);
   const activeSyncRequestRef = useRef<number>(0);
+  const activeCheckRequestRef = useRef<number>(0);
 
   const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -202,6 +203,7 @@ export function useCloudSync(
               const dirtyTime = options?.localDirtyAt || 0;
               const localTime = Math.max(stateLastUpdatedTime, dirtyTime);
 
+              const isAutoSync = syncMethod === 'Immediate' || syncMethod === 'Interval polling' || syncMethod === 'Visibility API Active' || (currentState.autoSyncMode !== 'manual' && syncMethod !== 'Manual');
               const decision = decideCloudSyncAction({
                 localFingerprint,
                 cloudFingerprint,
@@ -209,12 +211,13 @@ export function useCloudSync(
                 cloudTime,
                 cloudExists: true,
                 identitiesMatch,
-                forceOverwrite
+                forceOverwrite,
+                isAutoSync
               });
 
               if (decision === 'block_cloud_newer' || decision === 'device_mismatch_conflict') {
-                if (syncMethod === 'Visibility API Active') {
-                   console.warn("Cloud sync aborted: " + decision);
+                if (syncMethod === 'Visibility API Active' || isAutoSync) {
+                   console.warn("Cloud sync aborted without modal (auto-sync): " + decision);
                    setIsSyncing(false);
                    return;
                 }
@@ -288,13 +291,13 @@ export function useCloudSync(
            throw new Error(await putResponse.text() || 'Failed to sync to WebDAV');
         }
         
-        if (requestId !== activeSyncRequestRef.current) return;
-        
         setState(prev => ({ 
           ...prev, 
           lastUpdated: localData.lastUpdated 
         }));
-        setSyncCheckResult(null);
+        if (requestId === activeSyncRequestRef.current) {
+          setSyncCheckResult(null);
+        }
         logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', 'WebDAV', 'success', undefined, syncMethod, 'WebDAV');
         options?.onSuccess?.();
 
@@ -325,6 +328,7 @@ export function useCloudSync(
             const dirtyTime = options?.localDirtyAt || 0;
             const localTime = Math.max(stateLastUpdatedTime, dirtyTime);
 
+            const isAutoSync = syncMethod === 'Immediate' || syncMethod === 'Interval polling' || syncMethod === 'Visibility API Active' || (currentState.autoSyncMode !== 'manual' && syncMethod !== 'Manual');
             const decision = decideCloudSyncAction({
               localFingerprint,
               cloudFingerprint,
@@ -332,12 +336,13 @@ export function useCloudSync(
               cloudTime,
               cloudExists: true,
               identitiesMatch,
-              forceOverwrite
+              forceOverwrite,
+              isAutoSync
             });
 
             if (decision === 'block_cloud_newer' || decision === 'device_mismatch_conflict') {
-              if (syncMethod === 'Visibility API Active') {
-                console.warn("Cloud sync aborted: " + decision);
+              if (syncMethod === 'Visibility API Active' || isAutoSync) {
+                console.warn("Cloud sync aborted without modal (auto-sync): " + decision);
                 setIsSyncing(false);
                 return;
               }
@@ -383,14 +388,14 @@ export function useCloudSync(
           fileId = await drive.createSaveFile(localData);
         }
         
-        if (requestId !== activeSyncRequestRef.current) return;
-
         setState(prev => ({ 
           ...prev, 
           lastUpdated: localData.lastUpdated,
           googleDriveFileId: fileId 
         }));
-        setSyncCheckResult(null);
+        if (requestId === activeSyncRequestRef.current) {
+          setSyncCheckResult(null);
+        }
         logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', 'Google Drive', 'success', undefined, syncMethod, 'Google Drive');
         options?.onSuccess?.();
 
@@ -434,6 +439,7 @@ export function useCloudSync(
               const dirtyTime = options?.localDirtyAt || 0;
               const localTime = Math.max(stateLastUpdatedTime, dirtyTime);
 
+              const isAutoSync = syncMethod === 'Immediate' || syncMethod === 'Interval polling' || syncMethod === 'Visibility API Active' || (currentState.autoSyncMode !== 'manual' && syncMethod !== 'Manual');
               const decision = decideCloudSyncAction({
                 localFingerprint,
                 cloudFingerprint,
@@ -441,12 +447,13 @@ export function useCloudSync(
                 cloudTime,
                 cloudExists: true,
                 identitiesMatch,
-                forceOverwrite
+                forceOverwrite,
+                isAutoSync
               });
 
               if (decision === 'block_cloud_newer' || decision === 'device_mismatch_conflict') {
-                if (syncMethod === 'Visibility API Active') {
-                   console.warn("Cloud sync aborted: " + decision);
+                if (syncMethod === 'Visibility API Active' || isAutoSync) {
+                   console.warn("Cloud sync aborted without modal (auto-sync): " + decision);
                    setIsSyncing(false);
                    return;
                 }
@@ -504,12 +511,12 @@ export function useCloudSync(
         } else if (!response.ok) {
           throw new Error(data.error || 'Failed to sync');
         } else {
+          setState(prev => ({ ...prev, lastUpdated: data.cloudData.lastUpdated }));
           if (requestId === activeSyncRequestRef.current) {
-            setState(prev => ({ ...prev, lastUpdated: data.cloudData.lastUpdated }));
             setSyncCheckResult(null);
-            logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', currentState.secretCode!, 'success', undefined, syncMethod, 'Redis');
-            options?.onSuccess?.();
           }
+          logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', currentState.secretCode!, 'success', undefined, syncMethod, 'Redis');
+          options?.onSuccess?.();
         }
       }
     } catch (err: any) {
@@ -520,9 +527,7 @@ export function useCloudSync(
         logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', code, 'failed', err.message, syncMethod, prov);
       }
     } finally {
-      if (requestId === activeSyncRequestRef.current) {
-        setIsSyncing(false);
-      }
+      setIsSyncing(false);
     }
   }, [state, setState, logSyncEvent, isVerifying, stripVolatile, isInitialSyncCheckDone, isCooledDown, isSyncing]);
 
@@ -790,7 +795,7 @@ export function useCloudSync(
     // Prevent overlapping sync operations
     if (isSyncing || isVerifying) return;
 
-    const requestId = ++activeSyncRequestRef.current;
+    const requestId = ++activeCheckRequestRef.current;
     setIsSyncing(true);
     setSyncError(null);
 
@@ -872,9 +877,17 @@ export function useCloudSync(
         setIsVerifying(true);
         await delay(1200); // Artificial delay to simulate thorough checking
 
-        if (requestId !== activeSyncRequestRef.current) return;
+        if (requestId !== activeCheckRequestRef.current) return;
 
         if (decision === 'block_cloud_newer' || decision === 'device_mismatch_conflict') {
+          // If silent check (!forceModal) and same device (identitiesMatch), do not interrupt the user with a modal!
+          if (!forceModal && identitiesMatch) {
+            setSyncCheckResult(null);
+            setIsVerifying(false);
+            setIsSyncing(false);
+            if (isStartup || !forceModal) setIsInitialSyncCheckDone(true);
+            return;
+          }
           setSyncCheckResult({ status: cloudTime > localTime ? 'cloud_newer' : 'local_newer', cloudData: data, code });
         } else if (forceModal) {
           setSyncCheckResult({ status: 'local_newer', cloudData: data, code });
@@ -950,7 +963,7 @@ export function useCloudSync(
       const code = prov === 'WebDAV' ? 'WebDAV' : (prov === 'Google Drive' ? 'Google Drive' : (state.secretCode || 'Unknown'));
       logSyncEvent('force_sync', code, 'failed', err.message, 'Manual', prov);
     } finally {
-      if (requestId === activeSyncRequestRef.current) {
+      if (requestId === activeCheckRequestRef.current) {
         setIsSyncing(false);
         setIsVerifying(false);
       }
@@ -958,7 +971,8 @@ export function useCloudSync(
   }, [state, logSyncEvent, setState, stripVolatile, isSyncing, isVerifying, isCooledDown, isInitialSyncCheckDone]);
 
   const unbindFromCloud = useCallback(() => {
-    activeSyncRequestRef.current++; // Invalidate any pending requests
+    activeSyncRequestRef.current++; // Invalidate any pending sync requests
+    activeCheckRequestRef.current++; // Invalidate any pending check requests
     const provider = state.syncProvider || 'Redis';
     const code = state.secretCode || (provider === 'Google Drive' ? 'Google' : 'WebDAV');
     logSyncEvent('unbind_local', code, 'success', undefined, 'Manual', provider);

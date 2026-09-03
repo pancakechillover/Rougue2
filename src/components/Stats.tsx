@@ -9,7 +9,7 @@ import {
 import { StudySession, AppState, RewardHistoryItem, Dungeon, MajorDungeon } from '../types';
 import { cn, getSessionEffectiveMinutes } from '../lib/utils';
 import { 
-  BarChart2, Zap, Coins, ChevronLeft, ChevronRight, ChevronDown, Calendar, CalendarDays, Flame, Star, StarHalf, Edit2, Save, X, Eye, EyeOff, LineChart as LineChartIcon, Trophy, Sword, Heart, Maximize2, Minimize2, LayoutTemplate, File, FileText, RotateCcw, Share2, Moon, Clock, Target, Brain, Wind
+  BarChart2, Zap, Coins, ChevronLeft, ChevronRight, ChevronDown, Calendar, CalendarDays, Flame, Star, StarHalf, Edit2, Save, X, Eye, EyeOff, LineChart as LineChartIcon, Trophy, Sword, Heart, Maximize2, Minimize2, LayoutTemplate, File, FileText, RotateCcw, Share2, Moon, Clock, Target, Brain, Wind, BookOpen
 } from 'lucide-react';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../constants';
 
@@ -17,6 +17,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PageHeader } from './PageHeader';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, LineChart, Line, CartesianGrid, LabelList, PieChart, Pie, ComposedChart } from 'recharts';
 import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
 import { DatePicker } from './DatePicker';
 import { DailySessionsModal } from './DailySessionsModal';
@@ -49,6 +51,7 @@ interface StatsProps {
   dungeons?: Dungeon[];
   majorDungeons?: MajorDungeon[];
   setShowStartOfDayModal?: (val: string | boolean) => void;
+  onOpenJournal?: () => void;
 }
 
 const formatDuration = (val: number) => {
@@ -238,7 +241,10 @@ const SharedPopoverContent = ({
         )}
         
         {efficiency !== undefined && efficiency !== null && (
-          <div className="flex justify-between gap-4 pt-1"><span className="text-indigo-400">Efficiency</span> <span className="text-slate-50 font-bold">{efficiency}</span></div>
+          <div className="flex justify-between items-center gap-4 pt-1 mt-1 border-t border-slate-800/50">
+            <span className="text-indigo-400 font-medium text-xs">Efficiency</span>
+            <span className="text-emerald-400 font-bold font-mono text-sm">{(Number(efficiency) * 20).toFixed(1)}%</span>
+          </div>
         )}
 
         {moodObj && MoodIcon && (
@@ -476,7 +482,7 @@ const CustomSleepTooltip = ({ active, payload, activeChart, chartId }: any) => {
 };
 
 
-export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], setShowStartOfDayModal }) => {
+export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], setShowStartOfDayModal, onOpenJournal }) => {
   const history = state.history;
   const dailyLogs = state.dailyLogs || {};
   const [showDailySessionsDate, setShowDailySessionsDate] = useState<Date | null>(null);
@@ -857,40 +863,14 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       <button
         onClick={() => setShowTemplates(!showTemplates)}
         className={cn(
-          "flex items-center justify-center gap-1.5 h-full px-2 rounded-l-lg text-[10px] font-bold uppercase tracking-wider transition-all border-r-0",
+          "flex items-center justify-center gap-1.5 h-full px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
           showTemplates 
             ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
-            : "bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700"
+            : "bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-white"
         )}
       >
         <LayoutTemplate size={12} />
         <span>Templates</span>
-      </button>
-      <button
-        onClick={() => setTemplateMode('empty')}
-        className={cn(
-          "flex items-center gap-1.5 h-full px-2 border border-slate-700 border-l-0 transition-colors text-[10px] font-bold uppercase tracking-wider",
-          templateMode === 'empty' 
-            ? "bg-indigo-500/20 text-indigo-400" 
-            : "bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white"
-        )}
-        title="Blank Template Mode: Load and save templates without examples"
-      >
-        <File size={12} />
-        <span>Blank</span>
-      </button>
-      <button
-        onClick={() => setTemplateMode('example')}
-        className={cn(
-          "flex items-center gap-1.5 h-full px-2 border border-slate-700 border-l-0 rounded-r-lg transition-colors text-[10px] font-bold uppercase tracking-wider",
-          templateMode === 'example' 
-            ? "bg-indigo-500/20 text-indigo-400" 
-            : "bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white"
-        )}
-        title="Example Template Mode: Load and save templates with examples"
-      >
-        <FileText size={12} />
-        <span>Example</span>
       </button>
 
       {/* Templates Dropdown */}
@@ -900,8 +880,28 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute left-0 sm:right-auto top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 sm:left-0 sm:right-auto top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
+            <div className="flex border-b border-slate-800 p-1 bg-slate-900/50 gap-1 relative z-10">
+               <button
+                  onClick={() => {
+                    setTemplateMode('empty');
+                  }}
+                  className={cn("flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1", templateMode === 'empty' ? "bg-indigo-500/20 text-indigo-400" : "text-slate-500 hover:bg-slate-800 hover:text-white")}
+                  title="Blank Template Mode: Load templates without examples"
+               >
+                 <File size={12} /> Blank
+               </button>
+               <button
+                  onClick={() => {
+                    setTemplateMode('example');
+                  }}
+                  className={cn("flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1", templateMode === 'example' ? "bg-indigo-500/20 text-indigo-400" : "text-slate-500 hover:bg-slate-800 hover:text-white")}
+                  title="Example Template Mode: Load templates with examples"
+               >
+                 <FileText size={12} /> Example
+               </button>
+            </div>
             <div className="p-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
               {state.reflectionTemplates?.map((template) => (
                 <div key={template.id} className="group relative">
@@ -1854,52 +1854,66 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                 <Star className="text-amber-400" size={16} />
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Daily Record</span>
               </div>
-              {!isEditingLog ? (
-                <button 
-                  onClick={startEditing}
-                  className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
-                >
-                  <Edit2 size={14} />
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="relative flex items-center gap-0 h-[26px]">
-                    {renderTemplateControls()}
+              <div className="flex items-center gap-2">
+                {onOpenJournal && (
+                  <button
+                    onClick={onOpenJournal}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl border border-indigo-500/20 text-[10px] font-black uppercase tracking-wider transition-all group"
+                    title="Open Dedicated Journal Page"
+                  >
+                    <BookOpen size={12} className="group-hover:scale-110 transition-transform" />
+                    <span>Journal</span>
+                    <ChevronRight size={12} className="opacity-60 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                )}
+                {!isEditingLog ? (
+                  <button 
+                    onClick={startEditing}
+                    className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
+                    title="Edit Record"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex items-center gap-0 h-[26px]">
+                      {renderTemplateControls()}
+                    </div>
+                    
+                    <button 
+                      onClick={() => setIsMarkdownPreview(!isMarkdownPreview)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                        isMarkdownPreview ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "bg-slate-800 text-slate-500 border border-slate-700"
+                      )}
+                    >
+                      {isMarkdownPreview ? <Eye size={12} /> : <EyeOff size={12} />}
+                      <span>MD</span>
+                    </button>
+                    <button 
+                      onClick={saveLog}
+                      className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
+                    >
+                      <Save size={14} />
+                    </button>
+                    <button 
+                      onClick={saveLog}
+                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                      title="Finish and Auto-save"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                  
-                  <button 
-                    onClick={() => setIsMarkdownPreview(!isMarkdownPreview)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                      isMarkdownPreview ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "bg-slate-800 text-slate-500 border border-slate-700"
-                    )}
-                  >
-                    {isMarkdownPreview ? <Eye size={12} /> : <EyeOff size={12} />}
-                    <span>MD</span>
-                  </button>
-                  <button 
-                    onClick={saveLog}
-                    className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                  >
-                    <Save size={14} />
-                  </button>
-                  <button 
-                    onClick={saveLog}
-                    className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                    title="Finish and Auto-save"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {isEditingLog ? (
               <div className="space-y-4">
                 <div className="flex flex-col gap-5">
-                  {/* Efficiency Rating Edit */}
+                  {/* Efficiency Edit */}
                   <div className="space-y-2">
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-0.5 mb-1">Efficiency Rating</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-0.5 mb-1">Efficiency</div>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }).map((_, i) => {
                         const val = i + 1;
@@ -1924,9 +1938,9 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                     </div>
                   </div>
                   
-                  {/* Daily Feelings Edit */}
+                  {/* Feelings Edit */}
                   <div className="space-y-2">
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-0.5 mb-1">Daily Feelings</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-0.5 mb-1">Feelings</div>
                     <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar items-center">
                       {MOOD_OPTIONS.filter(m => (state.enabledMoods || DEFAULT_ENABLED_MOODS).includes(m.id)).map((m) => {
                         const isSelected = editMood === m.id;
@@ -1968,8 +1982,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                   </div>
                   {isMarkdownPreview && editReflection && (
                     <div className="p-3 bg-slate-900/50 border border-slate-800 rounded-xl overflow-y-auto max-h-32 custom-scrollbar">
-                      <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-headings:text-slate-100 prose-strong:text-slate-200 prose-li:text-slate-300">
-                        <Markdown>{editReflection}</Markdown>
+                      <div className="prose prose-invert prose-sm max-w-none text-slate-200 prose-p:text-slate-200 prose-headings:text-slate-100 prose-strong:text-slate-100 prose-li:text-slate-200 prose-ol:text-slate-200 prose-ul:text-slate-200 marker:text-slate-200 marker:font-bold">
+                        <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{editReflection}</Markdown>
                       </div>
                     </div>
                   )}
@@ -2017,8 +2031,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
                 {shareConfig.showReflection && (
                   <div className="text-sm text-slate-300 leading-relaxed pt-3 border-t border-slate-900">
                     {currentLog?.reflection ? (
-                      <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-headings:text-slate-100 prose-strong:text-slate-200 prose-li:text-slate-300">
-                        <Markdown>{currentLog.reflection}</Markdown>
+                      <div className="prose prose-invert prose-sm max-w-none text-slate-200 prose-p:text-slate-200 prose-headings:text-slate-100 prose-strong:text-slate-100 prose-li:text-slate-200 prose-ol:text-slate-200 prose-ul:text-slate-200 marker:text-slate-200 marker:font-bold">
+                        <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{currentLog.reflection}</Markdown>
                       </div>
                     ) : (
                       <p className="italic text-xs text-slate-600">The day's reflections are yet to be chronicled.</p>

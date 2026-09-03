@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, Send, RefreshCw, Settings as SettingsIcon, Plus, Edit2, Trash2, Library, Check, Copy, Quote, MessageSquare, PanelLeftClose, PanelLeftOpen, Download, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { AppState, SageModelConfig, SagePromptConfig } from '../../types';
 import { cn } from '../../lib/utils';
 import { DEFAULT_SAGE_PROMPTS } from '../../constants';
@@ -838,11 +840,11 @@ const SageInterface: React.FC<SageInterfaceProps> = ({ state, setState }) => {
                           Thought Process
                         </summary>
                         <div className={cn("px-3 pb-3 pt-1 text-[11px] opacity-80 border-t", "border-indigo-500/20")}>
-                          <ReactMarkdown>{msg.reasoningContent}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.reasoningContent}</ReactMarkdown>
                         </div>
                       </details>
                     )}
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
                   msg.content

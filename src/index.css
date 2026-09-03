@@ -536,17 +536,17 @@ html, body, #root {
   --color-white: #78350f;
   --color-black: #fffbeb;
   
-  --color-indigo-50: #fff7ed;
-  --color-indigo-100: #ffedd5;
-  --color-indigo-200: #fed7aa;
-  --color-indigo-300: #fb923c;
-  --color-indigo-400: #f97316;
+  --color-indigo-50: #431407;
+  --color-indigo-100: #7c2d12;
+  --color-indigo-200: #9a3412;
+  --color-indigo-300: #c2410c;
+  --color-indigo-400: #d97706;
   --color-indigo-500: #ea580c;
-  --color-indigo-600: #d97706;
-  --color-indigo-700: #c2410c;
-  --color-indigo-800: #9a3412;
-  --color-indigo-900: #7c2d12;
-  --color-indigo-950: #431407;
+  --color-indigo-600: #f97316;
+  --color-indigo-700: #fb923c;
+  --color-indigo-800: #fed7aa;
+  --color-indigo-900: #ffedd5;
+  --color-indigo-950: #fff7ed;
 }
 
 [data-theme="candy"] {
@@ -564,17 +564,17 @@ html, body, #root {
   --color-white: #831843;
   --color-black: #fdf2f8;
   
-  --color-indigo-50: #fdf4ff;
-  --color-indigo-100: #fae8ff;
-  --color-indigo-200: #f5d0fe;
-  --color-indigo-300: #e879f9;
-  --color-indigo-400: #d946ef;
+  --color-indigo-50: #2e0231;
+  --color-indigo-100: #4a044e;
+  --color-indigo-200: #701a75;
+  --color-indigo-300: #86198f;
+  --color-indigo-400: #a21caf;
   --color-indigo-500: #c026d3;
-  --color-indigo-600: #a21caf;
-  --color-indigo-700: #86198f;
-  --color-indigo-800: #701a75;
-  --color-indigo-900: #4a044e;
-  --color-indigo-950: #2e0231;
+  --color-indigo-600: #d946ef;
+  --color-indigo-700: #e879f9;
+  --color-indigo-800: #f5d0fe;
+  --color-indigo-900: #fae8ff;
+  --color-indigo-950: #fdf4ff;
 }
 
 [data-theme="forest"] {
@@ -756,22 +756,74 @@ svg:focus {
 }
 
 @layer utilities {
+  .prose,
+  .prose-invert,
   .prose-sage {
-    --tw-prose-body: var(--color-slate-300);
-    --tw-prose-headings: var(--color-slate-200);
-    --tw-prose-lead: var(--color-slate-400);
+    --tw-prose-body: var(--color-slate-200);
+    --tw-prose-headings: var(--color-slate-100);
+    --tw-prose-lead: var(--color-slate-300);
     --tw-prose-links: var(--color-indigo-400);
-    --tw-prose-bold: var(--color-slate-200);
-    --tw-prose-counters: var(--color-slate-400);
-    --tw-prose-bullets: var(--color-slate-400);
+    --tw-prose-bold: var(--color-slate-100);
+    --tw-prose-counters: var(--color-slate-200);
+    --tw-prose-bullets: var(--color-slate-300);
     --tw-prose-hr: var(--color-slate-800);
     --tw-prose-quotes: var(--color-slate-200);
-    --tw-prose-quote-borders: var(--color-slate-800);
-    --tw-prose-captions: var(--color-slate-500);
-    --tw-prose-code: var(--color-slate-200);
-    --tw-prose-pre-code: var(--color-slate-300);
+    --tw-prose-quote-borders: var(--color-indigo-500);
+    --tw-prose-captions: var(--color-slate-400);
+    --tw-prose-code: var(--color-slate-100);
+    --tw-prose-pre-code: var(--color-slate-200);
     --tw-prose-pre-bg: var(--color-slate-950);
     --tw-prose-th-borders: var(--color-slate-700);
     --tw-prose-td-borders: var(--color-slate-800);
+
+    --tw-prose-invert-body: var(--color-slate-200);
+    --tw-prose-invert-headings: var(--color-slate-100);
+    --tw-prose-invert-lead: var(--color-slate-300);
+    --tw-prose-invert-links: var(--color-indigo-400);
+    --tw-prose-invert-bold: var(--color-slate-100);
+    --tw-prose-invert-counters: var(--color-slate-200);
+    --tw-prose-invert-bullets: var(--color-slate-300);
+    --tw-prose-invert-hr: var(--color-slate-800);
+    --tw-prose-invert-quotes: var(--color-slate-200);
+    --tw-prose-invert-quote-borders: var(--color-indigo-500);
+    --tw-prose-invert-captions: var(--color-slate-400);
+    --tw-prose-invert-code: var(--color-slate-100);
+    --tw-prose-invert-pre-code: var(--color-slate-200);
+    --tw-prose-invert-pre-bg: var(--color-slate-950);
+    --tw-prose-invert-th-borders: var(--color-slate-700);
+    --tw-prose-invert-td-borders: var(--color-slate-800);
+  }
+
+  .prose ol > li::marker,
+  .prose-invert ol > li::marker,
+  .prose-sage ol > li::marker {
+    color: var(--color-slate-200) !important;
+    font-weight: 700 !important;
+  }
+
+  .prose ul > li::marker,
+  .prose-invert ul > li::marker,
+  .prose-sage ul > li::marker {
+    color: var(--color-slate-300) !important;
+  }
+
+  .prose li,
+  .prose-invert li,
+  .prose-sage li {
+    color: var(--color-slate-200);
   }
 }
+
+/* TipTap Editor Styles */
+.tiptap {
+  outline: none;
+  min-height: 100%;
+}
+.tiptap p.is-editor-empty:first-child::before {
+  color: #475569;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
