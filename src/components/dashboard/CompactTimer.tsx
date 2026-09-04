@@ -72,24 +72,32 @@ const PIP_STYLE = `
 
   /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
   @media (max-height: 165px) {
-    .pip-container { padding: 0.25rem 0.375rem; justify-content: space-between; }
-    .pip-dungeon-mb { margin-bottom: 0.125rem; }
-    .pip-icon svg { width: 9px; height: 9px; }
-    .pip-title { font-size: 9px; }
-    .pip-stats { font-size: 7.5px; }
-    .pip-bar { height: 2px; }
-    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; gap: 0.375rem; }
-    .pip-time { font-size: 1.875rem; line-height: 1; }
+    .pip-container { padding: 0.375rem 0.625rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.25rem; }
+    .pip-icon svg { width: 11px; height: 11px; }
+    .pip-title { font-size: 11px; font-weight: 600; }
+    .pip-stats { font-size: 9.5px; }
+    .pip-bar { height: 2.5px; }
+    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; gap: 0.5rem; }
+    .pip-time { font-size: 2.85rem; line-height: 1; letter-spacing: -0.04em; }
     .pip-status { display: none; }
     .pip-controls-condensed { display: none; }
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
-    .pip-distractions-minimal { display: flex; padding: 0.125rem; gap: 0.25rem; border-radius: 0.5rem; }
-    .pip-distract-btn { width: 1.375rem !important; height: 1.375rem !important; border-radius: 0.375rem !important; }
-    .pip-distract-btn svg { width: 11px !important; height: 11px !important; }
+    .pip-distractions-minimal { display: flex; padding: 0.25rem; gap: 0.375rem; border-radius: 0.625rem; }
+    .pip-distract-btn { width: 1.75rem !important; height: 1.75rem !important; border-radius: 0.375rem !important; }
+    .pip-distract-btn svg { width: 13px !important; height: 13px !important; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: none; }
     .pip-overlay-minimal { display: flex; }
+  }
+
+  @media (max-height: 120px) {
+    .pip-container { padding: 0.25rem 0.5rem; }
+    .pip-dungeon-mb { margin-bottom: 0.125rem; }
+    .pip-time { font-size: 2.35rem; line-height: 1; }
+    .pip-distract-btn { width: 1.5rem !important; height: 1.5rem !important; }
+    .pip-distract-btn svg { width: 11px !important; height: 11px !important; }
   }
 `;
 
@@ -545,10 +553,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         <div className="flex flex-col items-center">
           <div 
             onClick={toggleTimer}
-            className={cn(
-              "pip-time font-black font-mono tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer transition-colors",
-              isResting ? "text-emerald-500" : "text-white"
-            )}
+            className="pip-time font-black font-mono tracking-tighter tabular-nums text-white cursor-pointer transition-colors"
             title={isActive ? "Click to Pause" : "Click to Start"}
           >
             {formatTime(displayTime)}
@@ -610,14 +615,14 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
           <div className="flex gap-2">
             <button
               onClick={resetTimer}
-              className="p-1.5 w-full flex justify-center bg-slate-900 text-slate-400 hover:text-white rounded-lg border border-slate-800 transition-all"
+              className="p-1.5 w-full flex justify-center bg-slate-900 text-slate-400 hover:text-white rounded-lg border border-slate-800 transition-all cursor-pointer"
               title="Reset"
             >
               <RotateCcw size={14} />
             </button>
             <button
               onClick={skipSession}
-              className="p-1.5 w-full flex justify-center bg-slate-900 text-slate-400 hover:text-white rounded-lg border border-slate-800 transition-all"
+              className="p-1.5 w-full flex justify-center bg-slate-900 text-slate-400 hover:text-white rounded-lg border border-slate-800 transition-all cursor-pointer"
               title="Skip"
             >
               <SkipForward size={14} />
@@ -626,10 +631,10 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
           <button
             onClick={toggleTimer}
             className={cn(
-              "h-8 w-full rounded-lg flex items-center justify-center transition-all bg-indigo-600 text-white",
+              "h-8 w-full rounded-lg flex items-center justify-center transition-all cursor-pointer",
               isActive 
-                ? (isResting ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-500" : "bg-indigo-600/20 border border-indigo-500/50 text-indigo-400") 
-                : (isResting ? "bg-emerald-600" : "bg-indigo-600")
+                ? (isResting ? "bg-slate-900 text-emerald-500 border border-emerald-500/50" : "bg-slate-900 text-indigo-400 border border-indigo-500/50") 
+                : (isResting ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white")
             )}
           >
             {isActive ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
@@ -637,60 +642,42 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </div>
 
         {/* Ultra-Minimalist Mode Distractions (Right Side in Shortest Height) */}
-        <div className={cn(
-          "pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shrink-0",
-          isResting && "opacity-40"
-        )}>
+        <div className="pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shrink-0">
           <button 
-            disabled={isResting}
             onClick={() => {
-              if (isResting) return;
               playSound('click', 0.5, true);
               setDistractions(d => ({ ...d, internal: d.internal + 1 }));
             }}
-            className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
-              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Internal Distraction"}
+            className="pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer"
+            title="Internal Distraction"
           >
-            <Brain size={14} className={isResting ? "text-slate-600" : "text-indigo-400"} />
+            <Brain size={14} className="text-indigo-400" />
             {distractions.internal > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-indigo-500/30 text-indigo-300 rounded-tl text-[7px] font-black">{distractions.internal}</span>
             )}
           </button>
           <button 
-            disabled={isResting}
             onClick={() => {
-              if (isResting) return;
               playSound('pop', 0.5, true);
               setDistractions(d => ({ ...d, external: d.external + 1 }));
             }}
-            className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
-              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "External Distraction"}
+            className="pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer"
+            title="External Distraction"
           >
-            <Wind size={14} className={isResting ? "text-slate-600" : "text-orange-400"} />
+            <Wind size={14} className="text-orange-400" />
             {distractions.external > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-orange-500/30 text-orange-300 rounded-tl text-[7px] font-black">{distractions.external}</span>
             )}
           </button>
           <button 
-            disabled={isResting}
             onClick={() => {
-              if (isResting) return;
               playSound('error', 0.5, true);
               setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
             }}
-            className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
-              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction"}
+            className="pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer"
+            title="Unavoidable Distraction"
           >
-            <Zap size={14} className={isResting ? "text-slate-600" : "text-red-400"} />
+            <Zap size={14} className="text-red-400" />
             {distractions.unavoidable > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-red-500/30 text-red-300 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>
             )}
@@ -702,7 +689,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
       <div className="pip-controls-standard items-center space-x-6 mt-6 mb-1">
         <button
           onClick={resetTimer}
-          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all cursor-pointer"
           title="Reset Timer"
         >
           <RotateCcw size={20} />
@@ -710,7 +697,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         <button
           onClick={toggleTimer}
           className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-2xl shrink-0 outline-none",
+            "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-2xl shrink-0 outline-none cursor-pointer",
             isActive 
               ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
               : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
@@ -720,7 +707,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </button>
         <button
           onClick={skipSession}
-          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          className="p-3 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all cursor-pointer"
           title="Skip Session"
         >
           <SkipForward size={20} />
@@ -728,58 +715,56 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
       </div>
 
       {/* Distractions Module (Below Controls) */}
-      {!isResting && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
-        >
-          <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
-            <button 
-              onClick={() => {
-                playSound('click', 0.5, true);
-                setDistractions(d => ({ ...d, internal: d.internal + 1 }));
-              }}
-              className="flex-1 py-1.5 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-              title="Internal"
-            >
-              <div className="flex items-center gap-1">
-                 <Brain size={12} />
-                 <span className="font-bold">INT</span>
-              </div>
-              {distractions.internal > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-tl text-[7px] font-black">{distractions.internal}</span>}
-            </button>
-            <button 
-              onClick={() => {
-                playSound('pop', 0.5, true);
-                setDistractions(d => ({ ...d, external: d.external + 1 }));
-              }}
-              className="flex-1 py-1.5 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-              title="External"
-            >
-              <div className="flex items-center gap-1">
-                 <Wind size={12} />
-                 <span className="font-bold">EXT</span>
-              </div>
-              {distractions.external > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-tl text-[7px] font-black">{distractions.external}</span>}
-            </button>
-            <button 
-              onClick={() => {
-                playSound('error', 0.5, true);
-                setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
-              }}
-              className="flex-1 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-              title="Unavoidable"
-            >
-              <div className="flex items-center gap-1">
-                 <Zap size={12} />
-                 <span className="font-bold">UNA</span>
-              </div>
-              {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-red-500/20 text-red-400 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>}
-            </button>
-          </div>
-        </motion.div>
-      )}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
+      >
+        <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
+          <button 
+            onClick={() => {
+              playSound('click', 0.5, true);
+              setDistractions(d => ({ ...d, internal: d.internal + 1 }));
+            }}
+            className="flex-1 py-1.5 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden cursor-pointer"
+            title="Internal"
+          >
+            <div className="flex items-center gap-1">
+               <Brain size={12} />
+               <span className="font-bold">INT</span>
+            </div>
+            {distractions.internal > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-tl text-[7px] font-black">{distractions.internal}</span>}
+          </button>
+          <button 
+            onClick={() => {
+              playSound('pop', 0.5, true);
+              setDistractions(d => ({ ...d, external: d.external + 1 }));
+            }}
+            className="flex-1 py-1.5 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden cursor-pointer"
+            title="External"
+          >
+            <div className="flex items-center gap-1">
+               <Wind size={12} />
+               <span className="font-bold">EXT</span>
+            </div>
+            {distractions.external > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-tl text-[7px] font-black">{distractions.external}</span>}
+          </button>
+          <button 
+            onClick={() => {
+              playSound('error', 0.5, true);
+              setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
+            }}
+            className="flex-1 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden cursor-pointer"
+            title="Unavoidable"
+          >
+            <div className="flex items-center gap-1">
+               <Zap size={12} />
+               <span className="font-bold">UNA</span>
+            </div>
+            {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-red-500/20 text-red-400 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>}
+          </button>
+        </div>
+      </motion.div>
 
     </div>
   );
