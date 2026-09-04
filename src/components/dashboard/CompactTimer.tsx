@@ -72,19 +72,21 @@ const PIP_STYLE = `
 
   /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
   @media (max-height: 165px) {
-    .pip-container { padding: 0.5rem 0.625rem; justify-content: space-between; }
-    .pip-dungeon-mb { margin-bottom: 0.25rem; }
-    .pip-icon svg { width: 10px; height: 10px; }
-    .pip-title { font-size: 10px; }
-    .pip-stats { font-size: 8px; }
+    .pip-container { padding: 0.25rem 0.375rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.125rem; }
+    .pip-icon svg { width: 9px; height: 9px; }
+    .pip-title { font-size: 9px; }
+    .pip-stats { font-size: 7.5px; }
     .pip-bar { height: 2px; }
-    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; }
-    .pip-time { font-size: 2.5rem; line-height: 1; }
+    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; gap: 0.375rem; }
+    .pip-time { font-size: 1.875rem; line-height: 1; }
     .pip-status { display: none; }
     .pip-controls-condensed { display: none; }
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
-    .pip-distractions-minimal { display: flex; }
+    .pip-distractions-minimal { display: flex; padding: 0.125rem; gap: 0.25rem; border-radius: 0.5rem; }
+    .pip-distract-btn { width: 1.375rem !important; height: 1.375rem !important; border-radius: 0.375rem !important; }
+    .pip-distract-btn svg { width: 11px !important; height: 11px !important; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: none; }
     .pip-overlay-minimal { display: flex; }
@@ -95,50 +97,50 @@ const getRarityConfig = (rarity?: string) => {
   switch (rarity?.toLowerCase()) {
     case 'mythic':
       return {
-        badge: 'bg-rose-500 text-white',
+        badge: 'bg-rose-600 text-white font-bold',
         border: 'border-rose-500/50 hover:border-rose-400',
-        bg: 'bg-rose-950/40 hover:bg-rose-900/50',
-        text: 'text-rose-300',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-rose-400',
         dot: 'bg-rose-400'
       };
     case 'legendary':
       return {
-        badge: 'bg-amber-500 text-white',
+        badge: 'bg-amber-500 text-slate-950 font-black',
         border: 'border-amber-500/50 hover:border-amber-400',
-        bg: 'bg-amber-950/40 hover:bg-amber-900/50',
-        text: 'text-amber-300',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-amber-400',
         dot: 'bg-amber-400'
       };
     case 'epic':
       return {
-        badge: 'bg-purple-500 text-white',
+        badge: 'bg-purple-600 text-white font-bold',
         border: 'border-purple-500/50 hover:border-purple-400',
-        bg: 'bg-purple-950/40 hover:bg-purple-900/50',
-        text: 'text-purple-300',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-purple-400',
         dot: 'bg-purple-400'
       };
     case 'rare':
       return {
-        badge: 'bg-blue-500 text-white',
+        badge: 'bg-blue-600 text-white font-bold',
         border: 'border-blue-500/50 hover:border-blue-400',
-        bg: 'bg-blue-950/40 hover:bg-blue-900/50',
-        text: 'text-blue-300',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-blue-400',
         dot: 'bg-blue-400'
       };
     case 'uncommon':
       return {
-        badge: 'bg-emerald-500 text-white',
+        badge: 'bg-emerald-600 text-white font-bold',
         border: 'border-emerald-500/50 hover:border-emerald-400',
-        bg: 'bg-emerald-950/40 hover:bg-emerald-900/50',
-        text: 'text-emerald-300',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-emerald-400',
         dot: 'bg-emerald-400'
       };
     default:
       return {
-        badge: 'bg-slate-700 text-slate-200',
-        border: 'border-slate-700 hover:border-slate-500',
-        bg: 'bg-slate-900/70 hover:bg-slate-800/80',
-        text: 'text-slate-200',
+        badge: 'bg-slate-800 text-slate-400 font-bold',
+        border: 'border-slate-800 hover:border-slate-600',
+        bg: 'bg-slate-900 hover:bg-slate-800/90',
+        text: 'text-slate-400',
         dot: 'bg-slate-400'
       };
   }
@@ -281,7 +283,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               </div>
 
               {/* 3 Selectable Reward Cards */}
-              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[140px] my-1 scrollbar-hide">
+              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[145px] my-1 scrollbar-hide">
                 {activeRewardSession.choices.map((card) => {
                   const rarity = getRarityConfig(card.rarity);
                   return (
@@ -294,13 +296,13 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                         rarity.border
                       )}
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs font-bold text-white truncate max-w-[140px]">{card.name}</span>
-                        <span className={cn("text-[8px] font-black uppercase px-1 py-0.5 rounded", rarity.badge)}>
+                      <div className="flex items-start justify-between w-full gap-1">
+                        <span className="text-xs font-bold text-white break-words text-left flex-1 min-w-0">{card.name}</span>
+                        <span className={cn("text-[8px] font-black uppercase px-1 py-0.5 rounded shrink-0 whitespace-nowrap", rarity.badge)}>
                           {card.rarity}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-300 leading-tight line-clamp-1">{card.description}</p>
+                      <p className="text-[10px] text-slate-300 leading-tight whitespace-normal break-words text-left">{card.description}</p>
                     </button>
                   );
                 })}
@@ -335,7 +337,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 h-full my-1 overflow-x-auto scrollbar-hide">
+              <div className="flex items-stretch gap-1.5 h-full my-1 overflow-x-auto scrollbar-hide">
                 {activeRewardSession.choices.map((card) => {
                   const rarity = getRarityConfig(card.rarity);
                   return (
@@ -343,16 +345,16 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                       key={card.id}
                       onClick={() => handleSelectRewardCard(card)}
                       className={cn(
-                        "flex-1 h-full min-w-[65px] p-1.5 rounded-lg border text-center flex flex-col justify-between items-center transition-all active:scale-95",
+                        "flex-1 h-full min-w-[70px] p-1.5 rounded-lg border text-center flex flex-col justify-between items-center transition-all active:scale-95 overflow-y-auto scrollbar-hide",
                         rarity.bg,
                         rarity.border
                       )}
                     >
-                      <span className={cn("text-[7px] font-black uppercase px-1 py-0.2 rounded", rarity.badge)}>
+                      <span className={cn("text-[7px] font-black uppercase px-1 py-0.2 rounded shrink-0 whitespace-nowrap", rarity.badge)}>
                         {card.rarity}
                       </span>
-                      <span className="text-[9px] font-bold text-white truncate w-full">{card.name}</span>
-                      <span className="text-[8px] text-slate-400 truncate w-full">{card.description}</span>
+                      <span className="text-[9px] font-bold text-white whitespace-normal break-words w-full my-0.5 leading-tight">{card.name}</span>
+                      <p className="text-[8px] text-slate-300 whitespace-normal break-words w-full leading-tight">{card.description}</p>
                     </button>
                   );
                 })}
@@ -388,10 +390,10 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                         rarity.bg,
                         rarity.border
                       )}
-                      title={card.description}
+                      title={`${card.name}: ${card.description}`}
                     >
                       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", rarity.dot)} />
-                      <span className="text-[9px] font-bold text-white truncate">{card.name}</span>
+                      <span className="text-[9px] font-bold text-white whitespace-normal break-words line-clamp-1 leading-tight">{card.name}</span>
                     </button>
                   );
                 })}
@@ -463,7 +465,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {/* Mode 2: Condensed Horizontal Mode (166px <= height <= 240px) */}
             <div className="pip-overlay-condensed flex-row h-full w-full p-3 items-center justify-between">
               <div className="flex items-center gap-2 text-left">
-                <div className="w-9 h-9 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">
+                <div className="w-9 h-9 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500 shrink-0">
                   <Coffee size={18} />
                 </div>
                 <div>
@@ -490,21 +492,21 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             </div>
 
             {/* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) */}
-            <div className="pip-overlay-minimal flex-row h-full w-full px-3 py-1 items-center justify-between">
-              <div className="flex items-center gap-1.5 overflow-hidden">
-                <Coffee size={14} className="text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-black text-white truncate">Rest Over! Ready?</span>
+            <div className="pip-overlay-minimal flex-row h-full w-full px-2 py-0.5 items-center justify-between">
+              <div className="flex items-center gap-1 overflow-hidden">
+                <Coffee size={12} className="text-emerald-500 shrink-0" />
+                <span className="text-[10px] font-black text-white truncate">Rest Over!</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={handleStartFocus}
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
+                  className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[9px] font-bold flex items-center gap-1"
                 >
-                  <Play size={10} fill="currentColor" /> Start
+                  <Play size={9} fill="currentColor" /> Start
                 </button>
                 <button
                   onClick={handleDismissFocusPrompt}
-                  className="p-1 text-slate-500 hover:text-slate-300 text-xs"
+                  className="p-0.5 text-slate-500 hover:text-slate-300 text-[10px]"
                 >
                   ✕
                 </button>
@@ -545,7 +547,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             onClick={toggleTimer}
             className={cn(
               "pip-time font-black font-mono tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer transition-colors",
-              isResting ? "text-emerald-400" : "text-white"
+              isResting ? "text-emerald-500" : "text-white"
             )}
             title={isActive ? "Click to Pause" : "Click to Start"}
           >
@@ -626,7 +628,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             className={cn(
               "h-8 w-full rounded-lg flex items-center justify-center transition-all bg-indigo-600 text-white",
               isActive 
-                ? (isResting ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-400" : "bg-indigo-600/20 border border-indigo-500/50 text-indigo-400") 
+                ? (isResting ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-500" : "bg-indigo-600/20 border border-indigo-500/50 text-indigo-400") 
                 : (isResting ? "bg-emerald-600" : "bg-indigo-600")
             )}
           >
@@ -647,7 +649,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               setDistractions(d => ({ ...d, internal: d.internal + 1 }));
             }}
             className={cn(
-              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
               isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer"
             )}
             title={isResting ? "Distractions disabled during rest" : "Internal Distraction"}
@@ -665,7 +667,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               setDistractions(d => ({ ...d, external: d.external + 1 }));
             }}
             className={cn(
-              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
               isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer"
             )}
             title={isResting ? "Distractions disabled during rest" : "External Distraction"}
@@ -683,7 +685,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
             }}
             className={cn(
-              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              "pip-distract-btn w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
               isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer"
             )}
             title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction"}

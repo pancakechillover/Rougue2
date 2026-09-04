@@ -5,6 +5,7 @@ import { format, isSameDay, parseISO, differenceInDays, subDays } from 'date-fns
 
 import { getXPForLevel, getDefaultRewardForLevel, getDeviceType, getDeviceCode, getSettlementDay, getSessionSettlementDate, getSessionEffectiveMinutes } from '../lib/utils';
 import { generateRewardChoicesForSession } from '../lib/rewardLogic';
+import { useTimerStore } from './useTimerStore';
 
 const STORAGE_KEY = 'scholars_dungeon_state';
 
@@ -2262,6 +2263,7 @@ export function useGameState() {
   }, []);
 
   const selectReward = useCallback((reward: RewardCard, sessionId: string) => {
+    useTimerStore.getState().setActiveRewardSession(null);
     addRewardToHistory({
       name: reward.name,
       rarity: reward.rarity,

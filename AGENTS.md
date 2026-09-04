@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.6
+- **Current Version:** v9.1.10
 - **Last Update Date:** 2026-09-04
-- **Last Update Time:** 01:03:00
+- **Last Update Time:** 02:08:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -66,13 +66,13 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.1.6 (2026-09-04):** Domain-Driven Component Architecture Organization
-  - *Native Workspace Move:* Safely migrated all 40+ flat `.tsx` components into domain folders (`dashboard`, `journal`, `record`, `expedition`, `talents`, `shop`, `guild`, `vault`, `settings`, `common`, `modals`) via IDE workspace tool calls, ensuring perfect file explorer and ZIP export synchronization.
-  - *Zero Root Pollution:* Verified that `/src/components/` root contains strictly domain directories with 0 scattered files.
-  - *Clean Import Graph & Builds:* Fully updated relative import graphs across all files, successfully compiling with `tsc --noEmit` and `vite build`.
+- **v9.1.10 (2026-09-04):** Synchronized Reward State Resolution & PiP Auto-Dismiss
+  - *Instant Reward Clear:* Removed artificial modal closing delays on the main timer victory screen, synchronously clearing `activeRewardSession` and `showRewards` upon selecting or deferring cards.
+  - *Universal State Propagation:* Connected `selectReward` directly to the centralized timer store to guarantee immediate dismissal of the PiP reward overlay regardless of which screen or component processes the reward.
 
-- **v9.1.5 (2026-09-04):** Project Structure Optimization & Task History Archival
-  - *Root Directory Cleanup:* Moved scattered markdown files (`DEPLOYMENT.md`, `FEATURES.md`, `GUIDEBOOK.md`, `TUTORIAL.md`, `plan.md`) into `/docs/`.
-  - *Script Consolidation:* Relocated `generate-vapid.js` into `/scripts/`.
-  - *Redundant File Cleanup:* Removed unused `/app/` directory, redundant `bun.lock`, and 7 leftover `rewrite_*.mjs` migration scripts in `/src/`.
-  - *Task History Modularization:* Extracted monolithic historical task logs from `AGENTS.md` into `TaskHistory.md` capped at the 3 most recent entries, resolving prompt truncation.
+- **v9.1.9 (2026-09-04):** PiP Ultra-Minimalist Strip Mode Compact Refinement
+  - *Sleeker Horizontal Layout:* Compacted the PiP strip mode (height <= 165px) with reduced container padding (`px-1.5 py-1`), optimized countdown typography (`1.875rem`), and streamlined spacing.
+  - *Mini Distraction Controls:* Scaled down distraction buttons to `22px` with compact icons, tighter gap, and reduced container padding, allowing the window to fit comfortably into very narrow widths without excessive whitespace.
+
+- **v9.1.8 (2026-09-04):** Rest Session Palette Alignment in PiP Window
+  - *Rest Digits Color Calibration:* Replaced bright neon green (`emerald-400`) on the PiP countdown digits and rest mode indicators with the standard `text-emerald-500` matching the main timer rest ring.

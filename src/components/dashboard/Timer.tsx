@@ -125,6 +125,12 @@ export const Timer = React.memo<TimerProps>(({
   }, [activeRewardSession, showRewards]);
 
   useEffect(() => {
+    if (!showRewards && activeRewardSession) {
+      setActiveRewardSession(null);
+    }
+  }, [showRewards, activeRewardSession, setActiveRewardSession]);
+
+  useEffect(() => {
     if (storeFocusPrompt !== showFocusPrompt) {
       setShowFocusPrompt(storeFocusPrompt);
     }
@@ -893,6 +899,7 @@ export const Timer = React.memo<TimerProps>(({
                     <button
                       onClick={() => {
                         submitStudyNote(showRewards.session);
+                        setActiveRewardSession(null);
                         setShowRewards(null);
                         setStudyNote('');
                       }}
@@ -964,6 +971,9 @@ export const Timer = React.memo<TimerProps>(({
                           triggerSimpleConfetti();
                           
                           submitStudyNote(showRewards.session);
+                          setActiveRewardSession(null);
+                          setShowRewards(null);
+                          setStudyNote('');
                           onRewardSelect(card, showRewards.session.id);
                           if (card.type === 'item' && card.itemType !== 'talent_shard' && card.itemType !== 'death_defying_medal') {
                             onInventoryAdd(card.id);
@@ -971,12 +981,6 @@ export const Timer = React.memo<TimerProps>(({
                           if (showRewards.session.triggeredTalents) {
                             setShowTalentPopup(showRewards.session.triggeredTalents);
                           }
-                          
-                          // Short delay to let the confetti pop before closing
-                          setTimeout(() => {
-                            setShowRewards(null);
-                            setStudyNote('');
-                          }, 400);
                         }}
                         className={cn(
                           "group relative p-4 md:p-5 lg:p-6 rounded-2xl md:rounded-3xl border-2 text-left transition-all h-full flex flex-col min-h-[140px] md:min-h-[160px] overflow-hidden",

@@ -1169,6 +1169,7 @@ function App() {
           pipVictorySummary={pipVictorySummary}
           standardSessionMinutes={state.standardSessionMinutes}
           onRewardSelect={(reward, sessionId) => {
+            useTimerStore.getState().setActiveRewardSession(null);
             selectReward(reward, sessionId);
             if (state.secretCode) {
               syncToCloud(false, undefined, 'Manual');
@@ -1176,6 +1177,7 @@ function App() {
           }}
           onInventoryAdd={(id) => setState(prev => ({ ...prev, inventory: [...(prev.inventory || []), id] }))}
           onDeferReward={(session, choices) => {
+            useTimerStore.getState().setActiveRewardSession(null);
             setState(prev => ({
               ...prev,
               pendingRewardChest: [...(prev.pendingRewardChest || []), { session, choices }]

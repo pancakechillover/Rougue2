@@ -28,6 +28,7 @@ import { generateRewardChoicesForSession } from '../../lib/rewardLogic';
 import { PageHeader } from '../common/PageHeader';
 import { Timer } from '../dashboard/Timer';
 import { TimerSettings } from '../dashboard/TimerSettings';
+import { useTimerStore } from '../../hooks/useTimerStore';
 import { RecentSessions } from '../dashboard/RecentSessions';
 import { TalentIcon } from '../talents/TalentIcon';
 import { RewardChestModal } from '../modals/RewardChestModal';
@@ -409,6 +410,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         onInventoryAdd={(id) => setState(prev => ({ ...prev, inventory: [...prev.inventory, id] }))}
         onReroll={() => setState(prev => ({ ...prev, dailyRerollUsed: true }))}
         onRewardSelect={(reward, sessionId) => {
+          useTimerStore.getState().setActiveRewardSession(null);
           selectReward(reward, sessionId);
           playSound('reward', state.soundVolume, state.soundEnabled);
           if (state.secretCode) {
@@ -420,6 +422,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           }));
         }}
         onDeferReward={(session, choices) => {
+          useTimerStore.getState().setActiveRewardSession(null);
           setState(prev => ({
             ...prev,
             pendingRewardChest: [...(prev.pendingRewardChest || []), { session, choices }]
