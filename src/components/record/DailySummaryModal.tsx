@@ -502,32 +502,34 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     }, 450);
   };
 
-  // Load existing log if one exists for today, or auto-calculate rating if enabled
+  // Load existing log if one exists for today, and auto-calculate rating on open if enabled
   React.useEffect(() => {
     if (!hasInitializedFromLog.current && today.dateString) {
       const existingLog = state.dailyLogs?.[today.dateString];
       if (existingLog) {
-        setRating(existingLog.rating);
-        setReflection(existingLog.reflection);
+        setReflection(existingLog.reflection || '');
         if (existingLog.mood) setMood(existingLog.mood);
-      } else {
-        // Auto-calculate rating on modal open if enabled (default: true)
-        if (state.efficiencyRatingConfig?.autoCalculateOnOpen !== false) {
-          const tHours = customTargetHours !== null ? customTargetHours : defaultTargetHours;
-          const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
-          const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
-          const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+      }
 
-          const res = calculateEfficiencyRating(
-            dailyStats.effectiveMinutes,
-            dailyStats.totalDistractions,
-            tHours,
-            maxDist,
-            compW,
-            focusW
-          );
-          setRating(res.calculatedStars);
-        }
+      // Auto-calculate rating on modal open if enabled (default: true)
+      if (state.efficiencyRatingConfig?.autoCalculateOnOpen !== false) {
+        const tHours = customTargetHours !== null ? customTargetHours : defaultTargetHours;
+        const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
+        const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
+        const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+
+        const res = calculateEfficiencyRating(
+          dailyStats.effectiveMinutes,
+          dailyStats.totalDistractions,
+          tHours,
+          maxDist,
+          compW,
+          focusW
+        );
+        setRating(res.calculatedStars);
+      } else if (existingLog) {
+        // If auto-calculate is disabled, restore previous saved rating
+        setRating(existingLog.rating);
       }
       hasInitializedFromLog.current = true;
     }

@@ -40,6 +40,7 @@ const PIP_STYLE = `
   .pip-status-short { display: none; }
   .pip-status-long { display: block; }
   .pip-controls-condensed { display: none; }
+  .pip-controls-minimal { display: none; }
   .pip-controls-standard { display: flex; }
   .pip-distractions-standard { display: flex; }
   .pip-distractions-minimal { display: none; }
@@ -82,6 +83,9 @@ const PIP_STYLE = `
     .pip-time { font-size: 2.85rem; line-height: 1; letter-spacing: -0.04em; }
     .pip-status { display: none; }
     .pip-controls-condensed { display: none; }
+    .pip-controls-minimal { display: flex; align-items: center; justify-content: center; }
+    .pip-play-btn-minimal { width: 2.125rem !important; height: 2.125rem !important; }
+    .pip-play-btn-minimal svg { width: 14px !important; height: 14px !important; }
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
     .pip-distractions-minimal { display: flex; padding: 0.25rem; gap: 0.375rem; border-radius: 0.625rem; }
@@ -96,6 +100,8 @@ const PIP_STYLE = `
     .pip-container { padding: 0.25rem 0.5rem; }
     .pip-dungeon-mb { margin-bottom: 0.125rem; }
     .pip-time { font-size: 2.35rem; line-height: 1; }
+    .pip-play-btn-minimal { width: 1.625rem !important; height: 1.625rem !important; }
+    .pip-play-btn-minimal svg { width: 11px !important; height: 11px !important; }
     .pip-distract-btn { width: 1.5rem !important; height: 1.5rem !important; }
     .pip-distract-btn svg { width: 11px !important; height: 11px !important; }
   }
@@ -608,6 +614,22 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               );
             })()}
           </div>
+        </div>
+
+        {/* Controls (Ultra-Minimalist Strip Mode - Center / Middle) */}
+        <div className="pip-controls-minimal items-center justify-center shrink-0">
+          <button
+            onClick={toggleTimer}
+            className={cn(
+              "pip-play-btn-minimal rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95",
+              isActive 
+                ? (isResting ? "bg-slate-900 text-emerald-500 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-slate-900 text-indigo-400 border border-indigo-500/60 shadow-[0_0_10px_rgba(99,102,241,0.2)]") 
+                : (isResting ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.3)]" : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.3)]")
+            )}
+            title={isActive ? "Pause" : "Start"}
+          >
+            {isActive ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+          </button>
         </div>
 
         {/* Controls (Condensed Mode - Right Side) */}
