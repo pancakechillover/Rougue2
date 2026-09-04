@@ -1,4 +1,4 @@
-import { MarkdownEditor } from './MarkdownEditor';
+import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
@@ -45,7 +45,7 @@ import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { cn, sortAgendaTodos } from '../../lib/utils';
 import { getSettlementDay } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
-import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
+import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
 
 interface StartOfDayModalProps {

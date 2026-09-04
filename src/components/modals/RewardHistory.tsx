@@ -23,8 +23,8 @@ import { cn } from '../../lib/utils';
 import { PageHeader } from '../common/PageHeader';
 import { format, isWithinInterval, subDays, startOfDay, endOfDay } from 'date-fns';
 import { getColorClass } from '../../lib/colors';
-import { EconomyLog } from '../vault/EconomyLog';
-import { InventoryTab } from '../vault/InventoryTab';
+import { EconomyLog } from '../shop/EconomyLog';
+import { InventoryTab } from '../shop/InventoryTab';
 
 interface RewardHistoryProps {
   history: RewardHistoryItem[];

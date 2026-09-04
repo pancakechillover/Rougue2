@@ -25,7 +25,7 @@ import { createPortal } from 'react-dom';
 import { AppState } from '../../types';
 import { cn, getXPForLevel, getDefaultRewardForLevel, getTitleForLevel } from '../../lib/utils';
 import { format, subDays, parseISO } from 'date-fns';
-import { ConfirmModal } from './ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { StreakRecordModal } from '../record/StreakRecordModal';
 
 interface ProfileModalProps {

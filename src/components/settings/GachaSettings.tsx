@@ -9,9 +9,9 @@ import * as LucideIcons from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
 import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
-import { SpinnerInput } from '../SpinnerInput';
+import { SpinnerInput } from '../common/SpinnerInput';
 import { RARITY_COLORS, getColorClass } from '../../lib/colors';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String: string) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle2, Clock, Target, Coins, Zap, Gift, Square, CheckSquare, Copy, Pin, Plus } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 interface QuestBoardCssDebuggerProps {
   onClose: () => void;

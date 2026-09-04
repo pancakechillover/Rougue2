@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Sparkles } from 'lucide-react';
-import { TreasureChestIcon } from '../icons/TreasureChestIcon';
+import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Dungeon, RewardCard, StudySession } from '../../types';
 import { useTimerStore } from '../../hooks/useTimerStore';
@@ -73,34 +72,22 @@ const PIP_STYLE = `
 
   /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
   @media (max-height: 165px) {
-    .pip-container { padding: 0.25rem 0.5rem; justify-content: space-between; gap: 0.125rem; }
-    .pip-dungeon-mb { margin-bottom: 0.125rem; }
-    .pip-icon svg { width: 9px; height: 9px; }
-    .pip-title { font-size: 9px; line-height: 1.1; }
-    .pip-stats { font-size: 8px; line-height: 1.1; }
+    .pip-container { padding: 0.5rem 0.625rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.25rem; }
+    .pip-icon svg { width: 10px; height: 10px; }
+    .pip-title { font-size: 10px; }
+    .pip-stats { font-size: 8px; }
     .pip-bar { height: 2px; }
-    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0 0.125rem; margin: 0; flex: 1; min-height: 0; }
-    .pip-time { font-size: 1.85rem; line-height: 1; letter-spacing: -0.04em; }
+    .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; }
+    .pip-time { font-size: 2.5rem; line-height: 1; }
     .pip-status { display: none; }
     .pip-controls-condensed { display: none; }
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
-    .pip-distractions-minimal { display: flex; gap: 0.25rem; padding: 0.125rem; border-radius: 0.5rem; }
-    .pip-distractions-minimal button { width: 1.5rem !important; height: 1.5rem !important; border-radius: 0.375rem !important; }
-    .pip-distractions-minimal button svg { width: 12px !important; height: 12px !important; }
+    .pip-distractions-minimal { display: flex; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: none; }
     .pip-overlay-minimal { display: flex; }
-  }
-
-  /* Micro Height (height <= 110px) - Extreme Sleek Compactness */
-  @media (max-height: 110px) {
-    .pip-container { padding: 0.125rem 0.375rem; }
-    .pip-dungeon-mb { margin-bottom: 0px; }
-    .pip-time { font-size: 1.45rem; }
-    .pip-distractions-minimal { gap: 0.15rem; padding: 0.1rem; }
-    .pip-distractions-minimal button { width: 1.35rem !important; height: 1.35rem !important; }
-    .pip-distractions-minimal button svg { width: 11px !important; height: 11px !important; }
   }
 `;
 
@@ -108,50 +95,50 @@ const getRarityConfig = (rarity?: string) => {
   switch (rarity?.toLowerCase()) {
     case 'mythic':
       return {
-        badge: 'bg-rose-600 text-white',
+        badge: 'bg-rose-500 text-white',
         border: 'border-rose-500/50 hover:border-rose-400',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-rose-400',
-        dot: 'bg-rose-500'
+        bg: 'bg-rose-950/40 hover:bg-rose-900/50',
+        text: 'text-rose-300',
+        dot: 'bg-rose-400'
       };
     case 'legendary':
       return {
-        badge: 'bg-amber-500 text-slate-900 font-bold',
+        badge: 'bg-amber-500 text-white',
         border: 'border-amber-500/50 hover:border-amber-400',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-amber-400',
-        dot: 'bg-amber-500'
+        bg: 'bg-amber-950/40 hover:bg-amber-900/50',
+        text: 'text-amber-300',
+        dot: 'bg-amber-400'
       };
     case 'epic':
       return {
-        badge: 'bg-purple-600 text-white',
+        badge: 'bg-purple-500 text-white',
         border: 'border-purple-500/50 hover:border-purple-400',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-purple-400',
-        dot: 'bg-purple-500'
+        bg: 'bg-purple-950/40 hover:bg-purple-900/50',
+        text: 'text-purple-300',
+        dot: 'bg-purple-400'
       };
     case 'rare':
       return {
-        badge: 'bg-blue-600 text-white',
+        badge: 'bg-blue-500 text-white',
         border: 'border-blue-500/50 hover:border-blue-400',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-blue-400',
-        dot: 'bg-blue-500'
+        bg: 'bg-blue-950/40 hover:bg-blue-900/50',
+        text: 'text-blue-300',
+        dot: 'bg-blue-400'
       };
     case 'uncommon':
       return {
-        badge: 'bg-emerald-600 text-white',
+        badge: 'bg-emerald-500 text-white',
         border: 'border-emerald-500/50 hover:border-emerald-400',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-emerald-500',
-        dot: 'bg-emerald-500'
+        bg: 'bg-emerald-950/40 hover:bg-emerald-900/50',
+        text: 'text-emerald-300',
+        dot: 'bg-emerald-400'
       };
     default:
       return {
-        badge: 'bg-slate-800 text-slate-400',
-        border: 'border-slate-800 hover:border-slate-600',
-        bg: 'bg-slate-900 hover:bg-slate-800/90',
-        text: 'text-slate-400',
+        badge: 'bg-slate-700 text-slate-200',
+        border: 'border-slate-700 hover:border-slate-500',
+        bg: 'bg-slate-900/70 hover:bg-slate-800/80',
+        text: 'text-slate-200',
         dot: 'bg-slate-400'
       };
   }
@@ -284,7 +271,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-[11px] font-black">
-                  <span className="text-emerald-500 flex items-center gap-0.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="text-emerald-400 flex items-center gap-0.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     <Zap size={11} /> +{xpReward} XP
                   </span>
                   <span className="text-amber-400 flex items-center gap-0.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
@@ -302,18 +289,18 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                       key={card.id}
                       onClick={() => handleSelectRewardCard(card)}
                       className={cn(
-                        "w-full text-left p-2 rounded-xl border-2 transition-all flex flex-col gap-0.5 active:scale-95 shadow-sm group",
+                        "w-full text-left p-2 rounded-xl border transition-all flex flex-col gap-0.5 active:scale-95",
                         rarity.bg,
                         rarity.border
                       )}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-xs font-bold text-white group-hover:text-indigo-400 transition-colors break-words leading-tight line-clamp-2 pr-1">{card.name}</span>
-                        <span className={cn("text-[8px] font-black uppercase px-1.5 py-0.5 rounded shrink-0", rarity.badge)}>
+                        <span className="text-xs font-bold text-white truncate max-w-[140px]">{card.name}</span>
+                        <span className={cn("text-[8px] font-black uppercase px-1 py-0.5 rounded", rarity.badge)}>
                           {card.rarity}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-tight line-clamp-2 break-words">{card.description}</p>
+                      <p className="text-[10px] text-slate-300 leading-tight line-clamp-1">{card.description}</p>
                     </button>
                   );
                 })}
@@ -322,10 +309,10 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               {/* Bottom Actions */}
               <button
                 onClick={handleDeferRewardToChest}
-                className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold border border-slate-700/70 flex items-center justify-center gap-1.5 transition-all shrink-0 shadow-sm group"
+                className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold border border-slate-800 flex items-center justify-center gap-1 transition-all shrink-0"
               >
-                <TreasureChestIcon size={12} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                <span>Defer to Chest</span>
+                <Package size={12} />
+                Save to Chest
               </button>
             </div>
 
@@ -335,16 +322,16 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                 <div className="flex items-center gap-1">
                   <Trophy size={14} className="text-amber-400" />
                   <span className="font-black text-[10px] text-white">Victory!</span>
-                  <span className="text-emerald-500 text-[9px] font-bold">+{xpReward}XP</span>
+                  <span className="text-emerald-400 text-[9px] font-bold">+{xpReward}XP</span>
                   <span className="text-amber-400 text-[9px] font-bold">+{coinReward}G</span>
                 </div>
                 <button
                   onClick={handleDeferRewardToChest}
-                  className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded text-[9px] font-bold border border-slate-700/70 flex items-center gap-1 transition-all shadow-sm group"
-                  title="Defer to Chest"
+                  className="px-2 py-0.5 bg-slate-900 text-slate-400 hover:text-white rounded text-[9px] font-bold border border-slate-800 flex items-center gap-1"
+                  title="Save to Chest"
                 >
-                  <TreasureChestIcon size={10} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>Chest</span>
+                  <Package size={10} />
+                  Chest
                 </button>
               </div>
 
@@ -356,16 +343,16 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                       key={card.id}
                       onClick={() => handleSelectRewardCard(card)}
                       className={cn(
-                        "flex-1 h-full min-w-[65px] p-1.5 rounded-xl border-2 text-center flex flex-col justify-between items-center transition-all active:scale-95 shadow-sm group",
+                        "flex-1 h-full min-w-[65px] p-1.5 rounded-lg border text-center flex flex-col justify-between items-center transition-all active:scale-95",
                         rarity.bg,
                         rarity.border
                       )}
                     >
-                      <span className={cn("text-[7px] font-black uppercase px-1.5 py-0.5 rounded", rarity.badge)}>
+                      <span className={cn("text-[7px] font-black uppercase px-1 py-0.2 rounded", rarity.badge)}>
                         {card.rarity}
                       </span>
-                      <span className="text-[9px] font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-2 leading-tight break-words w-full">{card.name}</span>
-                      <span className="text-[8px] text-slate-400 line-clamp-2 leading-tight break-words w-full">{card.description}</span>
+                      <span className="text-[9px] font-bold text-white truncate w-full">{card.name}</span>
+                      <span className="text-[8px] text-slate-400 truncate w-full">{card.description}</span>
                     </button>
                   );
                 })}
@@ -378,16 +365,14 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                 <div className="flex items-center gap-1 text-[9px] font-black">
                   <Trophy size={10} className="text-amber-400" />
                   <span className="text-white">Victory!</span>
-                  <span className="text-emerald-500">+{xpReward}XP</span>
+                  <span className="text-emerald-400">+{xpReward}XP</span>
                   <span className="text-amber-400">+{coinReward}G</span>
                 </div>
                 <button
                   onClick={handleDeferRewardToChest}
-                  className="px-1.5 py-0.2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded text-[8px] font-bold border border-slate-700/70 flex items-center gap-0.5 transition-all shadow-sm group"
-                  title="Defer to Chest"
+                  className="px-1.5 py-0.2 bg-slate-900 text-slate-400 hover:text-white rounded text-[8px] font-bold border border-slate-800 flex items-center gap-0.5"
                 >
-                  <TreasureChestIcon size={8} className="text-amber-400" />
-                  <span>Chest</span>
+                  <Package size={8} /> Chest
                 </button>
               </div>
 
@@ -399,14 +384,14 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                       key={card.id}
                       onClick={() => handleSelectRewardCard(card)}
                       className={cn(
-                        "flex-1 h-full rounded-lg border-2 flex items-center justify-center gap-1 px-1 transition-all active:scale-95 overflow-hidden shadow-sm group",
+                        "flex-1 h-full rounded border flex items-center justify-center gap-1 px-1 transition-all active:scale-95 overflow-hidden",
                         rarity.bg,
                         rarity.border
                       )}
                       title={card.description}
                     >
                       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", rarity.dot)} />
-                      <span className="text-[8.5px] font-bold text-white group-hover:text-indigo-400 transition-colors leading-[1.15] text-left break-words line-clamp-2 flex-1">{card.name}</span>
+                      <span className="text-[9px] font-bold text-white truncate">{card.name}</span>
                     </button>
                   );
                 })}
@@ -429,7 +414,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <h4 className="font-black uppercase tracking-widest text-white text-xs mb-1.5">Victory!</h4>
             <div className="flex flex-col gap-1 w-full max-w-[140px]">
               <div className="flex items-center px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20 justify-center gap-1">
-                <Zap className="text-emerald-500 w-3 h-3" />
+                <Zap className="text-emerald-400 w-3 h-3" />
                 <span className="text-xs font-black text-white">+{xpReward} XP</span>
               </div>
               <div className="flex items-center px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-center gap-1">
@@ -451,7 +436,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
           >
             {/* Mode 1: Standard Mode (height > 240px) */}
             <div className="pip-overlay-standard flex-col h-full w-full p-4 items-center justify-center space-y-4">
-              <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 shrink-0">
+              <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center text-emerald-400 shrink-0">
                 <Coffee size={24} />
               </div>
               <div className="space-y-1">
@@ -478,7 +463,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {/* Mode 2: Condensed Horizontal Mode (166px <= height <= 240px) */}
             <div className="pip-overlay-condensed flex-row h-full w-full p-3 items-center justify-between">
               <div className="flex items-center gap-2 text-left">
-                <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500 shrink-0">
+                <div className="w-9 h-9 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">
                   <Coffee size={18} />
                 </div>
                 <div>
@@ -507,7 +492,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {/* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) */}
             <div className="pip-overlay-minimal flex-row h-full w-full px-3 py-1 items-center justify-between">
               <div className="flex items-center gap-1.5 overflow-hidden">
-                <Coffee size={14} className="text-emerald-500 shrink-0" />
+                <Coffee size={14} className="text-emerald-400 shrink-0" />
                 <span className="text-[11px] font-black text-white truncate">Rest Over! Ready?</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -560,7 +545,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             onClick={toggleTimer}
             className={cn(
               "pip-time font-black font-mono tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer transition-colors",
-              isResting ? "text-emerald-500" : "text-white"
+              isResting ? "text-emerald-400" : "text-white"
             )}
             title={isActive ? "Click to Pause" : "Click to Start"}
           >
@@ -641,7 +626,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             className={cn(
               "h-8 w-full rounded-lg flex items-center justify-center transition-all bg-indigo-600 text-white",
               isActive 
-                ? (isResting ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-500" : "bg-indigo-600/20 border border-indigo-500/50 text-indigo-400") 
+                ? (isResting ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-400" : "bg-indigo-600/20 border border-indigo-500/50 text-indigo-400") 
                 : (isResting ? "bg-emerald-600" : "bg-indigo-600")
             )}
           >
@@ -650,42 +635,60 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </div>
 
         {/* Ultra-Minimalist Mode Distractions (Right Side in Shortest Height) */}
-        <div className="pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shrink-0">
+        <div className={cn(
+          "pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shrink-0",
+          isResting && "opacity-40"
+        )}>
           <button 
+            disabled={isResting}
             onClick={() => {
+              if (isResting) return;
               playSound('click', 0.5, true);
               setDistractions(d => ({ ...d, internal: d.internal + 1 }));
             }}
-            className="w-7 h-7 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-lg flex items-center justify-center relative overflow-hidden transition-all active:scale-95 cursor-pointer"
-            title="Internal Distraction"
+            className={cn(
+              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "Internal Distraction"}
           >
-            <Brain size={14} className="text-indigo-400" />
+            <Brain size={14} className={isResting ? "text-slate-600" : "text-indigo-400"} />
             {distractions.internal > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-indigo-500/30 text-indigo-300 rounded-tl text-[7px] font-black">{distractions.internal}</span>
             )}
           </button>
           <button 
+            disabled={isResting}
             onClick={() => {
+              if (isResting) return;
               playSound('pop', 0.5, true);
               setDistractions(d => ({ ...d, external: d.external + 1 }));
             }}
-            className="w-7 h-7 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-lg flex items-center justify-center relative overflow-hidden transition-all active:scale-95 cursor-pointer"
-            title="External Distraction"
+            className={cn(
+              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "External Distraction"}
           >
-            <Wind size={14} className="text-orange-400" />
+            <Wind size={14} className={isResting ? "text-slate-600" : "text-orange-400"} />
             {distractions.external > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-orange-500/30 text-orange-300 rounded-tl text-[7px] font-black">{distractions.external}</span>
             )}
           </button>
           <button 
+            disabled={isResting}
             onClick={() => {
+              if (isResting) return;
               playSound('error', 0.5, true);
               setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
             }}
-            className="w-7 h-7 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-lg flex items-center justify-center relative overflow-hidden transition-all active:scale-95 cursor-pointer"
-            title="Unavoidable Distraction"
+            className={cn(
+              "w-7 h-7 bg-slate-800 text-slate-300 rounded-lg flex items-center justify-center relative overflow-hidden transition-all",
+              isResting ? "cursor-not-allowed text-slate-600" : "hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction"}
           >
-            <Zap size={14} className="text-red-400" />
+            <Zap size={14} className={isResting ? "text-slate-600" : "text-red-400"} />
             {distractions.unavoidable > 0 && (
               <span className="absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center bg-red-500/30 text-red-300 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>
             )}
@@ -723,56 +726,58 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
       </div>
 
       {/* Distractions Module (Below Controls) */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
-      >
-        <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
-          <button 
-            onClick={() => {
-              playSound('click', 0.5, true);
-              setDistractions(d => ({ ...d, internal: d.internal + 1 }));
-            }}
-            className="flex-1 py-1.5 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-            title="Internal"
-          >
-            <div className="flex items-center gap-1">
-               <Brain size={12} />
-               <span className="font-bold">INT</span>
-            </div>
-            {distractions.internal > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-tl text-[7px] font-black">{distractions.internal}</span>}
-          </button>
-          <button 
-            onClick={() => {
-              playSound('pop', 0.5, true);
-              setDistractions(d => ({ ...d, external: d.external + 1 }));
-            }}
-            className="flex-1 py-1.5 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-            title="External"
-          >
-            <div className="flex items-center gap-1">
-               <Wind size={12} />
-               <span className="font-bold">EXT</span>
-            </div>
-            {distractions.external > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-tl text-[7px] font-black">{distractions.external}</span>}
-          </button>
-          <button 
-            onClick={() => {
-              playSound('error', 0.5, true);
-              setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
-            }}
-            className="flex-1 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
-            title="Unavoidable"
-          >
-            <div className="flex items-center gap-1">
-               <Zap size={12} />
-               <span className="font-bold">UNA</span>
-            </div>
-            {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-red-500/20 text-red-400 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>}
-          </button>
-        </div>
-      </motion.div>
+      {!isResting && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full"
+        >
+          <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
+            <button 
+              onClick={() => {
+                playSound('click', 0.5, true);
+                setDistractions(d => ({ ...d, internal: d.internal + 1 }));
+              }}
+              className="flex-1 py-1.5 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
+              title="Internal"
+            >
+              <div className="flex items-center gap-1">
+                 <Brain size={12} />
+                 <span className="font-bold">INT</span>
+              </div>
+              {distractions.internal > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-tl text-[7px] font-black">{distractions.internal}</span>}
+            </button>
+            <button 
+              onClick={() => {
+                playSound('pop', 0.5, true);
+                setDistractions(d => ({ ...d, external: d.external + 1 }));
+              }}
+              className="flex-1 py-1.5 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
+              title="External"
+            >
+              <div className="flex items-center gap-1">
+                 <Wind size={12} />
+                 <span className="font-bold">EXT</span>
+              </div>
+              {distractions.external > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-tl text-[7px] font-black">{distractions.external}</span>}
+            </button>
+            <button 
+              onClick={() => {
+                playSound('error', 0.5, true);
+                setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
+              }}
+              className="flex-1 py-1.5 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
+              title="Unavoidable"
+            >
+              <div className="flex items-center gap-1">
+                 <Zap size={12} />
+                 <span className="font-bold">UNA</span>
+              </div>
+              {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center bg-red-500/20 text-red-400 rounded-tl text-[7px] font-black">{distractions.unavoidable}</span>}
+            </button>
+          </div>
+        </motion.div>
+      )}
 
     </div>
   );

@@ -1,4 +1,4 @@
-import { MarkdownEditor } from './MarkdownEditor';
+import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -46,8 +46,8 @@ import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
 
 import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
-import { EfficiencyDetailsModal } from '../record/EfficiencyDetailsModal';
+import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
+import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
 
 interface DailySummaryModalProps {
   state: AppState;

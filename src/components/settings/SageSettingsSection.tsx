@@ -8,7 +8,7 @@ import { AppState, SageModelConfig, SagePromptConfig } from '../../types';
 import { cn } from '../../lib/utils';
 import { DEFAULT_SAGE_PROMPTS } from '../../constants';
 import { getSageAdvice } from '../../services/sageService';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 interface SageSettingsProps {
   state: AppState;

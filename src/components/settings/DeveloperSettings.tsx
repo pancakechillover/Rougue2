@@ -3,7 +3,7 @@ import { AppState } from '../../types';
 import { Wrench, Package, Coins, Zap, Trophy, Flame, Sparkles, Bell, RefreshCw, Trash2, Key, Eye, Palette, Clock } from 'lucide-react';
 import { DevResourceControl } from './DevResourceControl';
 import { cn } from '../../lib/utils';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { QuestBoardCssDebugger } from './QuestBoardCssDebugger';
 
 interface DeveloperSettingsProps {

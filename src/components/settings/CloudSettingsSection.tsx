@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Cloud, Server, HardDrive, CheckCircle2, ChevronRight, Settings, Lock, X, History, ArrowDownUp, RefreshCw, LogIn, Trash2, ShieldBan, Eye, Search, UploadCloud, DownloadCloud, Download, Laptop, Monitor, Smartphone, Tablet, Copy, Key, WifiOff, Users, Database } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getDeviceCode } from '../../lib/utils';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { CloudHistoryModal } from './CloudHistoryModal';
 
 interface CloudSettingsSectionProps {

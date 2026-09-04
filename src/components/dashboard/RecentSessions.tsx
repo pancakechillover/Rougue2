@@ -6,7 +6,7 @@ import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { DatePicker } from '../common/DatePicker';
-import { BulkSessionModal } from './BulkSessionModal';
+import { BulkSessionModal } from '../modals/BulkSessionModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 interface RecentSessionsProps {

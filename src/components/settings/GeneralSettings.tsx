@@ -8,9 +8,9 @@ import * as LucideIcons from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
 import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
-import { ConfirmModal } from '../ConfirmModal';
-import { SpinnerInput } from '../SpinnerInput';
-import { TimePicker } from '../TimePicker';
+import { ConfirmModal } from '../modals/ConfirmModal';
+import { SpinnerInput } from '../common/SpinnerInput';
+import { TimePicker } from '../common/TimePicker';
 import { scrubExportData } from '../../utils/exportScrubber';
 
 // Helper to convert VAPID key

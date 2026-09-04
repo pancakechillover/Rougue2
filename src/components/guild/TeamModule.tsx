@@ -9,7 +9,7 @@ import {
 import { AppState, Team, TeamMessage, TeamEvent, TeamMember, TeamSettingProposal } from '../../types';
 import { cn, getTitleForLevel } from '../../lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ProfileModal } from '../modals/ProfileModal';
+import { ProfileModal } from '../settings/ProfileModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 interface TeamModuleProps {

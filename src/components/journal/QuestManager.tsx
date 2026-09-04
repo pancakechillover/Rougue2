@@ -6,7 +6,7 @@ import { PageHeader } from '../common/PageHeader';
 import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { TALENTS } from '../../constants';
-import { PresetControl, getAutoLoadedPreset } from '../common/PresetControl';
+import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
 import * as LucideIcons from 'lucide-react';
 
 const DraggableQuestItem = ({ quest, isEditMode, children, className }: any) => {

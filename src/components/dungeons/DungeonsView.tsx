@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../common/PageHeader';
 import { DungeonManager } from './DungeonManager';
-import { QuestManager } from '../dashboard/QuestManager';
+import { QuestManager } from '../journal/QuestManager';
 import { AppState, Dungeon, MajorDungeon, DungeonReward } from '../../types';
 import { cn } from '../../lib/utils';
 import { exportExpeditionsToMarkdown, importExpeditionsFromMarkdown } from '../../lib/expeditionMarkdown';

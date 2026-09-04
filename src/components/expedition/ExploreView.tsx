@@ -26,11 +26,11 @@ import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { generateRewardChoicesForSession } from '../../lib/rewardLogic';
 import { PageHeader } from '../common/PageHeader';
-import { Timer } from './Timer';
-import { TimerSettings } from './TimerSettings';
-import { RecentSessions } from '../record/RecentSessions';
+import { Timer } from '../dashboard/Timer';
+import { TimerSettings } from '../dashboard/TimerSettings';
+import { RecentSessions } from '../dashboard/RecentSessions';
 import { TalentIcon } from '../talents/TalentIcon';
-import { RewardChestModal } from './RewardChestModal';
+import { RewardChestModal } from '../modals/RewardChestModal';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { PopoverPortal } from '../common/PopoverPortal';
 import { TALENTS } from '../../constants';
@@ -592,7 +592,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                     {state.pendingRewardChest && state.pendingRewardChest.length > 0 && (
                       <button 
                         onClick={() => setShowChestModal(true)}
-                        className="relative p-2 bg-slate-800/80 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 rounded-xl transition-all border border-slate-700/50 hover:border-amber-500/40 group"
+                        className="relative p-2 bg-slate-800/80 hover:bg-slate-700/80 text-amber-400 hover:text-amber-300 rounded-xl transition-all border border-slate-700/50 hover:border-amber-500/30 group"
                         title="Reward Chest"
                       >
                         <TreasureChestIcon size={20} className="group-hover:scale-110 transition-transform" />

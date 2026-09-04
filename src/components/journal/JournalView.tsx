@@ -1,4 +1,4 @@
-import { MarkdownEditor } from './MarkdownEditor';
+import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
 
@@ -21,7 +21,7 @@ import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
 import { DatePicker } from '../common/DatePicker';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from '../record/EfficiencyDetailsModal';
-import { BatchExportModal } from './BatchExportModal';
+import { BatchExportModal } from '../modals/BatchExportModal';
 
 import { playSound } from '../../lib/sound';
 

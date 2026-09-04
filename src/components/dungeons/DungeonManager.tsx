@@ -6,7 +6,7 @@ import { PageHeader } from '../common/PageHeader';
 import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
-import { PresetControl, getAutoLoadedPreset } from '../common/PresetControl';
+import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
 import { DatePicker } from '../common/DatePicker';
 import { format } from 'date-fns';
 

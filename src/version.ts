@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.1.11';
-export const LAST_UPDATE_DATE = '2026-09-03';
-export const LAST_UPDATE_TIME = '09:30:00';
+export const APP_VERSION = 'v9.1.6';
+export const LAST_UPDATE_DATE = '2026-09-04';
+export const LAST_UPDATE_TIME = '01:03:00';
 
 export interface ReleaseLog {
   version: string;
