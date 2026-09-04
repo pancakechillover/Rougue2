@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.20
+- **Current Version:** v9.1.21
 - **Last Update Date:** 2026-09-04
-- **Last Update Time:** 05:45:00
+- **Last Update Time:** 06:50:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -66,6 +66,10 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
+- **v9.1.21 (2026-09-04):** Picture-in-Picture Distraction Button Sizing & Touch Comfort
+  - *Distraction Tile Expansion:* Enlarged the 3 distraction buttons in PiP minimal/strip mode (`w-8.5 h-8.5` / `2.125rem` square tiles with `rounded-xl`), matching the classic layout proportion for effortless clicking and tapping.
+  - *Icon Clarity & Badge Scaling:* Increased distraction icons to 17px (`Brain`, `Wind`, `Zap`) and scaled count indicators proportionately for crystal-clear legibility at compact window scales.
+
 - **v9.1.20 (2026-09-04):** Equal Height Card Grid & Rest-Time Distraction Controls
   - *Equal Column Heights:* Styled `Current Build` with `lg:flex-1 min-h-0` and `justify-between` so the right column cards and the left Timer card share the exact same height and bottom baseline on desktop screens.
   - *Rest Distraction Buttons:* Kept distraction buttons visible during rest periods while disabling click and long-press interactions (`disabled={isResting}`, dimmed opacity, non-clickable cursor, and informative tooltips).
@@ -74,8 +78,3 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
   - *Symmetric Top/Bottom Bounds:* Standardized symmetric padding (`py-6 sm:py-8 md:py-10`) so the top dungeon progress bar and the bottom distraction controls maintain the exact same aesthetic distance from the top and bottom viewport edges.
   - *Enlarged Circular Dial:* Expanded the fullscreen circular dial size limits up to `max-h-[min(46vh,500px)]` and `max-w-[540px]`, with countdown digits scaling up to `text-6xl sm:text-7xl md:text-8xl` for an immersive and legible focus experience.
   - *Proportional Controls:* Adjusted controls and exit fullscreen button placement (`top-5 sm:top-7 md:top-9`) for harmonious alignment with the top bar.
-
-- **v9.1.18 (2026-09-04):** Flat Design Purity & Anti-Glow Cleanup
-  - *Expedition Horizon Today Cell:* Removed artificial glow halos (`shadow-lg shadow-indigo-500/20`, `ring-1`, and text `drop-shadow`) from the "Today" cell to restore a pure, clean flat design aesthetic.
-  - *PiP Minimal Play/Pause Button:* Removed outer glowing halos and round bubble style, replacing it with a clean flat rounded button (`rounded-lg` with subtle flat borders) that matches the surrounding distraction controls.
-  - *Progress Bars:* Stripped high-blur glowing box shadows from progress indicators to maintain visual harmony with the minimalist design system.

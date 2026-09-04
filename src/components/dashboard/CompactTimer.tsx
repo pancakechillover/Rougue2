@@ -89,9 +89,9 @@ const PIP_STYLE = `
     .pip-play-btn-minimal svg { width: 14px !important; height: 14px !important; }
     .pip-controls-standard { display: none; }
     .pip-distractions-standard { display: none; }
-    .pip-distractions-minimal { display: flex; padding: 0.25rem; gap: 0.375rem; border-radius: 0.625rem; }
-    .pip-distract-btn { width: 1.75rem !important; height: 1.75rem !important; border-radius: 0.375rem !important; }
-    .pip-distract-btn svg { width: 13px !important; height: 13px !important; }
+    .pip-distractions-minimal { display: flex; padding: 0.3125rem; gap: 0.375rem; border-radius: 0.875rem; }
+    .pip-distract-btn { width: 2.125rem !important; height: 2.125rem !important; border-radius: 0.625rem !important; }
+    .pip-distract-btn svg { width: 17px !important; height: 17px !important; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: none; }
     .pip-overlay-minimal { display: flex; }
@@ -101,10 +101,11 @@ const PIP_STYLE = `
     .pip-container { padding: 0.25rem 0.5rem; }
     .pip-dungeon-mb { margin-bottom: 0.125rem; }
     .pip-time { font-size: 2.35rem; line-height: 1; }
-    .pip-play-btn-minimal { width: 1.625rem !important; height: 1.625rem !important; }
-    .pip-play-btn-minimal svg { width: 11px !important; height: 11px !important; }
-    .pip-distract-btn { width: 1.5rem !important; height: 1.5rem !important; }
-    .pip-distract-btn svg { width: 11px !important; height: 11px !important; }
+    .pip-play-btn-minimal { width: 1.75rem !important; height: 1.75rem !important; }
+    .pip-play-btn-minimal svg { width: 12px !important; height: 12px !important; }
+    .pip-distractions-minimal { padding: 0.25rem; gap: 0.25rem; border-radius: 0.625rem; }
+    .pip-distract-btn { width: 1.75rem !important; height: 1.75rem !important; border-radius: 0.4375rem !important; }
+    .pip-distract-btn svg { width: 13px !important; height: 13px !important; }
   }
 `;
 
@@ -674,22 +675,22 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
 
         {/* Ultra-Minimalist Mode Distractions (Right Side in Shortest Height) */}
         <div className={cn(
-          "pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shrink-0 select-none transition-opacity",
+          "pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 shrink-0 select-none transition-opacity",
           isResting && "opacity-50"
         )}>
           <button 
             {...(isResting ? {} : internalDistraction)}
             disabled={isResting}
             className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden transition-all select-none",
+              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
               isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Internal Distraction (Hold 0.8s to decrease)"}
           >
-            <Brain size={14} className={isResting ? "text-slate-500" : "text-indigo-400"} />
+            <Brain size={17} className={isResting ? "text-slate-500" : "text-indigo-400"} />
             {distractions.internal > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center rounded-tl text-[7px] font-black",
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
                 isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/30 text-indigo-300"
               )}>{distractions.internal}</span>
             )}
@@ -698,15 +699,15 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {...(isResting ? {} : externalDistraction)}
             disabled={isResting}
             className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden transition-all select-none",
+              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
               isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "External Distraction (Hold 0.8s to decrease)"}
           >
-            <Wind size={14} className={isResting ? "text-slate-500" : "text-orange-400"} />
+            <Wind size={17} className={isResting ? "text-slate-500" : "text-orange-400"} />
             {distractions.external > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center rounded-tl text-[7px] font-black",
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
                 isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/30 text-orange-300"
               )}>{distractions.external}</span>
             )}
@@ -715,15 +716,15 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {...(isResting ? {} : unavoidableDistraction)}
             disabled={isResting}
             className={cn(
-              "pip-distract-btn w-7 h-7 bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden transition-all select-none",
+              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
               isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction (Hold 0.8s to decrease)"}
           >
-            <Zap size={14} className={isResting ? "text-slate-500" : "text-red-400"} />
+            <Zap size={17} className={isResting ? "text-slate-500" : "text-red-400"} />
             {distractions.unavoidable > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-0.5 min-w-[10px] h-[10px] flex items-center justify-center rounded-tl text-[7px] font-black",
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
                 isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/30 text-red-300"
               )}>{distractions.unavoidable}</span>
             )}
