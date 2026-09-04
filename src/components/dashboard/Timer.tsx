@@ -11,6 +11,7 @@ import { useBackgroundKeepAlive } from '../../lib/keepAlive';
 import { generateRewardChoicesForSession } from '../../lib/rewardLogic';
 import { playSound } from '../../lib/sound';
 import { useTimerStore } from '../../hooks/useTimerStore';
+import { useDistractionButton } from '../../hooks/useLongPress';
 
 interface TimerProps {
   currentDungeon: Dungeon | null;
@@ -116,6 +117,10 @@ export const Timer = React.memo<TimerProps>(({
   const [showTalentPopup, setShowTalentPopup] = useState<StudySession['triggeredTalents'] | null>(null);
   const [showFocusPrompt, setShowFocusPrompt] = useState(false);
   const [hasRerolled, setHasRerolled] = useState(false);
+
+  const internalDistraction = useDistractionButton('internal', 'click');
+  const externalDistraction = useDistractionButton('external', 'pop');
+  const unavoidableDistraction = useDistractionButton('unavoidable', 'error');
 
   // Sync activeRewardSession and showFocusPrompt with store for PiP integration
   useEffect(() => {
@@ -543,9 +548,17 @@ export const Timer = React.memo<TimerProps>(({
   const showDistractionControls = !isResting;
 
   return (
-    <div className="relative flex flex-col items-center justify-center gap-4 sm:gap-6 lg:gap-8 w-full h-full min-h-0 flex-1 select-none">
+    <div className={cn(
+      "relative flex flex-col items-center justify-center w-full h-full min-h-0 flex-1 select-none",
+      isFullscreen ? "gap-3 sm:gap-5 md:gap-6 max-h-full py-0" : "gap-4 sm:gap-6 lg:gap-8"
+    )}>
       {/* Timer Display */}
-      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center max-w-[280px] sm:max-w-[360px] lg:max-w-[420px] xl:max-w-[480px] max-h-[280px] sm:max-h-[360px] lg:max-h-[420px] xl:max-h-[480px]">
+      <div className={cn(
+        "relative min-h-0 w-full flex items-center justify-center",
+        isFullscreen 
+          ? "flex-1 max-w-[300px] xs:max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[500px] xl:max-w-[540px] max-h-[min(46vh,500px)] aspect-square" 
+          : "flex-1 max-w-[280px] sm:max-w-[360px] lg:max-w-[420px] xl:max-w-[480px] max-h-[280px] sm:max-h-[360px] lg:max-h-[420px] xl:max-h-[480px]"
+      )}>
         <div className="relative w-full h-full aspect-square max-w-full max-h-full">
           <svg viewBox="0 0 320 320" className="w-full h-full transform -rotate-90">
             <circle
@@ -570,9 +583,9 @@ export const Timer = React.memo<TimerProps>(({
               className={isResting ? "text-emerald-500" : "text-indigo-500"}
             />
           </svg>
-          <div className="absolute inset-x-0 top-[20%] flex flex-col items-center justify-end z-10 pointer-events-none pb-2">
+          <div className="absolute inset-x-0 top-[18%] sm:top-[20%] flex flex-col items-center justify-end z-10 pointer-events-none pb-2">
             {isLooping && (
-               <span className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 px-3 py-1 rounded-full text-xs font-bold text-slate-300">
+               <span className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-slate-300">
                  {loopCount}/{loopTarget > 0 ? loopTarget : '∞'} loops
                </span>
             )}
@@ -581,7 +594,7 @@ export const Timer = React.memo<TimerProps>(({
             <div 
               className={cn(
                 "font-black font-mono text-white tracking-tighter flex items-center justify-center",
-                isFullscreen ? "text-6xl sm:text-7xl md:text-[5rem]" : "text-6xl sm:text-7xl lg:text-7xl"
+                isFullscreen ? "text-6xl sm:text-7xl md:text-8xl" : "text-6xl sm:text-7xl lg:text-7xl"
               )}
             >
               {formatTime(timeLeft).split('').map((char, i) => (
@@ -594,7 +607,7 @@ export const Timer = React.memo<TimerProps>(({
               ))}
             </div>
             <div className={cn(
-                "font-bold uppercase tracking-widest text-xs mt-2 flex items-center gap-1",
+                "font-bold uppercase tracking-widest text-[10px] sm:text-xs mt-1 sm:mt-2 flex items-center gap-1",
                 isResting ? "text-emerald-500" : "text-indigo-400"
               )}>
               {(() => {
@@ -644,24 +657,28 @@ export const Timer = React.memo<TimerProps>(({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center space-x-6">
+      <div className={cn("flex items-center shrink-0", isFullscreen ? "space-x-5 sm:space-x-8" : "space-x-6")}>
         <button
           onClick={resetTimer}
-          className="p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all"
+          className={cn(
+            "bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all",
+            isFullscreen ? "p-3.5 sm:p-4" : "p-4"
+          )}
           title="Reset Timer"
         >
-          <RotateCcw size={24} />
+          <RotateCcw size={isFullscreen ? 22 : 24} />
         </button>
         <button
           onClick={toggleTimer}
           className={cn(
-            "w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-2xl",
+            "rounded-full flex items-center justify-center transition-all shadow-2xl",
+            isFullscreen ? "w-20 h-20 sm:w-24 sm:h-24 md:w-26 md:h-26" : "w-24 h-24",
             isActive 
               ? (isResting ? "bg-slate-900 text-emerald-500 border-2 border-emerald-500" : "bg-slate-900 text-indigo-500 border-2 border-indigo-500") 
               : (isResting ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-indigo-600 text-white hover:bg-indigo-500")
           )}
         >
-          {isActive ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
+          {isActive ? <Pause size={isFullscreen ? 36 : 40} fill="currentColor" /> : <Play size={isFullscreen ? 36 : 40} fill="currentColor" className="ml-1.5 sm:ml-2" />}
         </button>
         <button
           onContextMenu={(e) => e.preventDefault()}
@@ -670,7 +687,10 @@ export const Timer = React.memo<TimerProps>(({
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerMove={handlePointerMove}
-          className="p-4 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area"
+          className={cn(
+            "bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 transition-all select-none relative overflow-hidden group skip-btn-area",
+            isFullscreen ? "p-3.5 sm:p-4" : "p-4"
+          )}
           title="Click to Skip, Hold 3s for Partial Skip"
           style={{ touchAction: 'none' }}
         >
@@ -690,70 +710,91 @@ export const Timer = React.memo<TimerProps>(({
               </svg>
             </div>
           )}
-          <SkipForward size={24} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
+          <SkipForward size={isFullscreen ? 22 : 24} className={cn("relative z-10 transition-transform", skipProgress > 0 && "scale-110 text-indigo-400")} />
         </button>
       </div>
 
       {/* Distraction Controls */}
-      {showDistractionControls && (
-        <motion.div 
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-1 shrink-0 z-20"
-        >
-          <span className="text-[9px] md:text-[10px] text-slate-500 uppercase tracking-widest font-bold">Distractions</span>
-          <div className="flex items-center space-x-1.5 md:space-x-2 bg-slate-900/80 backdrop-blur-md p-1 md:p-1.5 rounded-full border border-slate-800 shadow-xl">
-            <button 
-              onClick={() => {
-                playSound('click', 0.5, true);
-                setDistractions(d => ({ ...d, internal: d.internal + 1 }));
-              }}
-              className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
-              title="Internal: Distracted by your own thoughts"
-            >
-              <Brain size={13} className="shrink-0" />
-              <span>Internal</span>
-              {distractions.internal > 0 && (
-                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-indigo-500/20 text-indigo-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
-                  {distractions.internal}
-                </span>
-              )}
-            </button>
-            <button 
-              onClick={() => {
-                playSound('pop', 0.5, true);
-                setDistractions(d => ({ ...d, external: d.external + 1 }));
-              }}
-              className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 hover:bg-orange-600/20 text-slate-300 hover:text-orange-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
-              title="External: Interrupted by environment"
-            >
-              <Wind size={13} className="shrink-0" />
-              <span>External</span>
-              {distractions.external > 0 && (
-                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
-                  {distractions.external}
-                </span>
-              )}
-            </button>
-            <button 
-              onClick={() => {
-                playSound('error', 0.5, true);
-                setDistractions(d => ({ ...d, unavoidable: d.unavoidable + 1 }));
-              }}
-              className="w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap"
-              title="Unavoidable: Forced to interrupt"
-            >
-              <Zap size={13} className="shrink-0" />
-              <span>Unavoidable</span>
-              {distractions.unavoidable > 0 && (
-                <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center bg-red-500/20 text-red-400 rounded-full text-[8px] md:text-[9px] font-bold shrink-0">
-                  {distractions.unavoidable}
-                </span>
-              )}
-            </button>
-          </div>
-        </motion.div>
-      )}
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn("flex flex-col items-center shrink-0 z-20", isFullscreen ? "gap-0.5 sm:gap-1" : "gap-1")}
+      >
+        <span className={cn("text-[9px] md:text-[10px] uppercase tracking-widest font-bold", isResting ? "text-slate-600" : "text-slate-500")}>
+          Distractions
+        </span>
+        <div className={cn(
+          "flex items-center space-x-1.5 md:space-x-2 bg-slate-900/80 backdrop-blur-md p-1 md:p-1.5 rounded-full border border-slate-800 shadow-xl select-none transition-opacity",
+          isResting && "opacity-50"
+        )}>
+          <button 
+            {...(isResting ? {} : internalDistraction)}
+            disabled={isResting}
+            className={cn(
+              "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
+              isResting 
+                ? "text-slate-500 cursor-not-allowed opacity-75" 
+                : "text-slate-300 hover:bg-indigo-600/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "Internal: Distracted by your own thoughts (Hold 0.8s to decrease)"}
+          >
+            <Brain size={13} className="shrink-0" />
+            <span>Internal</span>
+            {distractions.internal > 0 && (
+              <span className={cn(
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/20 text-indigo-400"
+              )}>
+                {distractions.internal}
+              </span>
+            )}
+          </button>
+          <button 
+            {...(isResting ? {} : externalDistraction)}
+            disabled={isResting}
+            className={cn(
+              "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
+              isResting 
+                ? "text-slate-500 cursor-not-allowed opacity-75" 
+                : "text-slate-300 hover:bg-orange-600/20 hover:text-orange-400 cursor-pointer touch-manipulation"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "External: Interrupted by environment (Hold 0.8s to decrease)"}
+          >
+            <Wind size={13} className="shrink-0" />
+            <span>External</span>
+            {distractions.external > 0 && (
+              <span className={cn(
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/20 text-orange-400"
+              )}>
+                {distractions.external}
+              </span>
+            )}
+          </button>
+          <button 
+            {...(isResting ? {} : unavoidableDistraction)}
+            disabled={isResting}
+            className={cn(
+              "w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
+              isResting 
+                ? "text-slate-500 cursor-not-allowed opacity-75" 
+                : "text-slate-300 hover:bg-red-600/20 hover:text-red-400 cursor-pointer touch-manipulation"
+            )}
+            title={isResting ? "Distractions disabled during rest" : "Unavoidable: Forced to interrupt (Hold 0.8s to decrease)"}
+          >
+            <Zap size={13} className="shrink-0" />
+            <span>Unavoidable</span>
+            {distractions.unavoidable > 0 && (
+              <span className={cn(
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/20 text-red-400"
+              )}>
+                {distractions.unavoidable}
+              </span>
+            )}
+          </button>
+        </div>
+      </motion.div>
 
       {/* Timer Settings UI removed from here - moved to TimerSettings.tsx */}
 

@@ -178,7 +178,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
     return Math.floor(sum);
   }, [state.history, state.timeSettings, state.includeRestTimeInTasks]);
 
-  useScrollLock(showBuildDetails || showChestModal);
+  useScrollLock(showBuildDetails || showChestModal || isFullscreenExplore);
 
 
   // Close tooltip when clicking outside
@@ -465,52 +465,85 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   };
 
   return (
-    <motion.div
-      key="explore"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className={cn(
-        "w-full flex-1 min-h-0 flex flex-col",
-        isFullscreenExplore ? "h-[100dvh] items-center justify-center p-0 m-0" : "w-full p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
+    <>
+      {/* Fullscreen Focus Portal */}
+      {isFullscreenExplore && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] w-full h-[100dvh] flex flex-col items-center justify-between py-6 sm:py-8 md:py-10 px-4 sm:px-6 overflow-hidden bg-slate-950 select-none">
+          {/* Exit Fullscreen Button */}
+          <button
+            onClick={() => {
+              setIsFullscreenExplore(false);
+              if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+              }
+            }}
+            className="fixed top-5 sm:top-7 md:top-9 right-5 sm:right-7 md:right-9 z-50 p-2.5 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-all shadow-lg cursor-pointer"
+            title="Exit Fullscreen"
+          >
+            <Minimize size={18} className="sm:w-5 sm:h-5" />
+          </button>
+
+          {/* Top Section: Dungeon Info & Progress Bar */}
+          <div className="w-full max-w-sm sm:max-w-md shrink-0 flex items-center justify-center z-30">
+            {currentDungeon && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full space-y-2 px-2"
+              >
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.15em] truncate max-w-[220px]">
+                    {currentDungeon.name}
+                  </span>
+                  {currentDungeon.isOpenEnded ? (
+                    <span className="text-xs sm:text-sm font-bold text-slate-400 tabular-nums">
+                      {currentDungeon.totalFocusTime || 0}<span className="text-[10px] opacity-70 ml-[1px]">m</span> Focused
+                    </span>
+                  ) : (
+                    <span className="text-xs sm:text-sm font-bold text-slate-400 tabular-nums">
+                      {Math.floor(currentDungeon.completedSessions * (state.standardSessionMinutes || 25))}<span className="text-[10px] opacity-70 ml-[1px]">m</span> <span className="opacity-50 text-[10px] mx-[1px]">/</span> {currentDungeon.totalSessions * (state.standardSessionMinutes || 25)}<span className="text-[10px] opacity-70 ml-[1px]">m</span>
+                    </span>
+                  )}
+                </div>
+                {!currentDungeon.isOpenEnded && (
+                  <div className="h-2 flex w-full bg-slate-900 rounded-full border border-slate-800 overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (currentDungeon.completedSessions / currentDungeon.totalSessions) * 100)}%` }}
+                      className={cn("h-full", currentDungeon.status === 'completed' ? "bg-emerald-500" : "bg-indigo-500")}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+
+          {/* Centered Timer Content - Responsive flex layout */}
+          <div className="w-full flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden my-auto">
+            {renderTimerContent()}
+          </div>
+        </div>,
+        document.body
       )}
-    >
-      {!isFullscreenExplore && (
+
+      {/* Standard Explore View */}
+      <motion.div
+        key="explore"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
+      >
         <PageHeader 
           title="Explore"
           description="Venture into the unknown and sharpen your mind"
           icon={TimerIcon}
         />
-      )}
 
-      {isFullscreenExplore && (
-        <button
-          onClick={() => {
-            setIsFullscreenExplore(false);
-            if (document.fullscreenElement) {
-              document.exitFullscreen().catch(() => {});
-            }
-          }}
-          className="fixed top-6 right-6 z-50 p-3 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-all shadow-lg"
-        >
-          <Minimize size={24} />
-        </button>
-      )}
-
-      <div className={cn(
-        "w-full flex-1 min-h-0 flex flex-col",
-        isFullscreenExplore ? "items-center justify-center pt-[env(safe-area-inset-top)]" : ""
-      )}>
-        <div className={cn(
-          "w-full flex-1 min-h-0",
-          !isFullscreenExplore ? "grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_440px] 2xl:grid-cols-[1fr_500px] gap-6 xl:gap-8 2xl:gap-12 pb-4 lg:pb-0 h-full lg:h-[calc(100dvh-12rem)] lg:min-h-[600px]" : "flex flex-col items-center justify-center h-full w-full"
-        )}>
-          {/* Left Column: Timer & Timer Settings area */}
-          <div className={cn(
-            "w-full h-full flex flex-col min-h-0",
-            !isFullscreenExplore ? "gap-6" : ""
-          )}>
-            {!isFullscreenExplore && (
+        <div className="w-full flex-1 min-h-0 flex flex-col">
+          <div className="w-full flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_440px] 2xl:grid-cols-[1fr_500px] gap-6 xl:gap-8 2xl:gap-12 pb-4 lg:pb-0 h-full lg:h-[calc(100dvh-12rem)] lg:min-h-[600px]">
+            {/* Left Column: Timer & Timer Settings area */}
+            <div className="w-full h-full flex flex-col min-h-0 gap-6">
               <div className="flex flex-col flex-1 min-h-0 bg-slate-900/20 rounded-[2.5rem] border border-slate-800/50 overflow-hidden">
                 {/* Top Banner: Navigation & Controls */}
                 <div className="flex items-center bg-slate-900/40 border-b border-slate-800/50 p-3 px-5 backdrop-blur-sm shrink-0 justify-between">
@@ -630,51 +663,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                   {renderTimerContent()}
                 </div>
               </div>
-            )}
+            </div>
 
-             {isFullscreenExplore && (
-              <div className="w-full h-[100dvh] flex flex-col items-center justify-center p-8 relative overflow-hidden bg-slate-950">
-                 {/* Simplified Progress Bar for Fullscreen Mode */}
-                 {currentDungeon && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: -20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="absolute top-6 sm:top-12 left-4 sm:left-1/2 sm:-translate-x-1/2 w-[calc(100%-80px)] sm:w-full sm:max-w-sm space-y-2 z-[30] px-0 sm:px-8 [@media(orientation:landscape)_and_(max-height:600px)]:top-auto [@media(orientation:landscape)_and_(max-height:600px)]:bottom-6 [@media(orientation:landscape)_and_(max-height:600px)]:left-1/2 [@media(orientation:landscape)_and_(max-height:600px)]:-translate-x-1/2 [@media(orientation:landscape)_and_(max-height:600px)]:w-full"
-                   >
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">{currentDungeon.name}</span>
-                        {currentDungeon.isOpenEnded ? (
-                          <span className="text-[10px] font-bold text-slate-400 tabular-nums">
-                            {currentDungeon.totalFocusTime || 0}<span className="text-[9px] opacity-70 ml-[1px]">m</span> Focused
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-slate-400 tabular-nums">
-                             {Math.floor(currentDungeon.completedSessions * (state.standardSessionMinutes || 25))}<span className="text-[9px] opacity-70 ml-[1px]">m</span> <span className="opacity-50 text-[9px] mx-[1px]">/</span> {currentDungeon.totalSessions * (state.standardSessionMinutes || 25)}<span className="text-[9px] opacity-70 ml-[1px]">m</span>
-                          </span>
-                        )}
-                      </div>
-                      {!currentDungeon.isOpenEnded && (
-                        <div className="h-2 flex w-full bg-slate-900 rounded-full border border-slate-800 overflow-hidden mt-2">
-                           <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${Math.min(100, (currentDungeon.completedSessions / currentDungeon.totalSessions) * 100)}%` }}
-                              className={cn("h-full shadow-[0_0_15px_rgba(99,102,241,0.6)]", currentDungeon.status === 'completed' ? "bg-emerald-500" : "bg-indigo-500")}
-                           />
-                        </div>
-                      )}
-                   </motion.div>
-                 )}
-
-                  {/* Scaled Timer for Fullscreen Experience */}
-                 <div className="scale-100 sm:scale-110 md:scale-125 lg:scale-[1.35] origin-center transform transition-transform [@media(orientation:landscape)_and_(max-height:600px)]:scale-[0.70] [@media(orientation:landscape)_and_(max-height:600px)]:-mt-8">
-                   {renderTimerContent()}
-                 </div>
-               </div>
-             )}
-           </div>
-
-          {/* Right Column: Active Talents & Current Build */}
-          {!isFullscreenExplore && (
+            {/* Right Column: Active Talents & Current Build */}
             <div className="w-full h-full flex flex-col gap-6 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
               {/* Timer Settings (Moved Here for Wide Screens) */}
               <TimerSettings 
@@ -863,7 +854,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
               </div>
 
               {/* Current Build */}
-              <div className="bg-slate-900/50 rounded-3xl border border-slate-800 p-6 backdrop-blur-sm shrink-0 flex flex-col justify-between">
+              <div className="bg-slate-900/50 rounded-3xl border border-slate-800 p-6 backdrop-blur-sm shrink-0 lg:shrink lg:flex-1 min-h-0 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -908,11 +899,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      {!isFullscreenExplore && (
         <div id="recent-sessions-anchor" className="mt-8 shrink-0 w-full px-4 sm:px-6 lg:px-8">
           <RecentSessions 
             history={state.history}
@@ -927,7 +916,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
             includeRestTimeInTasks={!!state.includeRestTimeInTasks}
           />
         </div>
-      )}
 
       {createPortal(
         <AnimatePresence>
@@ -1045,5 +1033,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         />
       )}
     </motion.div>
+  </>
   );
 };
