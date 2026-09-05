@@ -742,8 +742,8 @@ export const Timer = React.memo<TimerProps>(({
             <span>Internal</span>
             {distractions.internal > 0 && (
               <span className={cn(
-                "w-4 h-4 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8.5px] md:text-[9.5px] font-black shrink-0 leading-none",
-                isResting ? "bg-slate-700/80 text-slate-400" : "bg-indigo-600 text-white"
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/20 text-indigo-400"
               )}>
                 {distractions.internal}
               </span>
@@ -764,8 +764,8 @@ export const Timer = React.memo<TimerProps>(({
             <span>External</span>
             {distractions.external > 0 && (
               <span className={cn(
-                "w-4 h-4 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8.5px] md:text-[9.5px] font-black shrink-0 leading-none",
-                isResting ? "bg-slate-700/80 text-slate-400" : "bg-orange-600 text-white"
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/20 text-orange-400"
               )}>
                 {distractions.external}
               </span>
@@ -786,8 +786,8 @@ export const Timer = React.memo<TimerProps>(({
             <span>Unavoidable</span>
             {distractions.unavoidable > 0 && (
               <span className={cn(
-                "w-4 h-4 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8.5px] md:text-[9.5px] font-black shrink-0 leading-none",
-                isResting ? "bg-slate-700/80 text-slate-400" : "bg-red-600 text-white"
+                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-bold shrink-0",
+                isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/20 text-red-400"
               )}>
                 {distractions.unavoidable}
               </span>
