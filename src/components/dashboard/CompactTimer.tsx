@@ -28,8 +28,8 @@ interface CompactTimerProps {
 }
 
 const PIP_STYLE = `
-  .pip-container { padding: 1.25rem; }
-  .pip-dungeon-mb { margin-bottom: 1rem; }
+  .pip-container { padding: 1rem 1.25rem 0.5rem 1.25rem; justify-content: space-between; }
+  .pip-dungeon-mb { margin-bottom: 0.75rem; }
   .pip-icon svg { width: 14px; height: 14px; }
   .pip-title { font-size: 0.75rem; }
   .pip-stats { font-size: 10px; }
@@ -43,7 +43,7 @@ const PIP_STYLE = `
   .pip-controls-condensed { display: none; }
   .pip-controls-minimal { display: none; }
   .pip-controls-standard { display: flex; }
-  .pip-distractions-standard { display: flex; }
+  .pip-distractions-standard { display: flex; margin-bottom: 0; }
   .pip-distractions-minimal { display: none; }
   .pip-overlay-standard { display: flex; }
   .pip-overlay-condensed { display: none; }
@@ -51,8 +51,8 @@ const PIP_STYLE = `
 
   /* Mode 2: Condensed Horizontal Split (166px <= height <= 240px) */
   @media (max-height: 240px) and (min-height: 166px), (max-width: 180px) and (min-height: 166px) {
-    .pip-container { padding: 0.75rem; }
-    .pip-dungeon-mb { margin-bottom: 0.375rem; }
+    .pip-container { padding: 0.5rem 0.625rem 0.25rem 0.625rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.25rem; }
     .pip-icon svg { width: 10px; height: 10px; }
     .pip-title { font-size: 10px; }
     .pip-stats { font-size: 8px; }
@@ -65,7 +65,7 @@ const PIP_STYLE = `
     .pip-status-long { display: none; }
     .pip-controls-condensed { display: flex; }
     .pip-controls-standard { display: none; }
-    .pip-distractions-standard { display: flex; margin-top: 0.25rem; }
+    .pip-distractions-standard { display: flex; margin-top: 0.125rem; margin-bottom: 0; }
     .pip-distractions-minimal { display: none; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: flex; }
@@ -74,8 +74,8 @@ const PIP_STYLE = `
 
   /* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) - Task Name, Countdown & 3 Distraction Buttons */
   @media (max-height: 165px) {
-    .pip-container { padding: 0.375rem 0.625rem; justify-content: space-between; }
-    .pip-dungeon-mb { margin-bottom: 0.25rem; }
+    .pip-container { padding: 0.25rem 0.5rem 0.2rem 0.5rem; justify-content: space-between; }
+    .pip-dungeon-mb { margin-bottom: 0.15rem; }
     .pip-icon svg { width: 11px; height: 11px; }
     .pip-title { font-size: 11px; font-weight: 600; }
     .pip-stats { font-size: 9.5px; }
@@ -98,14 +98,14 @@ const PIP_STYLE = `
   }
 
   @media (max-height: 120px) {
-    .pip-container { padding: 0.25rem 0.5rem; }
-    .pip-dungeon-mb { margin-bottom: 0.125rem; }
+    .pip-container { padding: 0.15rem 0.375rem 0.15rem 0.375rem; }
+    .pip-dungeon-mb { margin-bottom: 0.1rem; }
     .pip-time { font-size: 2.35rem; line-height: 1; }
     .pip-play-btn-minimal { width: 1.75rem !important; height: 1.75rem !important; }
     .pip-play-btn-minimal svg { width: 12px !important; height: 12px !important; }
-    .pip-distractions-minimal { padding: 0.25rem; gap: 0.25rem; border-radius: 0.625rem; }
-    .pip-distract-btn { width: 1.75rem !important; height: 1.75rem !important; border-radius: 0.4375rem !important; }
-    .pip-distract-btn svg { width: 13px !important; height: 13px !important; }
+    .pip-distractions-minimal { padding: 0.2rem; gap: 0.2rem; border-radius: 0.5rem; }
+    .pip-distract-btn { width: 1.625rem !important; height: 1.625rem !important; border-radius: 0.375rem !important; }
+    .pip-distract-btn svg { width: 12px !important; height: 12px !important; }
   }
 `;
 
@@ -690,8 +690,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Brain size={17} className={isResting ? "text-slate-500" : "text-indigo-400"} />
             {distractions.internal > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/30 text-indigo-300"
+                "absolute bottom-0 right-0 px-1 min-w-[13px] h-[13px] flex items-center justify-center rounded-tl-md text-[8.5px] font-black leading-none",
+                isResting ? "bg-slate-700/80 text-slate-400" : "bg-indigo-600 text-white"
               )}>{distractions.internal}</span>
             )}
           </button>
@@ -707,8 +707,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Wind size={17} className={isResting ? "text-slate-500" : "text-orange-400"} />
             {distractions.external > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/30 text-orange-300"
+                "absolute bottom-0 right-0 px-1 min-w-[13px] h-[13px] flex items-center justify-center rounded-tl-md text-[8.5px] font-black leading-none",
+                isResting ? "bg-slate-700/80 text-slate-400" : "bg-orange-600 text-white"
               )}>{distractions.external}</span>
             )}
           </button>
@@ -724,8 +724,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Zap size={17} className={isResting ? "text-slate-500" : "text-red-400"} />
             {distractions.unavoidable > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/30 text-red-300"
+                "absolute bottom-0 right-0 px-1 min-w-[13px] h-[13px] flex items-center justify-center rounded-tl-md text-[8.5px] font-black leading-none",
+                isResting ? "bg-slate-700/80 text-slate-400" : "bg-red-600 text-white"
               )}>{distractions.unavoidable}</span>
             )}
           </button>
@@ -784,7 +784,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Brain size={12} />
                <span className="font-bold">INT</span>
             </div>
-            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/20 text-indigo-400")}>{distractions.internal}</span>}
+            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl-md text-[8px] font-black leading-none", isResting ? "bg-slate-700/80 text-slate-400" : "bg-indigo-600 text-white")}>{distractions.internal}</span>}
           </button>
           <button 
             {...(isResting ? {} : externalDistraction)}
@@ -799,7 +799,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Wind size={12} />
                <span className="font-bold">EXT</span>
             </div>
-            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/20 text-orange-400")}>{distractions.external}</span>}
+            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl-md text-[8px] font-black leading-none", isResting ? "bg-slate-700/80 text-slate-400" : "bg-orange-600 text-white")}>{distractions.external}</span>}
           </button>
           <button 
             {...(isResting ? {} : unavoidableDistraction)}
@@ -814,7 +814,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Zap size={12} />
                <span className="font-bold">UNA</span>
             </div>
-            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/20 text-red-400")}>{distractions.unavoidable}</span>}
+            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl-md text-[8px] font-black leading-none", isResting ? "bg-slate-700/80 text-slate-400" : "bg-red-600 text-white")}>{distractions.unavoidable}</span>}
           </button>
         </div>
       </motion.div>
