@@ -30,6 +30,7 @@ import { DailyPieChart } from './DailyPieChart';
 import { WeeklyPieChart } from './WeeklyPieChart';
 import { BulkSleepModal } from '../modals/BulkSleepModal';
 import { PopoverPortal } from '../common/PopoverPortal';
+import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
 
 export interface ShareConfig {
   showDaily: boolean;
@@ -852,171 +853,17 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
   };
   const [heatmapDate, setHeatmapDate] = useState(getInitialPeakDate());
 
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [templateMode, setTemplateMode] = useState<'empty' | 'example'>('empty');
-  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
-  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState('');
-
   const renderTemplateControls = () => (
-    <div className="relative flex items-center gap-0 h-[26px]">
-      <button
-        onClick={() => setShowTemplates(!showTemplates)}
-        className={cn(
-          "flex items-center justify-center gap-1.5 h-full px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-          showTemplates 
-            ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
-            : "bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-white"
-        )}
-      >
-        <LayoutTemplate size={12} />
-        <span>Templates</span>
-      </button>
-
-      {/* Templates Dropdown */}
-      <AnimatePresence>
-        {showTemplates && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 sm:left-0 sm:right-auto top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
-          >
-            <div className="flex border-b border-slate-800 p-1 bg-slate-900/50 gap-1 relative z-10">
-               <button
-                  onClick={() => {
-                    setTemplateMode('empty');
-                  }}
-                  className={cn("flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1", templateMode === 'empty' ? "bg-indigo-500/20 text-indigo-400" : "text-slate-500 hover:bg-slate-800 hover:text-white")}
-                  title="Blank Template Mode: Load templates without examples"
-               >
-                 <File size={12} /> Blank
-               </button>
-               <button
-                  onClick={() => {
-                    setTemplateMode('example');
-                  }}
-                  className={cn("flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1", templateMode === 'example' ? "bg-indigo-500/20 text-indigo-400" : "text-slate-500 hover:bg-slate-800 hover:text-white")}
-                  title="Example Template Mode: Load templates with examples"
-               >
-                 <FileText size={12} /> Example
-               </button>
-            </div>
-            <div className="p-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-              {state.reflectionTemplates?.map((template) => (
-                <div key={template.id} className="group relative">
-                  {templateToDelete === template.id ? (
-                    <div className="flex items-center justify-between w-full px-3 py-2 bg-rose-500/10 rounded-xl">
-                      <span className="text-xs text-rose-400 font-medium">Delete {template.name}?</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            if (onUpdateState) {
-                              onUpdateState({
-                                reflectionTemplates: state.reflectionTemplates?.filter(t => t.id !== template.id)
-                              });
-                            }
-                            setTemplateToDelete(null);
-                          }}
-                          className="px-2 py-1 bg-rose-500/20 text-rose-400 rounded hover:bg-rose-500/30 text-[10px] font-bold"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setTemplateToDelete(null)}
-                          className="px-2 py-1 bg-slate-800 text-slate-400 rounded hover:bg-slate-700 text-[10px] font-bold"
-                        >
-                          No
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          if (templateMode === 'example' && template.exampleContent) {
-                            setEditReflection(template.exampleContent);
-                          } else {
-                            setEditReflection(template.content);
-                          }
-                          setShowTemplates(false);
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-300 hover:bg-slate-800 transition-colors pr-8"
-                      >
-                        {template.name}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTemplateToDelete(template.id);
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-700 rounded-lg transition-all"
-                        title="Delete Template"
-                      >
-                        <X size={12} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="p-2 border-t border-slate-800 bg-slate-950/50">
-              {isSavingTemplate ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="Template name..."
-                    className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newTemplateName.trim()) {
-                        if (onUpdateState) {
-                          const templates = [...(state.reflectionTemplates || [])];
-                          const existingIndex = templates.findIndex(t => t.name.toLowerCase() === newTemplateName.trim().toLowerCase());
-                          
-                          if (existingIndex >= 0) {
-                            if (templateMode === 'example') {
-                              templates[existingIndex] = { ...templates[existingIndex], exampleContent: editReflection };
-                            } else {
-                              templates[existingIndex] = { ...templates[existingIndex], content: editReflection };
-                            }
-                          } else {
-                            templates.push({
-                              id: `user-${Date.now()}`,
-                              name: newTemplateName.trim(),
-                              content: templateMode === 'empty' ? editReflection : '',
-                              exampleContent: templateMode === 'example' ? editReflection : ''
-                            });
-                          }
-                          
-                          onUpdateState({ reflectionTemplates: templates });
-                        }
-                        setNewTemplateName('');
-                        setIsSavingTemplate(false);
-                      } else if (e.key === 'Escape') {
-                        setIsSavingTemplate(false);
-                      }
-                    }}
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (!editReflection.trim()) return;
-                    setIsSavingTemplate(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 rounded-xl text-xs font-bold transition-all"
-                >
-                  <Save size={12} />
-                  <span>Save as {templateMode === 'example' ? 'Example' : 'Blank'}</span>
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <ReflectionTemplatesDropdown
+      templates={state.reflectionTemplates}
+      onSelectTemplate={setEditReflection}
+      currentReflection={editReflection}
+      onUpdateTemplates={(templates) => {
+        if (onUpdateState) {
+          onUpdateState({ reflectionTemplates: templates });
+        }
+      }}
+    />
   );
 
   const handleDailyDateChange = (newDate: Date) => {
@@ -2926,7 +2773,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         setReflection={setEditReflection}
         isMarkdownEnabled={isMarkdownPreview}
         setIsMarkdownEnabled={setIsMarkdownPreview}
-        renderTemplateControls={renderTemplateControls}
+        templates={state.reflectionTemplates}
+        onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
       />
 
       {showShareModal && (

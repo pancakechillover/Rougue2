@@ -10,7 +10,8 @@ import {
   Star, StarHalf, Calculator, SlidersHorizontal, Heart, 
   Maximize2, Save, Download, Copy, Check, Edit3, 
   Clock, Target, Zap, 
-  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar
+  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar,
+  LayoutTemplate, File, FileText, X
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -22,6 +23,7 @@ import { DatePicker } from '../common/DatePicker';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from '../record/EfficiencyDetailsModal';
 import { BatchExportModal } from '../modals/BatchExportModal';
+import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
 
 import { playSound } from '../../lib/sound';
 
@@ -779,6 +781,15 @@ export const JournalView: React.FC<JournalViewProps> = ({
                           </>
                         )}
 
+                        {isQuickEditing && (
+                          <ReflectionTemplatesDropdown
+                            templates={state.reflectionTemplates}
+                            onSelectTemplate={handleReflectionChange}
+                            currentReflection={reflection}
+                            onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+                          />
+                        )}
+
                         <button
                           onClick={() => setIsQuickEditing(!isQuickEditing)}
                           className={cn(
@@ -1035,6 +1046,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
           setReflection={handleReflectionChange}
           isMarkdownEnabled={true}
           setIsMarkdownEnabled={() => {}}
+          templates={state.reflectionTemplates}
+          onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
           onClose={() => {
             setIsImmersiveOpen(false);
             // Auto save when closing immersive modal

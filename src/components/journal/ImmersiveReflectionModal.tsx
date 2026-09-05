@@ -11,6 +11,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Markdown } from 'tiptap-markdown';
+import { ReflectionTemplate } from '../../types';
+import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
 
 export interface ImmersiveReflectionModalProps {
   isOpen: boolean;
@@ -20,6 +22,8 @@ export interface ImmersiveReflectionModalProps {
   setReflection: (val: string) => void;
   isMarkdownEnabled?: boolean;
   setIsMarkdownEnabled?: (val: boolean) => void;
+  templates?: ReflectionTemplate[];
+  onUpdateTemplates?: (templates: ReflectionTemplate[]) => void;
   renderTemplateControls?: () => React.ReactNode;
 }
 
@@ -29,6 +33,8 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
   dateString,
   reflection,
   setReflection,
+  templates,
+  onUpdateTemplates,
   renderTemplateControls
 }) => {
 
@@ -78,7 +84,7 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
           className="fixed inset-0 z-[10000] bg-slate-950 flex flex-col m-0 p-0"
         >
           {/* Header Bar */}
-          <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/70 backdrop-blur-sm relative">
+          <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900 relative z-20">
             <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto custom-scrollbar pr-2">
               <div className="flex items-center gap-2 shrink-0">
                 <h3 className="text-sm font-black text-slate-300 uppercase tracking-widest italic pr-1">Reflection</h3>
@@ -206,11 +212,25 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
                   <Download size={16} />
                 </button>
               </div>
-              {renderTemplateControls && (
-                <div className="hidden sm:block">
+              {templates ? (
+                <div className="flex items-center">
+                  <ReflectionTemplatesDropdown
+                    templates={templates}
+                    onSelectTemplate={(t) => {
+                      if (editor) {
+                        editor.commands.setContent(t);
+                      }
+                      setReflection(t);
+                    }}
+                    currentReflection={reflection}
+                    onUpdateTemplates={onUpdateTemplates}
+                  />
+                </div>
+              ) : renderTemplateControls ? (
+                <div className="flex items-center">
                   {renderTemplateControls()}
                 </div>
-              )}
+              ) : null}
 
               <button 
                 onClick={onClose} 

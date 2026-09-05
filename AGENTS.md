@@ -37,9 +37,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.22
+- **Current Version:** v9.1.24
 - **Last Update Date:** 2026-09-04
-- **Last Update Time:** 07:20:00
+- **Last Update Time:** 20:45:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -66,14 +66,16 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
+- **v9.1.24 (2026-09-04):** Centralized ReflectionTemplates Component & Transparency Polish
+  - *Centralized Template Component:* Extracted duplicated template UI/CRUD logic into a shared `ReflectionTemplatesDropdown` component, reducing code coupling and eliminating redundant state across modals.
+  - *Solid Backdrop & Container Polish:* Solidified the background for `ImmersiveReflectionModal` and `ReflectionTemplatesDropdown` (`bg-slate-900` / `bg-slate-950` with high shadow elevation), eliminating transparency artifacts.
+  - *Full View Integration:* Standardized template passing and synchronization across `ImmersiveReflectionModal`, `DailySummaryModal`, `StartOfDayModal`, `Stats`, and `JournalView`.
+
+- **v9.1.23 (2026-09-04):** Immersive Mode Template Dropdown Clipping Fix
+  - *Right-Aligned Dropdown Positioning:* Replaced rigid `sm:left-0` positioning with right-anchored alignment (`absolute right-0 top-full mt-2 w-64`) across all reflection template dropdowns, preventing the menu from extending past the right viewport boundary in immersive and modal headers.
+  - *Click-Outside Dismissal:* Added fixed backdrop overlay for effortless click-outside dismissal.
+  - *Journal View Integration:* Added full template management and insertion support to `JournalView` and enabled seamless template access in immersive reflection mode.
+
 - **v9.1.22 (2026-09-04):** Picture-in-Picture Condensed Mode Bottom Margin Compression
   - *Bottom Margin Reduction:* Reduced the bottom padding and margin of the PiP condensed mode (`padding-bottom: 0.25rem` / 4px and `margin-bottom: 0`), eliminating excessive blank bottom spacing below the distraction buttons.
   - *Vertical Balance:* Balanced top/bottom spacing across all PiP window height modes with `justify-between` and compact spacing.
-
-- **v9.1.21 (2026-09-04):** Picture-in-Picture Distraction Button Sizing & Touch Comfort
-  - *Distraction Tile Expansion:* Enlarged the 3 distraction buttons in PiP minimal/strip mode (`w-8.5 h-8.5` / `2.125rem` square tiles with `rounded-xl`), matching the classic layout proportion for effortless clicking and tapping.
-  - *Icon Clarity & Badge Scaling:* Increased distraction icons to 17px (`Brain`, `Wind`, `Zap`) and scaled count indicators proportionately for crystal-clear legibility at compact window scales.
-
-- **v9.1.20 (2026-09-04):** Equal Height Card Grid & Rest-Time Distraction Controls
-  - *Equal Column Heights:* Styled `Current Build` with `lg:flex-1 min-h-0` and `justify-between` so the right column cards and the left Timer card share the exact same height and bottom baseline on desktop screens.
-  - *Rest Distraction Buttons:* Kept distraction buttons visible during rest periods while disabling click and long-press interactions (`disabled={isResting}`, dimmed opacity, non-clickable cursor, and informative tooltips).
