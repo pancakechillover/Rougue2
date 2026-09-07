@@ -4,6 +4,9 @@
 You are an AI assistant maintaining the "Scholar's Dungeon" project. 
 At the start of every interaction, you automatically read this file (injected into your system prompt).
 
+**ACTIVE DEVELOPMENT DIRECTIVE:**
+- Currently developing features step-by-step strictly according to the multi-phase implementation roadmap in `Plan.md` (Workstation Presence & Target Focus Time Upgrade).
+
 **CRITICAL RULE FOR EVERY UPDATE:**
 We now separate updates into **Preview Updates** (预览更新) and **Official Updates** (正式更新):
 
@@ -37,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.1.24
-- **Last Update Date:** 2026-09-04
-- **Last Update Time:** 20:45:00
+- **Current Version:** v9.2.8
+- **Last Update Date:** 2026-09-07
+- **Last Update Time:** 06:15:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -66,16 +69,20 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.1.24 (2026-09-04):** Centralized ReflectionTemplates Component & Transparency Polish
-  - *Centralized Template Component:* Extracted duplicated template UI/CRUD logic into a shared `ReflectionTemplatesDropdown` component, reducing code coupling and eliminating redundant state across modals.
-  - *Solid Backdrop & Container Polish:* Solidified the background for `ImmersiveReflectionModal` and `ReflectionTemplatesDropdown` (`bg-slate-900` / `bg-slate-950` with high shadow elevation), eliminating transparency artifacts.
-  - *Full View Integration:* Standardized template passing and synchronization across `ImmersiveReflectionModal`, `DailySummaryModal`, `StartOfDayModal`, `Stats`, and `JournalView`.
+- **v9.2.8 (2026-09-07):** Modernized Edit Session Architecture & Full-Featured Bulk Session Operations Hub
+  - *Unified Edit Session Modal:* Transferred Study Note authoring/editing directly into the dedicated `EditSessionModal` with live hashtag insertion pills; added editable distraction breakdown counters (`Internal`, `External`, `Unavoidable`); eliminated manual Total Duration input by auto-calculating `Total = Focus + Rest`.
+  - *Full-Featured Bulk Session Operations Hub:* Completely modernized `BulkSessionModal.tsx` into a 3-tab hub:
+    - `Batch Actions`: Interactive session search and dungeon/time filters, multi-select toolbar, batch dungeon re-assignment, bulk tag append, batch timestamp shift (+/- hours), distraction reset, batch deletion, and JSON data export.
+    - `Generator`: Presets (Pomodoro, Deep Work, Ultradian, Custom), date/time boundaries, auto or fixed session counts, and live timeline preview.
+    - `Range Purge`: Visual date/time range purge with matching session counter and destructive confirmation.
+  - *Cleaned Recent Sessions Table:* Replaced cluttered inline accordion rows with direct modal triggers and added elegant note previews in the objective column.
 
-- **v9.1.23 (2026-09-04):** Immersive Mode Template Dropdown Clipping Fix
-  - *Right-Aligned Dropdown Positioning:* Replaced rigid `sm:left-0` positioning with right-anchored alignment (`absolute right-0 top-full mt-2 w-64`) across all reflection template dropdowns, preventing the menu from extending past the right viewport boundary in immersive and modal headers.
-  - *Click-Outside Dismissal:* Added fixed backdrop overlay for effortless click-outside dismissal.
-  - *Journal View Integration:* Added full template management and insertion support to `JournalView` and enabled seamless template access in immersive reflection mode.
+- **v9.2.7 (2026-09-07):** Recent Sessions Elimination of Scrollbar Flash on Row Deletion
+  - *Table Row Exit Animation Optimization:* Removed disruptive `mode="popLayout"` from `<AnimatePresence>` in `RecentSessions.tsx` and switched to `layout="position"` with a fast, smooth fade-out (`duration: 0.15s`), preventing deleted `<tr>` elements from turning into absolute-positioned out-of-flow blocks that momentarily expand container height.
+  - *Confirm Modal Non-Intrusive Scroll State:* Removed `document.body.style.overflow = 'hidden'` toggling from `ConfirmModal.tsx`, keeping page body overflow completely stable during dialog confirmation without triggering scrollbar show/hide layout shifts.
+  - *Cross-Browser Scrollbar Rule Hardening:* Added standard `scrollbar-width: none` and `-ms-overflow-style: none` to `html, body, #root` in `src/index.css` to prevent brief browser-native scrollbar flashes on modern browsers.
 
-- **v9.1.22 (2026-09-04):** Picture-in-Picture Condensed Mode Bottom Margin Compression
-  - *Bottom Margin Reduction:* Reduced the bottom padding and margin of the PiP condensed mode (`padding-bottom: 0.25rem` / 4px and `margin-bottom: 0`), eliminating excessive blank bottom spacing below the distraction buttons.
-  - *Vertical Balance:* Balanced top/bottom spacing across all PiP window height modes with `justify-between` and compact spacing.
+- **v9.2.6 (2026-09-07):** PiP Window Victory Rewards Dynamic Expansion & Ultra-Compact Summary Adaptation
+  - *Dynamic Height Adaptive Reward Cards:* Replaced hardcoded `max-h-[145px]` constraint with `flex-1 min-h-0` in `CompactTimer.tsx`, allowing the 3 reward cards to expand fully and naturally without clipping or scrollbars whenever the PiP window has sufficient vertical space.
+  - *Ultra-Compact Skip/Auto-Reward Summary:* Implemented responsive 3-tier layout architecture (`pip-overlay-standard`, `pip-overlay-condensed`, `pip-overlay-minimal`) for `showTransientSummary`, ensuring that auto-skipped or auto-selected victory summaries fit cleanly into a streamlined horizontal bar in ultra-narrow and low-height PiP modes without any text clipping.
+  - *Responsive Overflow Guard:* Maintained clean scrolling fallback for compact window heights while pinning bottom chest actions (`Save to Chest`).

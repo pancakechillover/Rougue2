@@ -49,7 +49,7 @@ export async function getSageAdvice({ state, prompt, history = [], signal }: Sag
 
   const questsData = (state.quests || []).map(q => ({
     title: q.title,
-    progress: `${q.progress}/${q.target}`,
+    progress: `${Math.floor(q.progress + 0.0001)}/${q.target}`,
     reward: q.reward?.amount,
     rarity: q.completed ? 'COMPLETED' : 'ACTIVE'
   }));

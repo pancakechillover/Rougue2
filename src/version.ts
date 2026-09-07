@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.1.24';
-export const LAST_UPDATE_DATE = '2026-09-04';
-export const LAST_UPDATE_TIME = '20:45:00';
+export const APP_VERSION = 'v9.2.8';
+export const LAST_UPDATE_DATE = '2026-09-07';
+export const LAST_UPDATE_TIME = '06:15:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,18 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.2.0',
+    date: '2026-09-06',
+    time: '03:00:00',
+    title: 'Version 9.2 Major Update: Workstation Presence Tracking & Precision Focus System',
+    items: [
+      { category: 'Workstation Tracking', description: 'Replaced fixed target focus time with real-time workstation presence tracking. Check in across locations (Office, Lab, Library, Home Desk, Cafe) with automatic conversion rate metrics and fallback support.' },
+      { category: 'Presence & Efficiency Hub', description: 'Integrated Presence Hub with location distribution bars, live status tracking, manual interval logging, and retroactive punch-card adjustments.' },
+      { category: 'Location Icon Library', description: 'Customizable 12-icon preset library for check-in locations with responsive selector grids and seamless in-place editing.' },
+      { category: 'Visual Polish & Consistency', description: 'Standardized header banners, subtitle time range formats, theme-aware color palettes, and precision TimePicker wheel controls across Agenda, Workstation, and Journal.' }
+    ]
+  },
   {
     version: 'v9.0.0',
     date: '2026-06-23',

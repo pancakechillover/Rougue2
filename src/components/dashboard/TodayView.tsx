@@ -20,7 +20,7 @@ import {
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { motion, Reorder, useDragControls } from 'motion/react';
 import { cn, getSettlementDay, sortAgendaTodos } from '../../lib/utils';
-import { format, addDays, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
+import { format, addDays, subDays, parseISO, differenceInCalendarDays, isToday } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
 import { playSound } from '../../lib/sound';
@@ -425,9 +425,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-black text-slate-50 tracking-tighter uppercase italic pr-1 flex items-center gap-2 sm:gap-3 min-w-0">
+            <h1 className="text-xl sm:text-3xl font-black text-slate-50 tracking-tighter uppercase italic pr-3 flex items-center gap-2 sm:gap-3 min-w-0">
               <ListPlus className="text-indigo-400 w-5 h-5 sm:w-7 sm:h-7 shrink-0" />
-              <span className="truncate leading-none">Agenda</span>
+              <span className="leading-none whitespace-nowrap pr-2">Agenda</span>
             </h1>
             <p className="text-sm text-slate-500 font-medium mt-0.5">
               {format(startTime, 'MMM do, HH:mm')} - {format(endTime, 'MMM do, HH:mm')}
@@ -480,8 +480,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
                   return result;
                 }, [allTodos])}
               >
-                <div className="px-3 text-sm font-bold text-white whitespace-nowrap min-w-[120px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer">
-                  {format(baseDate, 'MMMM do')}
+                <div className="px-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
+                  <Calendar size={13} className="text-indigo-400" />
+                  <span>{isToday(baseDate) ? 'Today' : format(baseDate, 'MMM do')}</span>
                 </div>
               </DatePicker>
 

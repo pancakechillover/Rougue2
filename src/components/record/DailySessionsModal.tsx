@@ -14,7 +14,9 @@ import {
   Sunrise,
   Sun,
   Moon,
-  Star
+  Star,
+  Brain,
+  Wind
 } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, RewardCard, AppState } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
@@ -170,7 +172,7 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-slate-500 text-sm mt-1.5 font-medium">{format(date, 'MMMM do, yyyy')}</p>
+              <p className="text-slate-500 text-sm mt-1.5 font-medium">{format(date, 'MMM do, yyyy')}</p>
             </div>
           </div>
           <button 
@@ -259,6 +261,31 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
                               <span className="text-emerald-400">{session.restDuration || 0}m</span>
                             </div>
                             <div className="text-[9px] text-slate-500 uppercase tracking-tighter mt-0.5">Total: {getSessionEffectiveMinutes(session, includeRestTimeInTasks)}m</div>
+                            {session.distractions && (
+                              (typeof session.distractions === 'number' && session.distractions > 0) ||
+                              (typeof session.distractions === 'object' && ((session.distractions.internal || 0) > 0 || (session.distractions.external || 0) > 0 || (session.distractions.unavoidable || 0) > 0))
+                            ) && (
+                              <div className="mt-1 flex items-center justify-center gap-1 opacity-90" title={`Total Distractions: ${typeof session.distractions === 'number' ? session.distractions : ((session.distractions.internal || 0) + (session.distractions.external || 0) + (session.distractions.unavoidable || 0))}`}>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex items-center gap-0.5 font-bold font-mono">
+                                  <span className="text-rose-400">{(() => {
+                                    const totalDist = typeof session.distractions === 'number'
+                                      ? session.distractions
+                                      : (session.distractions.internal || 0) + (session.distractions.external || 0) + (session.distractions.unavoidable || 0);
+                                    const durMins = Math.max(1, (session.focusDuration || session.duration || 1));
+                                    const rate = totalDist / durMins;
+                                    return rate < 0.1 ? rate.toFixed(2) : (rate >= 10 ? Math.round(rate).toString() : rate.toFixed(1));
+                                  })()}</span>
+                                  <span className="text-slate-400 font-sans font-normal text-[8.5px]">/min</span>
+                                </span>
+                                {typeof session.distractions === 'object' && (
+                                  <div className="flex items-center gap-0.5 ml-1">
+                                    {session.distractions.internal > 0 && <span className="flex items-center gap-0.5 text-[9px] text-indigo-400 bg-indigo-500/10 px-1 py-0.5 rounded" title="Internal"><Brain size={10} />{session.distractions.internal}</span>}
+                                    {session.distractions.external > 0 && <span className="flex items-center gap-0.5 text-[9px] text-orange-400 bg-orange-500/10 px-1 py-0.5 rounded" title="External"><Wind size={10} />{session.distractions.external}</span>}
+                                    {session.distractions.unavoidable > 0 && <span className="flex items-center gap-0.5 text-[9px] text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded" title="Unavoidable"><Zap size={10} />{session.distractions.unavoidable}</span>}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-5 py-4 text-center">

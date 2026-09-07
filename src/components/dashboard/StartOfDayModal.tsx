@@ -607,8 +607,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
                    <Moon className="text-indigo-400" size={16} /> Sleep Tracker 
                 </h3>
                 <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-center">
-                   <div className="flex-1 w-full flex items-center gap-3 bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/50">
-                     <Moon size={18} className="text-indigo-400" />
+                   <div className="flex-1 w-full bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/50">
                      <div className="w-full">
                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fell Asleep</label>
                        <TimePicker 
@@ -619,8 +618,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
                      </div>
                    </div>
                    
-                   <div className="flex-1 w-full flex items-center gap-3 bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/50">
-                     <Sun size={18} className="text-amber-400" />
+                   <div className="flex-1 w-full bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/50">
                      <div className="w-full">
                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Woke Up</label>
                        <TimePicker 

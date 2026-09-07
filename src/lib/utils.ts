@@ -146,6 +146,13 @@ export function getSessionEffectiveMinutes(session: any, includeRestTimeInTasks:
   return baseDuration;
 }
 
+export function getSessionDistractionCount(distractions: any): number {
+  if (!distractions) return 0;
+  if (typeof distractions === 'number') return distractions;
+  if (Array.isArray(distractions)) return distractions.length;
+  return 0;
+}
+
 export function getSessionSettlementDate(session: any, timeSettings: any): string {
   return getSettlementDay(new Date(session.timestamp), timeSettings);
 }

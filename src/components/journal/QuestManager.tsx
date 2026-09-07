@@ -576,7 +576,7 @@ export const QuestManager = React.memo<QuestManagerProps>(({ quests, questHistor
                         style={{ width: `${Math.min(100, (quest.progress / quest.target) * 100)}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-black qb-progress-text tabular-nums bg-black/5 dark:bg-white/5 py-0.5 px-1.5 rounded-md border border-black/5 dark:border-white/5">{quest.progress}/{quest.target}</span>
+                    <span className="text-[10px] font-black qb-progress-text tabular-nums bg-black/5 dark:bg-white/5 py-0.5 px-1.5 rounded-md border border-black/5 dark:border-white/5">{Math.floor(quest.progress + 0.0001)}/{quest.target}</span>
                   </div>
                   
                   {isEditMode && (

@@ -301,7 +301,8 @@ export function useGameState() {
       ],
       activeGachaPoolId: 'standard_gacha',
       activeIchibanPoolId: 'ichiban_1',
-      sagePrompts: DEFAULT_SAGE_PROMPTS
+      sagePrompts: DEFAULT_SAGE_PROMPTS,
+      workstationLocations: ['Home', 'Lab', 'Library']
     };
 
     if (saved) {
@@ -2485,17 +2486,22 @@ export function useGameState() {
     });
   }, [getNow]);
 
-  const bulkDeleteSessions = useCallback((data: { startTime: string, endTime: string }) => {
-    const start = new Date(data.startTime).getTime();
-    const end = new Date(data.endTime).getTime();
-    
+  const bulkDeleteSessions = useCallback((data: { startTime?: string; endTime?: string; sessionIds?: string[] }) => {
     setState(prev => {
       let newState = { ...prev };
       
-      const sessionsToDelete = prev.history.filter(s => {
-        const ts = new Date(s.timestamp).getTime();
-        return ts >= start && ts <= end;
-      });
+      let sessionsToDelete: StudySession[] = [];
+      if (data.sessionIds && data.sessionIds.length > 0) {
+        const idSet = new Set(data.sessionIds);
+        sessionsToDelete = prev.history.filter(s => idSet.has(s.id));
+      } else if (data.startTime && data.endTime) {
+        const start = new Date(data.startTime).getTime();
+        const end = new Date(data.endTime).getTime();
+        sessionsToDelete = prev.history.filter(s => {
+          const ts = new Date(s.timestamp).getTime();
+          return ts >= start && ts <= end;
+        });
+      }
       
       if (sessionsToDelete.length === 0) return prev;
       
@@ -2510,7 +2516,6 @@ export function useGameState() {
 
       let dungeonProgressToReverse: Record<string, number> = {};
       let dungeonTimeToReverse: Record<string, number> = {};
-      let dungeonsResetToActive: Set<string> = new Set();
       
       sessionsToDelete.forEach(session => {
         if (session.xpEarned > 0) totalXpToReverse += session.xpEarned;
@@ -2633,6 +2638,28 @@ export function useGameState() {
     });
   }, [setDungeons, getNow]);
 
+  const bulkUpdateSessions = useCallback((sessionIds: string[], updates: Partial<StudySession> | ((session: StudySession) => Partial<StudySession>)) => {
+    setState(prev => {
+      const idSet = new Set(sessionIds);
+      let newState = { ...prev };
+      
+      const newHistory = prev.history.map(s => {
+        if (!idSet.has(s.id)) return s;
+        const currentUpdates = typeof updates === 'function' ? updates(s) : updates;
+        const updated = { ...s, ...currentUpdates };
+        if (currentUpdates.focusDuration !== undefined || currentUpdates.restDuration !== undefined) {
+          const focus = currentUpdates.focusDuration !== undefined ? currentUpdates.focusDuration : (s.focusDuration || 0);
+          const rest = currentUpdates.restDuration !== undefined ? currentUpdates.restDuration : (s.restDuration || 0);
+          updated.duration = focus + rest;
+        }
+        return updated;
+      });
+
+      newState.history = newHistory;
+      return newState;
+    });
+  }, []);
+
   return {
     state,
     dungeons,
@@ -2672,6 +2699,7 @@ export function useGameState() {
     dungeonHistory,
     bulkCreateSessions,
     bulkDeleteSessions,
+    bulkUpdateSessions,
     combineShards,
     getNow
   };

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { History, Clock, Trophy, Edit2, Trash2, Filter, Search, X, Check, SearchX, Calendar, Sword, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Zap, Layers, Download, Brain, Wind } from 'lucide-react';
+import { History, Clock, Trophy, Edit2, Trash2, Filter, Search, X, Check, SearchX, Calendar, Sword, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Zap, Layers, Download, Brain, Wind, Sunrise, Sun, Moon, Star } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, RewardCard, TimeSettings } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
@@ -8,6 +8,7 @@ import { SpinnerInput } from '../common/SpinnerInput';
 import { DatePicker } from '../common/DatePicker';
 import { BulkSessionModal } from '../modals/BulkSessionModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
+import { EditSessionModal } from '../modals/EditSessionModal';
 
 interface RecentSessionsProps {
   history: StudySession[];
@@ -16,7 +17,8 @@ interface RecentSessionsProps {
   updateSession: (id: string, updates: Partial<StudySession>) => void;
   deleteSession: (id: string) => void;
   bulkCreateSessions?: (data: { count: number, objectiveId: string, startTime: string, endTime: string, focusDuration?: number, restDuration?: number }) => void;
-  bulkDeleteSessions?: (data: { startTime: string, endTime: string }) => void;
+  bulkDeleteSessions?: (data: { startTime?: string, endTime?: string, sessionIds?: string[] }) => void;
+  bulkUpdateSessions?: (sessionIds: string[], updates: Partial<StudySession> | ((session: StudySession) => Partial<StudySession>)) => void;
   rewardPool: RewardCard[];
   timeSettings?: TimeSettings;
   includeRestTimeInTasks?: boolean;
@@ -30,13 +32,13 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
   deleteSession,
   bulkCreateSessions,
   bulkDeleteSessions,
+  bulkUpdateSessions,
   rewardPool,
   timeSettings,
   includeRestTimeInTasks = false
 }) => {
   const [showPeriodicSplits, setShowPeriodicSplits] = useState(true);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<StudySession | null>(null);
   const [viewingRewardName, setViewingRewardName] = useState<string | null>(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -343,7 +345,10 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
         onClose={() => setShowBulkModal(false)}
         onBulkCreate={(data) => bulkCreateSessions?.(data)}
         onBulkDelete={(data) => bulkDeleteSessions?.(data)}
+        onBulkUpdate={bulkUpdateSessions}
         dungeons={dungeons}
+        history={history}
+        allHashtags={allHashtags}
       />
 
       <AnimatePresence>
@@ -611,19 +616,28 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence initial={false}>
                   {rowSegments.map((segment) => {
                     const getBgStyle = (variant: number) => ({
                       bg: variant === 0 ? 'bg-transparent' : 'bg-indigo-500/5',
                       hover: variant === 0 ? 'hover:bg-indigo-500/5' : 'hover:bg-indigo-500/10',
                     });
 
+                    const getPeriodIcon = (p: string) => {
+                      switch(p) {
+                        case 'Morning': return Sunrise;
+                        case 'Afternoon': return Sun;
+                        case 'Night': return Moon;
+                        default: return Star;
+                      }
+                    };
+
                     const getLabelStyle = (period: string) => {
-                      const styles: Record<string, { label: string, text: string }> = {
-                        'Morning': { label: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30', text: 'text-yellow-300' },
-                        'Afternoon': { label: 'bg-orange-500/20 text-orange-300 border-orange-500/30', text: 'text-orange-300' },
-                        'Night': { label: 'bg-blue-500/20 text-blue-300 border-blue-500/30', text: 'text-blue-300' },
-                        'Other': { label: 'bg-slate-500/20 text-slate-300 border-slate-500/30', text: 'text-slate-300' }
+                      const styles: Record<string, string> = {
+                        'Morning': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+                        'Afternoon': 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+                        'Night': 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20',
+                        'Other': 'text-slate-400 bg-slate-400/10 border-slate-400/20'
                       };
                       return styles[period] || styles['Other'];
                     };
@@ -631,33 +645,30 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                     const bg = getBgStyle(segment.bgVariant);
                     const rowBg = bg.bg;
                     const rowHover = bg.hover;
-                    const labelStyle = segment.type === 'separator' ? getLabelStyle(segment.period) : null;
 
                     if (segment.type === 'separator') {
+                      const Icon = getPeriodIcon(segment.period);
+                      const colorClass = getLabelStyle(segment.period);
+
                       return (
                         <motion.tr 
-                          layout 
+                          layout="position" 
                           key={segment.key}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className={cn("relative z-10 transition-colors duration-300", rowBg)}
+                          exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                          className={cn("relative z-10 transition-colors duration-200", rowBg)}
                         >
-                          <td colSpan={6} className="px-6 py-3">
-                            <div className="flex items-center gap-4">
-                              <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+                          <td colSpan={6} className="px-5 sm:px-6 py-3">
+                            <div className="flex items-center gap-3">
                               <div className={cn(
-                                "flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-lg",
-                                labelStyle!.label
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest",
+                                colorClass
                               )}>
-                                <span className={cn(
-                                  "text-[10px] font-black uppercase tracking-[0.2em]",
-                                  labelStyle!.text
-                                )}>
-                                  {segment.date} • {segment.period}
-                                </span>
+                                <Icon size={12} className="shrink-0" />
+                                <span>{segment.date} • {segment.period}</span>
                               </div>
-                              <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+                              <div className="h-px flex-grow bg-gradient-to-r from-slate-700/50 to-transparent" />
                             </div>
                           </td>
                         </motion.tr>
@@ -671,12 +682,12 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                     return (
                       <React.Fragment key={segment.key}>
                       <motion.tr
-                        layout
+                        layout="position"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        exit={{ opacity: 0, transition: { duration: 0.15 } }}
                         className={cn(
-                          "group transition-all duration-300",
+                          "group transition-colors duration-200",
                           rowBg,
                           rowHover
                         )}
@@ -697,6 +708,11 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                                <span className="text-xs sm:text-sm font-bold text-white truncate">
                                  {dungeon?.name || 'Free Study'}
                                </span>
+                               {session.note && (
+                                 <span className="text-[10px] text-slate-400 italic truncate max-w-[200px] mt-0.5" title={session.note}>
+                                   {session.note}
+                                 </span>
+                               )}
                              </div>
                            </div>
                         </td>
@@ -749,61 +765,26 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                           </div>
                         </td>
                         <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-center">
-                          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
-                            <button
-                              onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
-                              className={cn("p-1.5 sm:p-2 hover:bg-slate-800 rounded-lg transition-all", expandedSessionId === session.id ? "text-indigo-400 bg-indigo-500/10" : "text-slate-500 hover:text-white")}
-                              title="Toggle Note"
-                            >
-                              <ChevronDown size={12} className={cn("transition-transform", expandedSessionId === session.id ? "rotate-180" : "rotate-0")} />
-                            </button>
+                          <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                             <button
                               onClick={() => setEditingSession(session)}
-                              className="p-1.5 sm:p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                              title="Edit Session"
+                              className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-all"
+                              title="Edit Session (Details, Note, Distractions)"
                             >
-                              <Edit2 size={12} />
+                              <Edit2 size={13} />
                             </button>
                             <button
                               onClick={() => {
                                 setSessionToDelete(session);
                               }}
-                              className="p-1.5 sm:p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                              className="p-1.5 sm:p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
                               title="Delete Session"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </td>
                       </motion.tr>
-                      
-                      {expandedSessionId === session.id && (
-                        <motion.tr
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="bg-slate-900/80 border-t border-slate-800/50"
-                        >
-                          <td colSpan={6} className="px-6 py-4">
-                            <div className="flex items-start gap-3 w-full max-w-4xl mx-auto">
-                              <Edit2 size={14} className="text-slate-500 mt-1 shrink-0" />
-                              <div className="flex-1">
-                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Study Note</h4>
-                                <textarea
-                                  defaultValue={session.note || ''}
-                                  onBlur={(e) => {
-                                    if (e.target.value !== session.note) {
-                                      updateSession(session.id, { note: e.target.value });
-                                    }
-                                  }}
-                                  placeholder="Add notes, context, or #hashtags about this session..."
-                                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none resize-none placeholder:text-slate-700 min-h-[80px]"
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      )}
                     </React.Fragment>
                     );
                   })}
@@ -814,110 +795,15 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <AnimatePresence>
-        {editingSession && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 w-full max-w-md rounded-3xl border border-slate-700 overflow-hidden shadow-2xl"
-            >
-              <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Edit2 className="text-indigo-400" />
-                  Edit Session
-                </h3>
-                <button onClick={() => setEditingSession(null)} className="text-slate-500 hover:text-white">
-                  <X />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Dungeon</label>
-                  <select
-                    value={editingSession.dungeonId}
-                    onChange={(e) => setEditingSession({ ...editingSession, dungeonId: e.target.value })}
-                    className="w-full bg-slate-800 border-none rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  >
-                    <option value="free_study">Free Study</option>
-                    {dungeons.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Dungeon Start Time</label>
-                  <input
-                    type="datetime-local"
-                    value={format(parseISO(editingSession.timestamp), "yyyy-MM-dd'T'HH:mm")}
-                    onChange={(e) => setEditingSession({ ...editingSession, timestamp: new Date(e.target.value).toISOString() })}
-                    className="w-full bg-slate-800 border-none rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-2 italic pr-1">Adjusting this helps the "Daily" calculation in Record charts.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block text-indigo-400">Focus (m)</label>
-                    <SpinnerInput
-                      value={editingSession.focusDuration || 0}
-                      onChange={(val) => setEditingSession({ ...editingSession, focusDuration: typeof val === 'number' ? val : 0 })}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block text-emerald-400">Rest (m)</label>
-                    <SpinnerInput
-                      value={editingSession.restDuration || 0}
-                      onChange={(val) => setEditingSession({ ...editingSession, restDuration: typeof val === 'number' ? val : 0 })}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Total Duration (m)</label>
-                  <SpinnerInput
-                    value={editingSession.duration}
-                    onChange={(val) => setEditingSession({ ...editingSession, duration: typeof val === 'number' ? val : 0 })}
-                    className="w-full"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-2 italic pr-1">Note: Changing duration does NOT automatically adjust XP/Gold already earned.</p>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setEditingSession(null)}
-                    className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      updateSession(editingSession.id, {
-                        dungeonId: editingSession.dungeonId,
-                        duration: editingSession.duration,
-                        focusDuration: editingSession.focusDuration,
-                        restDuration: editingSession.restDuration,
-                        timestamp: editingSession.timestamp
-                      });
-                      setEditingSession(null);
-                    }}
-                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Check size={18} />
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Edit Session Modal */}
+      <EditSessionModal
+        isOpen={!!editingSession}
+        session={editingSession}
+        onClose={() => setEditingSession(null)}
+        onSave={(id, updates) => updateSession(id, updates)}
+        dungeons={dungeons}
+        allHashtags={allHashtags}
+      />
       {/* Reward Details Modal */}
       <AnimatePresence>
         {viewingRewardName && (

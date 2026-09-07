@@ -303,7 +303,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               </div>
 
               {/* 3 Selectable Reward Cards */}
-              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[145px] my-1 scrollbar-hide">
+              <div className="flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto my-1.5 scrollbar-hide">
                 {activeRewardSession.choices.map((card) => {
                   const rarity = getRarityConfig(card.rarity);
                   return (
@@ -311,7 +311,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                       key={card.id}
                       onClick={() => handleSelectRewardCard(card)}
                       className={cn(
-                        "w-full text-left p-2 rounded-xl border transition-all flex flex-col gap-0.5 active:scale-95",
+                        "w-full text-left p-2 rounded-xl border transition-all flex flex-col gap-0.5 active:scale-95 shrink-0",
                         rarity.bg,
                         rarity.border
                       )}
@@ -331,7 +331,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               {/* Bottom Actions */}
               <button
                 onClick={handleDeferRewardToChest}
-                className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold border border-slate-800 flex items-center justify-center gap-1 transition-all shrink-0"
+                className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold border border-slate-800 flex items-center justify-center gap-1 transition-all shrink-0 mt-0.5"
               >
                 <Package size={12} />
                 Save to Chest
@@ -425,26 +425,75 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         {/* Transient Summary Overlay (when auto-skip/deferred without choices) */}
         {showTransientSummary && !activeRewardSession && !showFocusPrompt && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1, y: 10 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md text-center overflow-hidden"
           >
-            <div className="text-amber-400 mb-1">
-              <Trophy size={20} />
-            </div>
-            <h4 className="font-black uppercase tracking-widest text-white text-xs mb-1.5">Victory!</h4>
-            <div className="flex flex-col gap-1 w-full max-w-[140px]">
-              <div className="flex items-center px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20 justify-center gap-1">
-                <Zap className="text-emerald-400 w-3 h-3" />
-                <span className="text-xs font-black text-white">+{xpReward} XP</span>
+            {/* Mode 1: Standard Mode (height > 240px) */}
+            <div className="pip-overlay-standard flex-col h-full w-full p-3 items-center justify-center space-y-2">
+              <div className="text-amber-400 mb-0.5">
+                <Trophy size={22} />
               </div>
-              <div className="flex items-center px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-center gap-1">
-                <Coins className="text-amber-400 w-3 h-3" />
-                <span className="text-xs font-black text-white">+{coinReward} Gold</span>
+              <h4 className="font-black uppercase tracking-widest text-white text-xs">
+                {isCrit ? '🔥 Critical Victory!' : 'Victory!'}
+              </h4>
+              <div className="flex flex-col gap-1.5 w-full max-w-[150px]">
+                <div className="flex items-center px-2.5 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 justify-center gap-1.5">
+                  <Zap className="text-emerald-400 w-3.5 h-3.5" />
+                  <span className="text-xs font-black text-white">+{xpReward} XP</span>
+                </div>
+                <div className="flex items-center px-2.5 py-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-center gap-1.5">
+                  <Coins className="text-amber-400 w-3.5 h-3.5" />
+                  <span className="text-xs font-black text-white">+{coinReward} Gold</span>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 italic pt-1">Rewards auto-saved</p>
+            </div>
+
+            {/* Mode 2: Condensed Horizontal Mode (166px <= height <= 240px) */}
+            <div className="pip-overlay-condensed flex-row h-full w-full p-2.5 items-center justify-between">
+              <div className="flex items-center gap-1.5 text-left">
+                <div className="w-8 h-8 bg-amber-500/15 rounded-lg flex items-center justify-center text-amber-400 shrink-0 border border-amber-500/20">
+                  <Trophy size={16} />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
+                    {isCrit ? '🔥 Crit!' : 'Victory!'}
+                  </h4>
+                  <p className="text-[8px] text-slate-400">Auto-saved</p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 shrink-0">
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                  <Zap size={10} /> +{xpReward} XP
+                </span>
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 flex items-center gap-1">
+                  <Coins size={10} /> +{coinReward} G
+                </span>
               </div>
             </div>
-            <p className="text-[9px] text-slate-500 italic mt-2">Rewards saved</p>
+
+            {/* Mode 3: Ultra-Minimalist Strip Mode (height <= 165px) */}
+            <div className="pip-overlay-minimal flex-row h-full w-full px-2 py-1 items-center justify-between">
+              <div className="flex items-center gap-1 shrink-0">
+                <Trophy size={12} className="text-amber-400" />
+                <span className="text-[10px] font-black text-white whitespace-nowrap">
+                  {isCrit ? '🔥 Crit!' : 'Victory!'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 overflow-hidden">
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex items-center gap-0.5 shrink-0">
+                  <Zap size={9} /> +{xpReward}
+                </span>
+                <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 flex items-center gap-0.5 shrink-0">
+                  <Coins size={9} /> +{coinReward}
+                </span>
+                <span className="text-[8px] text-slate-400 font-semibold px-1 py-0.5 bg-slate-900 rounded border border-slate-800 shrink-0">
+                  Saved
+                </span>
+              </div>
+            </div>
           </motion.div>
         )}
 

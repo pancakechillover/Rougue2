@@ -13,7 +13,8 @@ import {
   Target,
   Minus,
   Plus,
-  Table
+  Table,
+  Building2
 } from 'lucide-react';
 import { cn, formatDuration } from '../../lib/utils';
 import { EfficiencyRatingConfig } from '../../types';
@@ -28,6 +29,10 @@ interface EfficiencyDetailsModalProps {
   onUpdateConfig: (config: EfficiencyRatingConfig) => void;
   onApplyRating: (calculatedStars: number) => void;
   onClose: () => void;
+  targetSource?: 'workstation' | 'goal' | 'manual' | 'custom' | 'daily_goal_fallback';
+  workstationPresenceMinutes?: number;
+  workstationIntervalCount?: number;
+  conversionRate?: number;
 }
 
 export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
@@ -39,7 +44,11 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   config,
   onUpdateConfig,
   onApplyRating,
-  onClose
+  onClose,
+  targetSource,
+  workstationPresenceMinutes = 0,
+  workstationIntervalCount = 0,
+  conversionRate = 0
 }) => {
   // Local state for interactive parameter editing
   const [localTargetHours, setLocalTargetHours] = useState<number>(
@@ -289,9 +298,24 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
 
             {/* Today's Data & Step-by-Step Breakdown */}
             <div className="bg-slate-950/50 rounded-2xl border border-slate-800/80 p-4 sm:p-5 space-y-3.5">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <Target size={14} className="text-emerald-400" /> Today's Calculation Metrics
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                  <Target size={14} className="text-emerald-400" /> Today's Calculation Metrics
+                </h3>
+
+                {targetSource === 'workstation' && (
+                  <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px]">
+                    <Building2 size={13} className="text-indigo-400" />
+                    <span>Target Base: <strong>Workstation Presence</strong> ({formatDuration(workstationPresenceMinutes)} · {workstationIntervalCount} sessions)</span>
+                  </div>
+                )}
+                {(targetSource === 'daily_goal_fallback' || targetSource === 'goal') && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 text-[11px]">
+                    <Target size={12} />
+                    <span>Target Base: Daily Goal (Fallback)</span>
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800 flex flex-col">

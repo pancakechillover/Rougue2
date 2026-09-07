@@ -54,11 +54,19 @@ html {
 }
 
 /* Hide browser scrollbar on body for native PWA feel */
+html,
+body,
+#root {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 #root::-webkit-scrollbar {
   display: none;
   width: 0;
+  height: 0;
 }
 
 /* Remove default spin buttons from number inputs */

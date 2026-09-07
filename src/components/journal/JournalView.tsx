@@ -2,28 +2,29 @@ import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
 
-  format, subDays, addDays, parseISO, isValid
+  format, subDays, addDays, parseISO, isValid, isToday
 } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, ArrowLeft, ChevronLeft, ChevronRight, 
   Star, StarHalf, Calculator, SlidersHorizontal, Heart, 
-  Maximize2, Save, Download, Copy, Check, Edit3, 
+  Maximize2, Save, Download, Edit3, 
   Clock, Target, Zap, 
-  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar,
-  LayoutTemplate, File, FileText, X
+  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar, Building2
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 import { cn, formatDuration, getSessionEffectiveMinutes } from '../../lib/utils';
-import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
+import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { DatePicker } from '../common/DatePicker';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from '../record/EfficiencyDetailsModal';
 import { BatchExportModal } from '../modals/BatchExportModal';
-import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
+import { MoodSelector } from '../common/MoodSelector';
+import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
+import { StarRating } from '../common/StarRating';
 
 import { playSound } from '../../lib/sound';
 
@@ -115,7 +116,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [customTargetHours, setCustomTargetHours] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
-  const [copied, setCopied] = useState(false);
 
   // Sync editor when switching dates
   const isSwitchingDateRef = useRef(false);
@@ -259,22 +259,25 @@ export const JournalView: React.FC<JournalViewProps> = ({
       }
     });
 
-    const day = selectedDate.getDay();
-    const dailyGoal = state.useSameDailyProgressGoalEveryDay ?? true 
-      ? (state.dailyProgressGoal ?? 8) 
-      : (state.dailyProgressGoalConfig?.[day] ?? 8);
-
-    const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
-    const defaultTargetHours = Math.max(0.1, Number(((dailyGoal * pomodoroDuration) / 60).toFixed(2)));
+    const targetFocusStats = getEffectiveTargetFocusMinutes(
+      selectedDateStr,
+      state,
+      effectiveMinutes
+    );
+    const defaultTargetHours = targetFocusStats.targetHours;
 
     return {
       effectiveMinutes,
       totalDistractions,
       completedSessionsCount,
       defaultTargetHours,
+      targetSource: targetFocusStats.source,
+      workstationMinutes: targetFocusStats.workstationMinutes,
+      workstationIntervalCount: targetFocusStats.intervalCount,
+      conversionRate: targetFocusStats.conversionRate,
       completionPercent: Math.min(100, Math.round((effectiveMinutes / (defaultTargetHours * 60)) * 100))
     };
-  }, [state.history, state.includeRestTimeInTasks, state.useSameDailyProgressGoalEveryDay, state.dailyProgressGoal, state.dailyProgressGoalConfig, state.standardSessionMinutes, state.standardRestMinutes, selectedDate, selectedDateStr, getPeriodInfo]);
+  }, [state.history, state.workstationLogs, state.activeWorkstationSession, state.includeRestTimeInTasks, state.useSameDailyProgressGoalEveryDay, state.dailyProgressGoal, state.dailyProgressGoalConfig, state.standardSessionMinutes, state.standardRestMinutes, selectedDate, selectedDateStr, getPeriodInfo]);
 
   // Navigate day helper with page flip animation
   const navigateDay = (direction: 'prev' | 'next') => {
@@ -287,67 +290,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
     }
   };
 
-  // Copy reflection text
-  const handleCopyReflection = () => {
-    if (!reflection) return;
-    navigator.clipboard.writeText(reflection);
-    setCopied(true);
+  // Handle star rating change
+  const handleRatingChange = (newScore: number) => {
+    setRating(newScore);
+    saveDailyLog(selectedDateStr, newScore, reflection, mood);
     playSound('click', state.soundVolume, state.soundEnabled);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Rating Stars rendering with half-star click detection
-  const renderStars = () => {
-    const displayRating = Math.round(rating * 2) / 2;
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      const isFull = displayRating >= i;
-      const isHalf = displayRating >= i - 0.5 && displayRating < i;
-      
-      stars.push(
-        <div 
-          key={i} 
-          className="relative cursor-pointer transition-transform hover:scale-110 active:scale-95 group"
-          style={{ width: '28px', height: '28px' }}
-        >
-          {/* Left half clickable zone */}
-          <button
-            type="button"
-            className="absolute left-0 top-0 w-1/2 h-full z-10 opacity-0 cursor-pointer"
-            onClick={() => {
-              const newScore = rating === i - 0.5 ? 0 : i - 0.5;
-              setRating(newScore);
-              saveDailyLog(selectedDateStr, newScore, reflection, mood);
-              playSound('click', state.soundVolume, state.soundEnabled);
-            }}
-            title={`${i - 0.5} Stars`}
-          />
-          {/* Right half clickable zone */}
-          <button
-            type="button"
-            className="absolute right-0 top-0 w-1/2 h-full z-10 opacity-0 cursor-pointer"
-            onClick={() => {
-              const newScore = rating === i ? 0 : i;
-              setRating(newScore);
-              saveDailyLog(selectedDateStr, newScore, reflection, mood);
-              playSound('click', state.soundVolume, state.soundEnabled);
-            }}
-            title={`${i} Stars`}
-          />
-          {/* Star Icon Display */}
-          <div className="w-full h-full flex items-center justify-center pointer-events-none">
-            {isFull ? (
-              <Star size={24} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-            ) : isHalf ? (
-              <StarHalf size={24} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-            ) : (
-              <Star size={24} className="text-slate-700 hover:text-slate-600 transition-colors" />
-            )}
-          </div>
-        </div>
-      );
-    }
-    return stars;
   };
 
   // Auto-calculate rating formula
@@ -410,17 +357,31 @@ export const JournalView: React.FC<JournalViewProps> = ({
     };
   };
 
+  // Date boundaries for header subtitle display (aligned with Agenda & Workstation)
+  const borderHour = state.timeSettings?.morning?.start ?? 8;
+  const viewStartTime = useMemo(() => {
+    const st = new Date(selectedDate);
+    st.setHours(borderHour, 0, 0, 0);
+    return st;
+  }, [selectedDate, borderHour]);
+
+  const viewEndTime = useMemo(() => {
+    const et = new Date(viewStartTime);
+    et.setDate(et.getDate() + 1);
+    return et;
+  }, [viewStartTime]);
+
   return (
     <div className="w-full space-y-6 max-w-7xl mx-auto pb-10">
       {/* Top Banner Header & Date Navigator (Aligned with Agenda / TodayView) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-black text-slate-50 tracking-tighter uppercase italic pr-1 flex items-center gap-2 sm:gap-3 min-w-0">
+          <h1 className="text-xl sm:text-3xl font-black text-slate-50 tracking-tighter uppercase italic pr-3 flex items-center gap-2 sm:gap-3 min-w-0">
             <BookOpen className="text-indigo-400 w-5 h-5 sm:w-7 sm:h-7 shrink-0" />
-            <span className="truncate leading-none">Journal</span>
+            <span className="leading-none whitespace-nowrap pr-2">Journal</span>
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-0.5">
-            {format(selectedDate, 'EEEE, MMMM do, yyyy')}
+            {format(viewStartTime, 'MMM do, HH:mm')} - {format(viewEndTime, 'MMM do, HH:mm')}
           </p>
         </div>
           
@@ -447,8 +408,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
               onChange={(val) => val && setSelectedDate(parseISO(val))}
               indicators={dateIndicators}
             >
-              <div className="px-3 text-sm font-bold text-white whitespace-nowrap min-w-[120px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer">
-                {format(selectedDate, 'MMMM do')}
+              <div className="px-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
+                <Calendar size={13} className="text-indigo-400" />
+                <span>{isToday(selectedDate) ? 'Today' : format(selectedDate, 'MMM do')}</span>
               </div>
             </DatePicker>
 
@@ -558,28 +520,12 @@ export const JournalView: React.FC<JournalViewProps> = ({
                         )}
                       </div>
 
-                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 py-1">
-                        {MOOD_OPTIONS.filter(m => (state.enabledMoods || DEFAULT_ENABLED_MOODS).includes(m.id)).map((m) => {
-                          const isSelected = mood === m.id;
-                          const Icon = m.icon;
-                          return (
-                            <button
-                              key={m.id}
-                              onClick={() => handleMoodChange(isSelected ? undefined : m.id)}
-                              className={cn(
-                                "flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center group min-h-[44px]",
-                                isSelected 
-                                  ? `${m.bg} ${m.border} ${m.color} shadow-lg scale-105 font-bold` 
-                                  : "bg-slate-900/70 border-slate-800/80 text-slate-500 hover:bg-slate-800/80 hover:text-slate-300 hover:border-slate-700"
-                              )}
-                              title={`Select ${m.label}`}
-                            >
-                              <Icon size={18} className={cn("transition-transform group-hover:scale-110", isSelected && "scale-110")} />
-                              <span className="text-[9px] font-bold uppercase tracking-wider truncate w-full hidden 2xl:block mt-1">{m.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <MoodSelector
+                        value={mood}
+                        onChange={handleMoodChange}
+                        enabledMoods={state.enabledMoods}
+                        variant="grid"
+                      />
                     </div>
 
                     {/* Module 2: Efficiency */}
@@ -629,7 +575,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
                               {rating > 0 ? `${((rating / 5) * 100).toFixed(1).replace(/\.0$/, '')}%` : 'None'}
                             </span>
                           ) : (
-                            renderStars()
+                            <StarRating
+                              value={rating}
+                              onChange={handleRatingChange}
+                              size="md"
+                            />
                           )}
                         </motion.div>
                       </div>
@@ -651,7 +601,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
                             {formatDuration(selectedDayStats.effectiveMinutes)}
                           </div>
                           <div className="text-[9px] text-slate-500 font-medium mt-0.5">
-                            {selectedDayStats.completionPercent}% of Goal
+                            {selectedDayStats.completionPercent}% of {selectedDayStats.targetSource === 'workstation' ? 'Desk' : 'Goal'}
                           </div>
                         </div>
 
@@ -754,41 +704,15 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
                       {/* Right Page Action Buttons */}
                       <div className="flex items-center gap-1.5">
-                        {reflection.trim().length > 0 && (
-                          <>
-                            <button
-                              onClick={handleCopyReflection}
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700/60"
-                              title="Copy Reflection"
-                            >
-                              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                const blob = new Blob([reflection], { type: 'text/markdown' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `journal-${selectedDateStr}.md`;
-                                a.click();
-                              }}
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700/60"
-                              title="Export Markdown"
-                            >
-                              <Download size={14} />
-                            </button>
-                          </>
-                        )}
-
-                        {isQuickEditing && (
-                          <ReflectionTemplatesDropdown
-                            templates={state.reflectionTemplates}
-                            onSelectTemplate={handleReflectionChange}
-                            currentReflection={reflection}
-                            onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
-                          />
-                        )}
+                        <ReflectionHeaderControls
+                          reflection={reflection}
+                          onSelectTemplate={isQuickEditing ? handleReflectionChange : undefined}
+                          templates={state.reflectionTemplates}
+                          onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+                          showCopy={true}
+                          showImportExport={reflection.trim().length > 0}
+                          exportFileName={`journal-${selectedDateStr}.md`}
+                        />
 
                         <button
                           onClick={() => setIsQuickEditing(!isQuickEditing)}
@@ -858,7 +782,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
                               Unwritten Parchment
                             </h4>
                             <p className="text-xs text-slate-500 leading-relaxed">
-                              No reflection has been written for {format(selectedDate, 'MMMM do')}. Record your thoughts, lessons, or achievements.
+                              No reflection has been written for {format(selectedDate, 'MMM do')}. Record your thoughts, lessons, or achievements.
                             </p>
                           </div>
                         </div>
@@ -1016,6 +940,10 @@ export const JournalView: React.FC<JournalViewProps> = ({
           customTargetHours={customTargetHours}
           onUpdateCustomTargetHours={setCustomTargetHours}
           config={state.efficiencyRatingConfig || {}}
+          targetSource={selectedDayStats.targetSource}
+          workstationPresenceMinutes={selectedDayStats.workstationMinutes}
+          workstationIntervalCount={selectedDayStats.workstationIntervalCount}
+          conversionRate={selectedDayStats.conversionRate}
           onUpdateConfig={(newConfig) => {
             onUpdateState?.({
               efficiencyRatingConfig: {

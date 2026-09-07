@@ -34,6 +34,8 @@ import { TalentIcon } from '../talents/TalentIcon';
 import { RewardChestModal } from '../modals/RewardChestModal';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { PopoverPortal } from '../common/PopoverPortal';
+import { WorkstationHeaderControls } from './WorkstationHeaderControls';
+import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
 import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
@@ -87,7 +89,8 @@ interface ExploreViewProps {
   deleteSession: (id: string) => void;
   claimDailyTalentReward: (talentId: string) => void;
   bulkCreateSessions: (data: { count: number, objectiveId: string, startTime: string, endTime: string, focusDuration?: number, restDuration?: number }) => void;
-  bulkDeleteSessions: (data: { startTime: string, endTime: string }) => void;
+  bulkDeleteSessions: (data: { startTime?: string, endTime?: string, sessionIds?: string[] }) => void;
+  bulkUpdateSessions?: (sessionIds: string[], updates: any) => void;
   setPipVictorySummary: (val: { xp: number, coins: number, ts: number } | null) => void;
   togglePip: () => void;
   pipWindow?: Window | null;
@@ -150,6 +153,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   claimDailyTalentReward,
   bulkCreateSessions,
   bulkDeleteSessions,
+  bulkUpdateSessions,
   setPipVictorySummary,
   togglePip,
   pipWindow,
@@ -164,6 +168,19 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 }) => {
   const [showChestModal, setShowChestModal] = React.useState(false);
   const [activeTalentPopover, setActiveTalentPopover] = React.useState<{ id: string; element: HTMLElement } | null>(null);
+  const [showWorkstationLogView, setShowWorkstationLogView] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem('explore_showWorkstationLogView') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('explore_showWorkstationLogView', String(showWorkstationLogView));
+    } catch {}
+  }, [showWorkstationLogView]);
 
   const todayEffectiveMinutes = React.useMemo(() => {
     if (!state.history) return 0;
@@ -526,19 +543,47 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         document.body
       )}
 
-      {/* Standard Explore View */}
-      <motion.div
-        key="explore"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
-      >
-        <PageHeader 
-          title="Explore"
-          description="Venture into the unknown and sharpen your mind"
-          icon={TimerIcon}
-        />
+      {/* Workstation Log Subview or Standard Explore View */}
+      {showWorkstationLogView ? (
+        <motion.div
+          key="workstation-view"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -15 }}
+          className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8"
+        >
+          <WorkstationView
+            state={state}
+            setState={setState}
+            syncToCloud={syncToCloud}
+            onBack={() => {
+              setShowWorkstationLogView(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </motion.div>
+      ) : (
+        /* Standard Explore View */
+        <motion.div
+          key="explore"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
+        >
+          <PageHeader 
+            title="Explore"
+            description="Venture into the unknown and sharpen your mind"
+            icon={TimerIcon}
+            action={
+              <WorkstationHeaderControls
+                state={state}
+                setState={setState}
+                syncToCloud={syncToCloud}
+                onOpenWorkstationView={() => setShowWorkstationLogView(true)}
+              />
+            }
+          />
 
         <div className="w-full flex-1 min-h-0 flex flex-col">
           <div className="w-full flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_440px] 2xl:grid-cols-[1fr_500px] gap-6 xl:gap-8 2xl:gap-12 pb-4 lg:pb-0 h-full lg:h-[calc(100dvh-12rem)] lg:min-h-[600px]">
@@ -911,6 +956,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
             deleteSession={deleteSession}
             bulkCreateSessions={bulkCreateSessions}
             bulkDeleteSessions={bulkDeleteSessions}
+            bulkUpdateSessions={bulkUpdateSessions}
             rewardPool={state.rewardPool}
             timeSettings={state.timeSettings}
             includeRestTimeInTasks={!!state.includeRestTimeInTasks}
@@ -1033,6 +1079,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         />
       )}
     </motion.div>
+    )}
   </>
   );
 };

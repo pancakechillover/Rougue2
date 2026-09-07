@@ -338,6 +338,7 @@ function App() {
     dungeonHistory,
     bulkCreateSessions,
     bulkDeleteSessions,
+    bulkUpdateSessions,
     combineShards,
     repairStreak,
     selectReward,
@@ -1654,6 +1655,7 @@ function App() {
                  claimDailyTalentReward={claimDailyTalentReward}
                  bulkCreateSessions={bulkCreateSessions}
                  bulkDeleteSessions={bulkDeleteSessions}
+                 bulkUpdateSessions={bulkUpdateSessions}
                  setPipVictorySummary={setPipVictorySummary}
                  togglePip={togglePip}
                  pipWindow={pipWindow}

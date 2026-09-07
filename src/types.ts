@@ -185,12 +185,30 @@ export interface Transaction {
   reason: string;
 }
 
+export interface WorkstationInterval {
+  id: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // ISO 8601 string
+  endTime?: string; // ISO 8601 string (undefined if in-progress)
+  durationMinutes?: number;
+  location?: string; // e.g. "Office", "Lab", "Home Desk", "Library", etc.
+  note?: string;
+}
+
+export interface ActiveWorkstationSession {
+  id: string;
+  startTime: string;
+  location?: string;
+  note?: string;
+}
+
 export interface EfficiencyRatingConfig {
   autoCalculateOnOpen?: boolean;
   maxDistractionsPerHour?: number; // b, default 10
   completionRateWeight?: number; // c, default 70 (%)
   focusQualityWeight?: number; // d, default 30 (%)
   ratingDisplayPreference?: 'efficiency' | 'star';
+  targetTimeMode?: 'workstation' | 'daily_goal' | 'manual';
 }
 
 export interface TodayTodo {
@@ -201,6 +219,16 @@ export interface TodayTodo {
   durationMinutes?: number;
   date?: string; // Format: YYYY-MM-DD
   source?: 'manual' | 'expedition' | 'yesterday' | 'ddl' | 'routine';
+}
+
+export interface DailyLog {
+  rating: number;
+  reflection: string;
+  mood?: string;
+  moodScore?: number;
+  sleepTime?: string;
+  wakeTime?: string;
+  sleepDurationMin?: number;
 }
 
 export interface AppState {
@@ -301,17 +329,7 @@ export interface AppState {
     items: { title: string; rewards: QuestReward[]; isAchievement: boolean }[];
     timestamp: string;
   } | null;
-  dailyLogs?: {
-    [date: string]: {
-      rating: number;
-      reflection: string;
-      mood?: string;
-      moodScore?: number;
-      sleepTime?: string;
-      wakeTime?: string;
-      sleepDurationMin?: number;
-    };
-  };
+  dailyLogs?: Record<string, DailyLog>;
   reflectionTemplates?: ReflectionTemplate[];
   journalBookmarks?: string[]; // Array of bookmarked date strings (YYYY-MM-DD)
   enabledMoods?: string[];
@@ -357,6 +375,10 @@ export interface AppState {
   useSameDailyProgressGoalEveryDay?: boolean;
   dailyProgressGoal?: number;
   efficiencyRatingConfig?: EfficiencyRatingConfig;
+  workstationLogs?: Record<string, WorkstationInterval[]>;
+  activeWorkstationSession?: ActiveWorkstationSession | null;
+  workstationLocations?: string[];
+  workstationLocationIcons?: Record<string, string>;
   limitedMentalEffort?: boolean;
   // Custom Time Mocking
   customTimeEnabled?: boolean;
@@ -515,4 +537,12 @@ export interface GachaPool {
     color?: string; // For Ichiban custom colors
     rarityValue?: number; // numeric value (1-6)
   }[];
+}
+
+export interface ChartLayerSelection {
+  time: boolean;
+  totalDistractions: boolean;
+  internal: boolean;
+  external: boolean;
+  unavoidable: boolean;
 }

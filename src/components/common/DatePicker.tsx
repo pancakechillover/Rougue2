@@ -161,7 +161,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
               <ChevronLeft size={20} />
             </button>
             <span className="font-bold text-slate-200">
-              {format(currentMonth, 'MMMM yyyy')}
+              {format(currentMonth, 'MMM yyyy')}
             </span>
             <button onClick={handleNextMonth} className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
               <ChevronRight size={20} />

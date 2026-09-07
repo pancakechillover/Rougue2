@@ -40,6 +40,7 @@ import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { cn, getSessionSettlementDate, getSettlementDay, getSessionEffectiveMinutes, formatDuration } from '../../lib/utils';
+import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
 import { AppState, StudySession, RewardHistoryItem, Dungeon, MajorDungeon } from '../../types';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
@@ -48,7 +49,9 @@ import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
-import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
+import { MoodSelector } from '../common/MoodSelector';
+import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
+import { StarRating } from '../common/StarRating';
 
 interface DailySummaryModalProps {
   state: AppState;
@@ -156,19 +159,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
 
   // End applyFormat
 
-  const renderTemplateControls = () => (
-    <ReflectionTemplatesDropdown
-      templates={state.reflectionTemplates}
-      onSelectTemplate={setReflection}
-      currentReflection={reflection}
-      onUpdateTemplates={(templates) => {
-        if (onUpdateState) {
-          onUpdateState({ reflectionTemplates: templates });
-        }
-      }}
-    />
-  );
-
   React.useEffect(() => {
     localStorage.setItem('scholar_reflection_draft', reflection);
   }, [reflection]);
@@ -275,11 +265,16 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     };
   }, [state, today.dateString, dungeons, majorDungeons]);
 
-  // Default target hours based on Sanctum daily goal & pomodoro duration
-  const defaultTargetHours = useMemo(() => {
-    const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
-    return Math.max(0.1, Number(((dailyStats.dailyGoal * pomodoroDuration) / 60).toFixed(2)));
-  }, [dailyStats.dailyGoal, state.standardSessionMinutes, state.standardRestMinutes]);
+  // Default target hours based on Workstation presence or Sanctum daily goal fallback
+  const targetFocusStats = useMemo(() => {
+    return getEffectiveTargetFocusMinutes(
+      today.dateString,
+      state,
+      dailyStats.effectiveMinutes
+    );
+  }, [today.dateString, state, dailyStats.effectiveMinutes]);
+
+  const defaultTargetHours = targetFocusStats.targetHours;
 
   // Efficiency calculation logic
   const calculateEfficiencyRating = useCallback((
@@ -382,34 +377,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       hasInitializedFromLog.current = true;
     }
   }, [state.dailyLogs, today.dateString, state.efficiencyRatingConfig, dailyStats, defaultTargetHours, customTargetHours, calculateEfficiencyRating]);
-
-  const renderStars = () => {
-    const displayRating = Math.round(rating * 2) / 2;
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      const isFull = displayRating >= i;
-      const isHalf = displayRating >= i - 0.5 && displayRating < i;
-      
-      stars.push(
-        <button
-          key={i}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            if (x < rect.width / 2) {
-              setRating(i - 0.5);
-            } else {
-              setRating(i);
-            }
-          }}
-          className="text-amber-400 hover:scale-110 transition-transform"
-        >
-          {isFull ? <Star className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" /> : isHalf ? <StarHalf className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" /> : <Star className="w-8 h-8 sm:w-10 sm:h-10" />}
-        </button>
-      );
-    }
-    return stars;
-  };
 
   const modalContent = (
     <AnimatePresence>
@@ -573,28 +540,12 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
             <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
               <Heart size={16} className="text-rose-400" /> Feelings
             </h3>
-            <div className="flex flex-wrap justify-center gap-2.5 py-1.5 overflow-y-visible">
-              {MOOD_OPTIONS.filter(m => (state.enabledMoods || DEFAULT_ENABLED_MOODS).includes(m.id)).map((m) => {
-                const isSelected = mood === m.id;
-                const Icon = m.icon;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setMood(isSelected ? "" : m.id)}
-                    className={cn(
-                      "flex flex-col items-center justify-center min-w-[48px] sm:min-w-[64px] p-2 rounded-xl border transition-all pointer-events-auto",
-                      isSelected 
-                        ? `${m.bg} ${m.border} ${m.color} scale-125 shadow-xl z-10` 
-                        : "bg-slate-950/50 border-slate-800 text-slate-500 hover:bg-slate-800 hover:border-slate-700 hover:scale-110"
-                    )}
-                    title={`Select ${m.label}`}
-                  >
-                    <Icon size={20} className="sm:mb-1.5" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:block">{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <MoodSelector
+              value={mood}
+              onChange={(m) => setMood(m || "")}
+              enabledMoods={state.enabledMoods}
+              variant="wrap"
+            />
           </div>
           <div className="bg-slate-800/20 rounded-xl p-3 sm:p-4 border border-slate-700/30 space-y-2.5 lg:flex-1 lg:flex lg:flex-col lg:justify-between">
             <div className="flex items-center justify-between">
@@ -640,7 +591,11 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                     {rating > 0 ? `${((rating / 5) * 100).toFixed(1).replace(/\.0$/, '')}%` : 'None'}
                   </span>
                 ) : (
-                  renderStars()
+                  <StarRating
+                    value={rating}
+                    onChange={setRating}
+                    size="lg"
+                  />
                 )}
               </motion.div>
             </div>
@@ -655,57 +610,20 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
               <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
                 <MessageSquare size={16} className="text-sky-400" /> Daily Reflection
               </h3>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex items-center gap-0 h-[26px]">
-                  {renderTemplateControls()}
-                </div>
-
-                <button
-                  onClick={() => setIsImmersiveMode(true)}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all bg-sky-500/10 text-sky-400 border border-sky-500/30 hover:bg-sky-500/20"
-                >
-                  <Maximize2 size={12} />
-                  <span>Immersive</span>
-                </button>
-
-                <div className="flex items-center gap-0.5 border-l border-slate-700 pl-2 ml-1">
-                  <button
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = '.txt,.md';
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (re) => setReflection(re.target?.result as string);
-                          reader.readAsText(file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                    title="Import Reflection"
-                  >
-                    <Upload size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([reflection], { type: 'text/markdown' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `reflection-${today.dateString}.md`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                    title="Export Reflection"
-                  >
-                    <Download size={14} />
-                  </button>
-                </div>
-              </div>
+              <ReflectionHeaderControls
+                reflection={reflection}
+                onSelectTemplate={setReflection}
+                templates={state.reflectionTemplates}
+                onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+                onOpenImmersive={() => setIsImmersiveMode(true)}
+                immersiveLabel="Immersive"
+                immersiveVariant="sky"
+                showCopy={true}
+                showMetrics={true}
+                showImportExport={true}
+                onImportReflection={setReflection}
+                exportFileName={`reflection-${today.dateString}.md`}
+              />
             </div>
             
             {/* Single Markdown Editor Pane (Regular Modal View) */}
@@ -762,6 +680,10 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           customTargetHours={customTargetHours}
           onUpdateCustomTargetHours={setCustomTargetHours}
           config={state.efficiencyRatingConfig || {}}
+          targetSource={targetFocusStats.source}
+          workstationPresenceMinutes={targetFocusStats.workstationMinutes}
+          workstationIntervalCount={targetFocusStats.intervalCount}
+          conversionRate={targetFocusStats.conversionRate}
           onUpdateConfig={(newConfig) => {
             onUpdateState?.({
               efficiencyRatingConfig: {

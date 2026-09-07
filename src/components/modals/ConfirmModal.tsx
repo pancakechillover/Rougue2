@@ -27,17 +27,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   type = 'warning',
   isAlert = false
 }) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   const modalContent = (
     <AnimatePresence>
       {isOpen && (

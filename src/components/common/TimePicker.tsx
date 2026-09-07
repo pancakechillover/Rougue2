@@ -97,19 +97,19 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
       const decrementCount = () => {
         count--;
         if (count === 0) {
-          // Add a short delay after scroll instruction before releasing flag
+          // Short delay after scroll instruction before releasing flag
           setTimeout(() => {
             isScrollingToActive.current = false;
-          }, 150);
+          }, 100);
         }
       };
 
       if (hourRef.current) {
         const targetIndex = 24 + parseInt(hVal, 10);
-        const targetScrollTop = targetIndex * 36 - 37;
+        const targetScrollTop = (targetIndex - 1) * 36;
         hourRef.current.scrollTo({
           top: targetScrollTop,
-          behavior: 'auto'
+          behavior: smooth ? 'smooth' : 'auto'
         });
         decrementCount();
       } else {
@@ -118,16 +118,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
 
       if (minRef.current) {
         const targetIndex = 60 + parseInt(mVal, 10);
-        const targetScrollTop = targetIndex * 36 - 37;
+        const targetScrollTop = (targetIndex - 1) * 36;
         minRef.current.scrollTo({
           top: targetScrollTop,
-          behavior: 'auto'
+          behavior: smooth ? 'smooth' : 'auto'
         });
         decrementCount();
       } else {
         decrementCount();
       }
-    }, 30);
+    }, 20);
   };
 
   useEffect(() => {
@@ -159,18 +159,18 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
     const scrollTop = hourRef.current.scrollTop;
     
     // Total cycle is 24 * 36 = 864px
-    if (scrollTop < 400) {
+    if (scrollTop < 300) {
       hourRef.current.scrollTop = scrollTop + 864;
       return;
     }
-    if (scrollTop > 2000) {
+    if (scrollTop > 1800) {
       hourRef.current.scrollTop = scrollTop - 864;
       return;
     }
 
     if (isScrollingToActive.current) return;
 
-    const centeredIndex = Math.round((scrollTop + 37) / 36);
+    const centeredIndex = Math.round(scrollTop / 36) + 1;
     const currentHour = String(centeredIndex % 24).padStart(2, '0');
     
     if (currentHour !== hours) {
@@ -184,23 +184,62 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
     const scrollTop = minRef.current.scrollTop;
     
     // Total cycle is 60 * 36 = 2160px
-    if (scrollTop < 1000) {
+    if (scrollTop < 800) {
       minRef.current.scrollTop = scrollTop + 2160;
       return;
     }
-    if (scrollTop > 5000) {
+    if (scrollTop > 4500) {
       minRef.current.scrollTop = scrollTop - 2160;
       return;
     }
 
     if (isScrollingToActive.current) return;
 
-    const centeredIndex = Math.round((scrollTop + 37) / 36);
+    const centeredIndex = Math.round(scrollTop / 36) + 1;
     const currentMin = String(centeredIndex % 60).padStart(2, '0');
     
     if (currentMin !== minutes) {
        setMinutes(currentMin);
        onChange(`${hours}:${currentMin}`);
+    }
+  };
+
+  // Wheel Accumulators for discrete, stepped mouse wheel scrolling
+  const hourWheelAcc = useRef(0);
+  const minWheelAcc = useRef(0);
+
+  const handleHourWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    hourWheelAcc.current += e.deltaY;
+    const threshold = 25;
+    if (Math.abs(hourWheelAcc.current) >= threshold) {
+      const dir = hourWheelAcc.current > 0 ? 1 : -1;
+      hourWheelAcc.current = 0;
+      const cur = parseInt(hours, 10) || 0;
+      const next = (cur + dir + 24) % 24;
+      const formatted = String(next).padStart(2, '0');
+      setHours(formatted);
+      onChange(`${formatted}:${minutes}`);
+      scrollToActive(formatted, minutes, false);
+    }
+  };
+
+  const handleMinWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    minWheelAcc.current += e.deltaY;
+    const threshold = 20;
+    if (Math.abs(minWheelAcc.current) >= threshold) {
+      const dir = minWheelAcc.current > 0 ? 1 : -1;
+      minWheelAcc.current = 0;
+      const step = e.shiftKey ? 5 : 1;
+      const cur = parseInt(minutes, 10) || 0;
+      const next = (cur + dir * step + 60) % 60;
+      const formatted = String(next).padStart(2, '0');
+      setMinutes(formatted);
+      onChange(`${hours}:${formatted}`);
+      scrollToActive(hours, formatted, false);
     }
   };
 
@@ -325,15 +364,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
            </div>
 
            {/* Section 3: Value Columns */}
-           <div className="flex h-[110px] overflow-hidden relative bg-slate-950/40 border border-slate-800 rounded-lg">
-              {/* Highlight bar in the center */}
-              <div className="absolute top-1/2 left-0 right-0 h-9 -mt-4.5 bg-indigo-500/15 border-y border-indigo-500/35 pointer-events-none" />
+           <div className="flex h-[108px] overflow-hidden relative bg-slate-950/40 border border-slate-800 rounded-lg">
+              {/* Highlight bar in the exact center row (36px high, at top 36px) */}
+              <div className="absolute top-[36px] left-0 right-0 h-[36px] bg-indigo-500/15 border-y border-indigo-500/35 pointer-events-none" />
               
               {/* Hours Scroll Column */}
               <div 
                 ref={hourRef} 
                 onScroll={handleHourScroll}
-                className="flex-1 overflow-y-auto overflow-x-hidden select-none touch-pan-y no-scrollbar snap-y snap-mandatory"
+                onWheel={handleHourWheel}
+                className="flex-1 overflow-y-auto overflow-x-hidden select-none touch-pan-y no-scrollbar"
               >
                  {ALL_HOURS_INFINITE.map((h, i) => {
                    const isSelected = h === hours;
@@ -345,11 +385,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
                           e.stopPropagation();
                           setHours(h);
                           onChange(`${h}:${minutes}`);
-                          scrollToActive(h, minutes, false);
+                          scrollToActive(h, minutes, true);
                        }}
                        className={cn(
-                         "h-9 flex items-center justify-center cursor-pointer snap-center text-base transition-all",
-                         isSelected ? "active-h text-indigo-400 font-bold scale-110" : "text-slate-400 hover:text-slate-200"
+                         "h-[36px] flex items-center justify-center cursor-pointer text-base transition-all select-none",
+                         isSelected ? "active-h text-indigo-400 font-bold scale-110" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
                        )}
                      >
                        {h}
@@ -364,7 +404,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
               <div 
                 ref={minRef} 
                 onScroll={handleMinScroll}
-                className="flex-1 overflow-y-auto overflow-x-hidden select-none touch-pan-y no-scrollbar snap-y snap-mandatory"
+                onWheel={handleMinWheel}
+                className="flex-1 overflow-y-auto overflow-x-hidden select-none touch-pan-y no-scrollbar"
               >
                  {ALL_MINS_INFINITE.map((m, i) => {
                    const isSelected = m === minutes;
@@ -376,11 +417,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
                           e.stopPropagation();
                           setMinutes(m);
                           onChange(`${hours}:${m}`);
-                          scrollToActive(hours, m, false);
+                          scrollToActive(hours, m, true);
                        }}
                        className={cn(
-                         "h-9 flex items-center justify-center cursor-pointer snap-center text-base transition-all",
-                         isSelected ? "active-m text-indigo-400 font-bold scale-110" : "text-slate-400 hover:text-slate-200"
+                         "h-[36px] flex items-center justify-center cursor-pointer text-base transition-all select-none",
+                         isSelected ? "active-m text-indigo-400 font-bold scale-110" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
                        )}
                      >
                        {m}
