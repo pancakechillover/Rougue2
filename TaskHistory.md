@@ -1,5 +1,9 @@
 # Task History Archive
 
+- **v9.2.9 (2026-09-07):** Weekly Distraction Hourly Rate Metric & Efficiency Trend Interaction Fix
+  - *Distraction Rate Metric (/h):* Updated the distraction line charts in the Weekly view (`StatsWeeklySection.tsx` & `Stats.tsx`) to measure distraction intensity by hourly rate (`distractions / (focusHours)` as `count/h`) rather than raw counts; updated Y-axis tick formatting to `${val}/h` with flexible decimal support and appropriate right padding.
+  - *Efficiency Trend Bubble Interaction:* Fixed unclickable bubble points on the Weekly Efficiency Trend chart by decoupling the LineChart key from the ComposedChart key with `lineChartKey`, stabilizing tooltips against unmount cycles, and mapping direct data property keys for precise Recharts hit detection.
+
 - **v9.2.8 (2026-09-07):** Modernized Edit Session Architecture & Full-Featured Bulk Session Operations Hub
   - *Unified Edit Session Modal:* Transferred Study Note authoring/editing directly into the dedicated `EditSessionModal` with live hashtag insertion pills; added editable distraction breakdown counters (`Internal`, `External`, `Unavoidable`); eliminated manual Total Duration input by auto-calculating `Total = Focus + Rest`.
   - *Full-Featured Bulk Session Operations Hub:* Completely modernized `BulkSessionModal.tsx` into a 3-tab hub:

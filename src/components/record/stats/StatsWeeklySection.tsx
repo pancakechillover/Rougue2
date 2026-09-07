@@ -48,6 +48,7 @@ interface StatsWeeklySectionProps {
   weeklyGains: { coins: number; xp: number; tasks: number; distractions: number };
   weeklyData: any[];
   chartKey: number;
+  lineChartKey?: number;
   handleChartClick: (state: any, chartId: string) => void;
   activeChart: string | null;
   weeklyTimeAxis: { domain: [number, number]; ticks: number[] };
@@ -321,6 +322,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   weeklyGains,
   weeklyData,
   chartKey,
+  lineChartKey,
   handleChartClick,
   activeChart,
   weeklyTimeAxis,
@@ -458,12 +460,16 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                   <YAxis 
                     yAxisId="distractions" 
                     orientation={bothAxes ? 'right' : 'left'} 
-                    domain={[0, (dataMax: number) => Math.max(4, Math.ceil(dataMax * 1.25))]} 
-                    allowDecimals={false} 
+                    domain={[0, (dataMax: number) => Math.max(2, Math.ceil((dataMax || 0) * 1.25))]} 
+                    allowDecimals={true} 
+                    tickFormatter={(val: number) => {
+                      if (val === 0) return '0';
+                      return Number.isInteger(val) ? `${val}/h` : `${val.toFixed(1)}/h`;
+                    }}
                     tick={{ fill: '#64748b', fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
-                    width={bothAxes ? 20 : 28}
+                    width={bothAxes ? 32 : 36}
                   />
                 )}
                 <Tooltip 
@@ -488,7 +494,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                   </>
                 )}
                 {!hasTime && hasDistractions && (
-                  <Bar yAxisId="distractions" dataKey="distractions" isAnimationActive={false}>
+                  <Bar yAxisId="distractions" dataKey="distractionsRate" isAnimationActive={false}>
                     {weeklyData.map((_, index) => (
                       <Cell key={`transparent-weekly-cell-${index}`} fill="transparent" fillOpacity={0} stroke="transparent" />
                     ))}
@@ -498,52 +504,52 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                   <Line 
                     yAxisId="distractions" 
                     type="monotone" 
-                    dataKey="distractions" 
+                    dataKey="distractionsRate" 
                     stroke="#f43f5e" 
                     strokeWidth={2.5} 
                     isAnimationActive={false}
                     dot={{ fill: '#f43f5e', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
                     activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#f43f5e' }}
-                    name="Total Distractions"
+                    name="Total Distractions (/h)"
                   />
                 )}
                 {activeLayers.internal && (
                   <Line 
                     yAxisId="distractions" 
                     type="monotone" 
-                    dataKey="internal" 
+                    dataKey="internalRate" 
                     stroke="#818cf8" 
                     strokeWidth={2} 
                     isAnimationActive={false}
                     dot={{ fill: '#818cf8', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
                     activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#818cf8' }}
-                    name="Internal"
+                    name="Internal (/h)"
                   />
                 )}
                 {activeLayers.external && (
                   <Line 
                     yAxisId="distractions" 
                     type="monotone" 
-                    dataKey="external" 
+                    dataKey="externalRate" 
                     stroke="#fb923c" 
                     strokeWidth={2} 
                     isAnimationActive={false}
                     dot={{ fill: '#fb923c', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
                     activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#fb923c' }}
-                    name="External"
+                    name="External (/h)"
                   />
                 )}
                 {activeLayers.unavoidable && (
                   <Line 
                     yAxisId="distractions" 
                     type="monotone" 
-                    dataKey="unavoidable" 
+                    dataKey="unavoidableRate" 
                     stroke="#ef4444" 
                     strokeWidth={2} 
                     isAnimationActive={false}
                     dot={{ fill: '#ef4444', stroke: '#ffffff', strokeWidth: 1.5, r: 3.5 }}
                     activeDot={{ r: 5.5, strokeWidth: 2, stroke: '#ffffff', fill: '#ef4444' }}
-                    name="Unavoidable"
+                    name="Unavoidable (/h)"
                   />
                 )}
               </ComposedChart>
@@ -558,7 +564,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
             <div className="h-32 min-h-[128px]">
               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart 
-                  key={`trend-${chartKey}`}
+                  key={`trend-${lineChartKey ?? chartKey}`}
                   data={weeklyData} 
                   margin={{ top: 12, right: weeklyLayerMode === 'both' ? 12 : 16, left: 0, bottom: 0 }} 
                   onClick={(state) => handleChartClick(state, 'weeklyLine')} 
@@ -577,7 +583,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                     tickFormatter={state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? (val) => `${val}%` : (val) => String(val)}
                   />
                   <Tooltip 
-                    key={`trend-tip-${chartKey}`}
+                    key={`trend-tip-${lineChartKey ?? chartKey}`}
                     trigger="click"
                     content={<CustomWeeklyTooltip allData={weeklyData} activeChart={activeChart} chartId="weeklyLine" formatDuration={formatDuration} />}
                     cursor={false}
@@ -586,12 +592,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                   />
                   <Line 
                     type="monotone" 
-                    dataKey={(d) => {
-                      if (state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency') {
-                        return Math.round((d.efficiency || 0) * 20); // Scale 0-5 stars to 0-100%
-                      }
-                      return d.efficiency || 0;
-                    }}
+                    dataKey="efficiencyDisplay"
                     stroke="var(--color-indigo-500, #6366f1)" 
                     strokeWidth={2.5} 
                     isAnimationActive={false}

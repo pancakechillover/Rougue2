@@ -868,13 +868,21 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
           dayTotalDistractions += (intCount + extCount + unavCount);
         }
       });
-      if (true) {
-        counts.Morning = Math.floor(counts.Morning);
-        counts.Afternoon = Math.floor(counts.Afternoon);
-        counts.Night = Math.floor(counts.Night);
-        counts.Other = Math.floor(counts.Other);
-      }
+      counts.Morning = Math.floor(counts.Morning);
+      counts.Afternoon = Math.floor(counts.Afternoon);
+      counts.Night = Math.floor(counts.Night);
+      counts.Other = Math.floor(counts.Other);
       const total = counts.Morning + counts.Afternoon + counts.Night + counts.Other;
+      const hours = total > 0 ? (total / 60) : 0;
+      const distractionsRate = hours > 0 ? Number((dayTotalDistractions / hours).toFixed(1)) : 0;
+      const internalRate = hours > 0 ? Number((dayInternal / hours).toFixed(1)) : 0;
+      const externalRate = hours > 0 ? Number((dayExternal / hours).toFixed(1)) : 0;
+      const unavoidableRate = hours > 0 ? Number((dayUnavoidable / hours).toFixed(1)) : 0;
+      const efficiencyVal = log?.rating || 0;
+      const efficiencyDisplay = state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency'
+        ? Math.round(efficiencyVal * 20)
+        : efficiencyVal;
+
       return {
         name: format(date, 'EEE').toUpperCase(),
         fullDate: format(date, 'EEE, MMM d, yyyy'),
@@ -889,13 +897,18 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
         external: dayExternal,
         unavoidable: dayUnavoidable,
         distractions: dayTotalDistractions,
+        internalRate,
+        externalRate,
+        unavoidableRate,
+        distractionsRate,
         moodHeight: 0,
         mood: log?.mood,
         efficiency: log?.rating || null,
+        efficiencyDisplay,
         timestamp: date.getTime(),
       };
     });
-  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, getPeriodInfo]);
+  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, state.efficiencyRatingConfig?.ratingDisplayPreference, getPeriodInfo]);
 
   const isFixedYAxis = viewOpts.yAxisMaxMode === 'fixed';
 
@@ -1031,6 +1044,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
             weeklyGains={weeklyGains}
             weeklyData={weeklyData}
             chartKey={chartKeys.weeklyBar}
+            lineChartKey={chartKeys.weeklyLine}
             handleChartClick={handleChartClick}
             activeChart={activeChart}
             weeklyTimeAxis={weeklyTimeAxis}

@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.2.8
+- **Current Version:** v9.2.9
 - **Last Update Date:** 2026-09-07
-- **Last Update Time:** 06:15:00
+- **Last Update Time:** 06:35:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,6 +69,10 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
+- **v9.2.9 (2026-09-07):** Weekly Distraction Hourly Rate Metric & Efficiency Trend Interaction Fix
+  - *Distraction Rate Metric (/h):* Updated the distraction line charts in the Weekly view (`StatsWeeklySection.tsx` & `Stats.tsx`) to measure distraction intensity by hourly rate (`distractions / (focusHours)` as `count/h`) rather than raw counts; updated Y-axis tick formatting to `${val}/h` with flexible decimal support and appropriate right padding.
+  - *Efficiency Trend Bubble Interaction:* Fixed unclickable bubble points on the Weekly Efficiency Trend chart by decoupling the LineChart key from the ComposedChart key with `lineChartKey`, stabilizing tooltips against unmount cycles, and mapping direct data property keys for precise Recharts hit detection.
+
 - **v9.2.8 (2026-09-07):** Modernized Edit Session Architecture & Full-Featured Bulk Session Operations Hub
   - *Unified Edit Session Modal:* Transferred Study Note authoring/editing directly into the dedicated `EditSessionModal` with live hashtag insertion pills; added editable distraction breakdown counters (`Internal`, `External`, `Unavoidable`); eliminated manual Total Duration input by auto-calculating `Total = Focus + Rest`.
   - *Full-Featured Bulk Session Operations Hub:* Completely modernized `BulkSessionModal.tsx` into a 3-tab hub:
@@ -81,8 +85,3 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
   - *Table Row Exit Animation Optimization:* Removed disruptive `mode="popLayout"` from `<AnimatePresence>` in `RecentSessions.tsx` and switched to `layout="position"` with a fast, smooth fade-out (`duration: 0.15s`), preventing deleted `<tr>` elements from turning into absolute-positioned out-of-flow blocks that momentarily expand container height.
   - *Confirm Modal Non-Intrusive Scroll State:* Removed `document.body.style.overflow = 'hidden'` toggling from `ConfirmModal.tsx`, keeping page body overflow completely stable during dialog confirmation without triggering scrollbar show/hide layout shifts.
   - *Cross-Browser Scrollbar Rule Hardening:* Added standard `scrollbar-width: none` and `-ms-overflow-style: none` to `html, body, #root` in `src/index.css` to prevent brief browser-native scrollbar flashes on modern browsers.
-
-- **v9.2.6 (2026-09-07):** PiP Window Victory Rewards Dynamic Expansion & Ultra-Compact Summary Adaptation
-  - *Dynamic Height Adaptive Reward Cards:* Replaced hardcoded `max-h-[145px]` constraint with `flex-1 min-h-0` in `CompactTimer.tsx`, allowing the 3 reward cards to expand fully and naturally without clipping or scrollbars whenever the PiP window has sufficient vertical space.
-  - *Ultra-Compact Skip/Auto-Reward Summary:* Implemented responsive 3-tier layout architecture (`pip-overlay-standard`, `pip-overlay-condensed`, `pip-overlay-minimal`) for `showTransientSummary`, ensuring that auto-skipped or auto-selected victory summaries fit cleanly into a streamlined horizontal bar in ultra-narrow and low-height PiP modes without any text clipping.
-  - *Responsive Overflow Guard:* Maintained clean scrolling fallback for compact window heights while pinning bottom chest actions (`Save to Chest`).
