@@ -1081,7 +1081,7 @@ export function useGameState() {
 
   const lastCompletedSessionRef = useRef<{ time: number; key: string } | null>(null);
 
-  const completeSession = useCallback((dungeonId: string | null, duration: number, focusDuration?: number, restDuration?: number, customTimestamp?: number, distractions?: { internal: number; external: number; unavoidable: number }) => {
+  const completeSession = useCallback((dungeonId: string | null, duration: number, focusDuration?: number, restDuration?: number, customTimestamp?: number, distractions?: { internal: number; external: number; unavoidable: number }, assignedDateStr?: string) => {
     // Deduplication safeguard for active live sessions (prevents concurrent double trigger in multi-window/portal states)
     if (!customTimestamp) {
       const sessionKey = `${dungeonId || 'free_study'}_${duration}_${focusDuration || 0}_${restDuration || 0}_${distractions?.internal || 0}_${distractions?.external || 0}_${distractions?.unavoidable || 0}`;
@@ -1100,7 +1100,7 @@ export function useGameState() {
         localTimeRecord = new Date(absoluteNow.toLocaleString('en-US', { timeZone: state.timezone }));
       } catch (e) {}
     }
-    const todayStr = getSettlementDay(localTimeRecord, state.timeSettings);
+    const todayStr = assignedDateStr || getSettlementDay(localTimeRecord, state.timeSettings);
     
     // Calculate rewards
     let baseXP = 100;
@@ -1183,6 +1183,7 @@ export function useGameState() {
       restDuration: sessionRest,
       distractions: sessionDistractions,
       timestamp: absoluteNow.toISOString(),
+      assignedDateStr: assignedDateStr || todayStr,
       coinsEarned: Math.ceil(baseCoins),
       xpEarned: Math.floor(baseXP),
       isCrit

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StudySession, Dungeon, AppState, MajorDungeon } from '../../types';
-import { cn } from '../../lib/utils';
+import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
 import { Check, X, Clock, Trash2 } from 'lucide-react';
-import { format, isSameDay, subDays } from 'date-fns';
+import { format } from 'date-fns';
 
 export const RoutineCellEditor = ({ 
   date, 
@@ -24,7 +24,7 @@ export const RoutineCellEditor = ({
   majorDungeons?: MajorDungeon[];
   onUpdateState?: (updates: any) => void;
   deleteSession?: (id: string) => void;
-  completeSession?: (dungeonId: string | null, duration: number, focusDuration?: number, restDuration?: number, customTimestamp?: number) => void;
+  completeSession?: (dungeonId: string | null, duration: number, focusDuration?: number, restDuration?: number, customTimestamp?: number, distractions?: any, assignedDateStr?: string) => void;
   timezone?: string;
   timeSettings?: AppState['timeSettings'];
   onClose?: () => void;
@@ -32,67 +32,52 @@ export const RoutineCellEditor = ({
   const [durationStr, setDurationStr] = useState('30');
   
   const routine = dungeons.find(d => d.id === routineId) || majorDungeons?.find(m => m.id === routineId);
-  if (!routine) return null;
+  const targetDateStr = format(date, 'yyyy-MM-dd');
+  const descendantIds = useMemo(() => getDescendantDungeonIds(routineId, dungeons), [routineId, dungeons]);
 
   // find sessions on this date for this routine
-  const sessions = history.filter(s => {
-    let sessionDate = new Date(s.timestamp);
-    if (timezone) {
-      try {
-        const str = sessionDate.toLocaleString('en-US', { timeZone: timezone });
-        sessionDate = new Date(str);
-      } catch (e) {}
-    }
-    const resetHour = timeSettings?.night?.end || 0;
-    if (resetHour > 0 && sessionDate.getHours() < resetHour) {
-      sessionDate = subDays(sessionDate, 1);
-    }
-    return isSameDay(sessionDate, date) && (s.dungeonId === routineId || routineId === dungeons.find(x => x.id === s.dungeonId)?.parentId);
-  });
+  const sessions = useMemo(() => {
+    return history.filter(s => {
+      const dayStr = getSessionSettlementDate(s, timeSettings, timezone);
+      return dayStr === targetDateStr && descendantIds.has(s.dungeonId);
+    });
+  }, [history, targetDateStr, descendantIds, timezone, timeSettings]);
+
+  if (!routine) return null;
 
   const handleAdd = () => {
     const mins = parseInt(durationStr);
-    if (isNaN(mins) || mins <= 0 || !onUpdateState) return;
+    if (isNaN(mins) || mins <= 0) return;
     
-    // We want a physical timestamp that, when interpreted in the target timezone, 
-    // falls on the exact calendar day represented by `date`.
-    let targetTimestamp = date.getTime() + 12 * 60 * 60 * 1000;
+    // Create a safe noon date for the given calendar day
+    const [y, m, d] = targetDateStr.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, d, 12, 0, 0, 0);
 
-    if (timezone) {
-      // Find an absolute timestamp that will map to the target date around noon in the target timezone
-      // We can iterate hour offsets from a sensible UTC baseline.
-      const utcNoon = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
-      targetTimestamp = utcNoon; // fallback
-      
-      for (let offset = -24; offset <= 24; offset++) {
-        const testTime = utcNoon + offset * 60 * 60 * 1000;
-        try {
-          const str = new Date(testTime).toLocaleString('en-US', { timeZone: timezone });
-          const testD = new Date(str);
-          if (testD.getFullYear() === date.getFullYear() && testD.getMonth() === date.getMonth() && testD.getDate() === date.getDate()) {
-            targetTimestamp = testTime;
-            if (testD.getHours() === 12) {
-              break;
-            }
-          }
-        } catch(e) {}
-      }
+    if (completeSession) {
+      completeSession(
+        routineId,
+        mins,
+        mins,
+        0,
+        targetDate.getTime(),
+        { internal: 0, external: 0, unavoidable: 0 },
+        targetDateStr
+      );
+    } else if (onUpdateState) {
+      const newSession: StudySession = {
+        id: "SD-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        dungeonId: routineId,
+        timestamp: targetDate.toISOString(),
+        assignedDateStr: targetDateStr,
+        duration: mins,
+        focusDuration: mins,
+        restDuration: 0,
+        distractions: { internal: 0, external: 0, unavoidable: 0 },
+        coinsEarned: 0,
+        xpEarned: 0
+      };
+      onUpdateState({ history: [...history, newSession] });
     }
-
-    // Bypass complex completeSession RPG logic for manual force check-ins to guarantee it works.
-    // Also, historical manual corrections should not grant XP/Coins to prevent cheating.
-    const newSession: StudySession = {
-      id: "SD-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      dungeonId: routineId,
-      timestamp: new Date(targetTimestamp).toISOString(),
-      duration: mins,
-      focusDuration: mins,
-      restDuration: 0,
-      distractions: { internal: 0, external: 0, unavoidable: 0 },
-      coinsEarned: 0,
-      xpEarned: 0
-    };
-    onUpdateState({ history: [...history, newSession] });
     setDurationStr('30');
     if (onClose) onClose();
   };

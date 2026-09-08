@@ -159,8 +159,18 @@ export function getSessionDistractionCount(distractions: any): number {
   return 0;
 }
 
-export function getSessionSettlementDate(session: any, timeSettings: any): string {
-  return getSettlementDay(new Date(session.timestamp), timeSettings);
+export function getSessionSettlementDate(session: any, timeSettings?: any, timezone?: string): string {
+  if (session?.assignedDateStr) {
+    return session.assignedDateStr;
+  }
+  let sessionDate = new Date(session.timestamp);
+  if (timezone) {
+    try {
+      const str = sessionDate.toLocaleString('en-US', { timeZone: timezone });
+      sessionDate = new Date(str);
+    } catch (e) {}
+  }
+  return getSettlementDay(sessionDate, timeSettings);
 }
 
 export const getXPForLevel = (lvl: number) => 1000 + Math.floor((lvl - 1) / 10) * 100;
@@ -196,6 +206,21 @@ export function getDeviceType(): string {
   if (/Windows/i.test(ua)) return 'Windows';
   if (/Linux/i.test(ua)) return 'Linux';
   return 'Unknown Device';
+}
+
+export function getDescendantDungeonIds(targetId: string, allDungeons: Dungeon[] = []): Set<string> {
+  const ids = new Set<string>([targetId]);
+  let added = true;
+  while (added) {
+    added = false;
+    for (const d of allDungeons) {
+      if (d.parentId && ids.has(d.parentId) && !ids.has(d.id)) {
+        ids.add(d.id);
+        added = true;
+      }
+    }
+  }
+  return ids;
 }
 
 export function getDeviceCode(): string {

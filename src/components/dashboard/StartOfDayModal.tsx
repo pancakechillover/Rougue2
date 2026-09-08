@@ -291,7 +291,14 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       const cleanTitle = yTodo.title.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
       if (yTodo.dungeonId) {
         const dungeon = dungeonMap.get(yTodo.dungeonId);
+        const majorDungeon = majorDungeonMap.get(yTodo.dungeonId);
+        if (!dungeon && !majorDungeon) continue;
         if (dungeon && (dungeon.status === 'completed' || dungeon.status === 'archived')) continue;
+        if (majorDungeon && (majorDungeon.status === 'completed' || majorDungeon.status === 'archived')) continue;
+        if (dungeon?.parentId) {
+          const parentMajor = majorDungeonMap.get(dungeon.parentId);
+          if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) continue;
+        }
         if (existingDungeonIds.has(yTodo.dungeonId)) continue;
         existingDungeonIds.add(yTodo.dungeonId);
         itemsToAdd.push({
@@ -317,6 +324,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       if (d.status === 'completed' || d.status === 'archived') return false;
       if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
       const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) return false;
       const hasDeadline = (d.deadline && d.deadline.trim() !== '') || (parentMajor?.deadline && parentMajor.deadline.trim() !== '');
       return Boolean(hasDeadline);
     });
@@ -337,6 +345,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       if (d.status === 'completed' || d.status === 'archived') return false;
       if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
       const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) return false;
       return Boolean(d.isRoutine || parentMajor?.isRoutine);
     });
 
@@ -351,8 +360,24 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       });
     }
 
+    const activeRoutineMajors = (majorDungeons || []).filter(m => {
+      if (m.status === 'completed' || m.status === 'archived') return false;
+      return Boolean(m.isRoutine);
+    });
+
+    for (const m of activeRoutineMajors) {
+      if (existingDungeonIds.has(m.id)) continue;
+      existingDungeonIds.add(m.id);
+      const cleanMajorName = m.name.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+      itemsToAdd.push({
+        title: cleanMajorName,
+        dungeonId: m.id,
+        source: 'routine'
+      });
+    }
+
     return itemsToAdd;
-  }, [todayStr, allTodos, startDayTodos, dungeons, dungeonMap, majorDungeonMap, state.timeSettings]);
+  }, [todayStr, allTodos, startDayTodos, dungeons, majorDungeons, dungeonMap, majorDungeonMap, state.timeSettings]);
 
   const handleImportPendingAndDdl = () => {
     if (importableTasks.length === 0 || !onUpdateState) return;

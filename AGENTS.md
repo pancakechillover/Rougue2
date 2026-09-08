@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.3.2
+- **Current Version:** v9.3.6
 - **Last Update Date:** 2026-09-08
-- **Last Update Time:** 04:45:00
+- **Last Update Time:** 05:58:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,16 +69,16 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.3.2 (2026-09-08):** Fix Missing Distraction Counts in Newly Created Focus Sessions
-  - *Live Distraction Store Retrieval in Timer:* Fixed an issue in `Timer.tsx` where `handleComplete` closed over stale initial `distractions` state (`0, 0, 0`), discarding user distraction clicks upon timer completion or skip. Now reads fresh live distraction counts directly from `useTimerStore.getState().distractions` and safely resets the store only after completion payload dispatch.
-  - *Defensive Distraction Normalization across Session Creation:* Added strict distraction object normalization (`{ internal, external, unavoidable }`) across `completeSession` and `bulkCreateSessions` in `useGameState.ts`, `RoutineCellEditor.tsx`, and `EditSessionModal.tsx`, guaranteeing that all newly generated or updated sessions maintain a non-null, structured distraction record.
+- **v9.3.6 (2026-09-08):** Restore & Enhance PiP Header Progress Bar Fill Color & Track Thickness
+  - *Vibrant Filled Progress Bar:* Replaced the flat hairline/border in `CompactTimer.tsx` with a dedicated, theme-adaptive filled progress bar (`bg-indigo-500` / `bg-emerald-500` with subtle glow) across all PiP window sizes.
+  - *Detached Window Style Resilience:* Switched from framer-motion DOM bindings to direct CSS width percentage transitions (`transition-all duration-500`), ensuring the progress fill renders instantly and reliably in Document Picture-in-Picture windows.
+  - *Optimized Track Height & Padding:* Raised the minimum progress bar height in ultra-compact modes to 3.5px/3px and eliminated border collapse so progress is vividly legible in all themes.
 
-- **v9.3.1 (2026-09-08):** Fix Distraction Statistics Aggregation & Weekly Avg Distracted Rate Calculation
-  - *Distraction Object Parsing in Utils:* Fixed `getSessionDistractionCount` in `src/lib/utils.ts` which omitted object distraction schemas `{ internal, external, unavoidable }`, causing heatmap statistics and utility aggregators to miss distraction counts and return 0.
-  - *Weekly Hourly Rate & Overview Cards Fix:* Fixed an arithmetic mismatch in `StatsWeeklySection.tsx` and `StatsOverviewCards.tsx` where 7-day total distractions were divided by 1 day's average focus time (artificially multiplying the hourly distraction rate by 7). Now accurately computes `distractionsPerHour` against total focus minutes (`totalDistractions / (totalFocusMinutes / 60)`), and enhanced the card tooltip to display full weekly totals and daily averages.
-  - *Consistent Weekly Rolling Period Filtering:* Fixed `getGainsForPeriod` in `Stats.tsx` to filter on `s.assignedDate` using full day intervals (`startOfDay` to `endOfDay`), ensuring 100% data synchronization with `weeklyData` across both Natural and Last 7d rolling modes.
+- **v9.3.5 (2026-09-08):** Enhance PiP & Timer Distraction Badge Legibility & Light Font Color
+  - *High-Contrast White Typography:* Upgraded distraction count badge typography in `CompactTimer.tsx` (both minimal horizontal pill and standard mode layouts) and `Timer.tsx` to use crisp, solid light text (`text-white font-black`) with high-contrast colored backgrounds (`bg-indigo-600`, `bg-orange-600`, `bg-red-600`).
+  - *Rest Mode Color Harmonization:* Improved resting state distraction badge readability with clear `bg-slate-700/60 text-slate-300` styling, ensuring optimal visibility across both light and dark themes.
 
-- **v9.3.0 (2026-09-08):** Fix Duplicate Session Completion Bug on PiP/Fullscreen Transitions & State Guard
-  - *Prevent Concurrent Dual-Instance Timer Mounting:* Fixed an issue in `ExploreView.tsx` where `renderTimerContent()` was simultaneously rendered in both the fullscreen portal and the standard page view layout when `isFullscreenExplore` was active, causing two distinct `Timer` component instances to run worker timers and fire duplicate completions. Conditioned the standard view container with `{!isFullscreenExplore && renderTimerContent()}`.
-  - *State Manager Completion Deduplication Guard:* Added an idempotent sub-second cooldown guard (`2000ms`) inside `completeSession` in `useGameState.ts` to intercept and safely drop identical concurrent completion calls.
-  - *Official Release Rollout:* Aggregated changelog and updated `RELEASE_HISTORY` and `public/version.json` for major release `v9.3.0`.
+- **v9.3.4 (2026-09-08):** Fix Routine Manual Check-In State Persistence & Assigned Date Synchronization
+  - *Assigned Settlement Date Storage in CompleteSession:* Upgraded `completeSession` in `useGameState.ts` to accept and persist explicit `assignedDateStr` attributes onto new `StudySession` records, ensuring manually added check-in sessions are forever locked to the user's targeted calendar date.
+  - *Unified Date Settlement Evaluation:* Enhanced `getSessionSettlementDate` in `src/lib/utils.ts` to prioritize `session.assignedDateStr` and adapt seamlessly to timezones and custom day start thresholds across `RoutineTracker.tsx`, `RoutineCellEditor.tsx`, and `RoutineDetailModal.tsx`.
+  - *Manual Check-In Reactivity & Fallback:* Updated `RoutineCellEditor.tsx` to dispatch `completeSession` with explicit `targetDateStr` bounds and instant optimistic `onUpdateState` fallback, guaranteeing immediate checkmark rendering in the tracker table upon adding records.

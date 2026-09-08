@@ -1,5 +1,24 @@
 # Task History Archive
 
+- **v9.3.6 (2026-09-08):** Restore & Enhance PiP Header Progress Bar Fill Color & Track Thickness
+  - *Vibrant Filled Progress Bar:* Replaced the flat hairline/border in `CompactTimer.tsx` with a dedicated, theme-adaptive filled progress bar (`bg-indigo-500` / `bg-emerald-500` with subtle glow) across all PiP window sizes.
+  - *Detached Window Style Resilience:* Switched from framer-motion DOM bindings to direct CSS width percentage transitions (`transition-all duration-500`), ensuring the progress fill renders instantly and reliably in Document Picture-in-Picture windows.
+  - *Optimized Track Height & Padding:* Raised the minimum progress bar height in ultra-compact modes to 3.5px/3px and eliminated border collapse so progress is vividly legible in all themes.
+
+- **v9.3.5 (2026-09-08):** Enhance PiP & Timer Distraction Badge Legibility & Light Font Color
+  - *High-Contrast White Typography:* Upgraded distraction count badge typography in `CompactTimer.tsx` (both minimal horizontal pill and standard mode layouts) and `Timer.tsx` to use crisp, solid light text (`text-white font-black`) with high-contrast colored backgrounds (`bg-indigo-600`, `bg-orange-600`, `bg-red-600`).
+  - *Rest Mode Color Harmonization:* Improved resting state distraction badge readability with clear `bg-slate-700/60 text-slate-300` styling, ensuring optimal visibility across both light and dark themes.
+
+- **v9.3.4 (2026-09-08):** Fix Routine Manual Check-In State Persistence & Assigned Date Synchronization
+  - *Assigned Settlement Date Storage in CompleteSession:* Upgraded `completeSession` in `useGameState.ts` to accept and persist explicit `assignedDateStr` attributes onto new `StudySession` records, ensuring manually added check-in sessions are forever locked to the user's targeted calendar date.
+  - *Unified Date Settlement Evaluation:* Enhanced `getSessionSettlementDate` in `src/lib/utils.ts` to prioritize `session.assignedDateStr` and adapt seamlessly to timezones and custom day start thresholds across `RoutineTracker.tsx`, `RoutineCellEditor.tsx`, and `RoutineDetailModal.tsx`.
+  - *Manual Check-In Reactivity & Fallback:* Updated `RoutineCellEditor.tsx` to dispatch `completeSession` with explicit `targetDateStr` bounds and instant optimistic `onUpdateState` fallback, guaranteeing immediate checkmark rendering in the tracker table upon adding records.
+
+- **v9.3.3 (2026-09-08):** Comprehensive Routine System Fixes & Hardening
+  - *Elimination of Phantom Deleted/Archived Routines:* Fixed deletion cascades in `App.tsx` (`handleDeleteMajor`, `handleDeleteSub`) to immediately scrub orphaned todos and hidden routine entries. Hardened auto-import logic in `TodayView.tsx` and `StartOfDayModal.tsx` to strictly discard deleted, completed, or archived dungeons (and their parents) while accurately supporting routine major goals.
+  - *Routine Tracker Manual Check-In & Multi-Tier Resolution:* Overhauled `RoutineTracker.tsx`, `RoutineCellEditor.tsx`, and `RoutineDetailModal.tsx` to use unified `getSettlementDay` date matching and recursive `getDescendantDungeonIds` tree traversal. Fixed cell check-in creation to dispatch clean daytime timestamps and connect directly with `completeSession` / state managers for instant reactivity and persistence.
+  - *Archived Routine Filtering & Reset Initialization:* Filtered archived goals and sub-tiers from `RoutineTracker` and auto-initialized missing `lastRoutineReset` timestamps on startup to prevent routine reset lockouts.
+
 - **v9.3.2 (2026-09-08):** Fix Missing Distraction Counts in Newly Created Focus Sessions
   - *Live Distraction Store Retrieval in Timer:* Fixed an issue in `Timer.tsx` where `handleComplete` closed over stale initial `distractions` state (`0, 0, 0`), discarding user distraction clicks upon timer completion or skip. Now reads fresh live distraction counts directly from `useTimerStore.getState().distractions` and safely resets the store only after completion payload dispatch.
   - *Defensive Distraction Normalization across Session Creation:* Added strict distraction object normalization (`{ internal, external, unavoidable }`) across `completeSession` and `bulkCreateSessions` in `useGameState.ts`, `RoutineCellEditor.tsx`, and `EditSessionModal.tsx`, guaranteeing that all newly generated or updated sessions maintain a non-null, structured distraction record.

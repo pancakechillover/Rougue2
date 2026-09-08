@@ -209,7 +209,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
       const cleanTitle = yTodo.title.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
       if (yTodo.dungeonId) {
         const dungeon = dungeonMap.get(yTodo.dungeonId);
+        const majorDungeon = majorDungeonMap.get(yTodo.dungeonId);
+        if (!dungeon && !majorDungeon) continue;
         if (dungeon && (dungeon.status === 'completed' || dungeon.status === 'archived')) continue;
+        if (majorDungeon && (majorDungeon.status === 'completed' || majorDungeon.status === 'archived')) continue;
+        if (dungeon?.parentId) {
+          const parentMajor = majorDungeonMap.get(dungeon.parentId);
+          if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) continue;
+        }
         if (existingDungeonIds.has(yTodo.dungeonId)) continue;
         existingDungeonIds.add(yTodo.dungeonId);
         itemsToAdd.push({
@@ -231,10 +238,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }
 
     // 2. Uncompleted expeditions with a deadline (DDL) set
-    const activeDungeonsWithDeadline = dungeons.filter(d => {
+    const activeDungeonsWithDeadline = (dungeons || []).filter(d => {
       if (d.status === 'completed' || d.status === 'archived') return false;
       if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
       const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) return false;
       const hasDeadline = (d.deadline && d.deadline.trim() !== '') || (parentMajor?.deadline && parentMajor.deadline.trim() !== '');
       return Boolean(hasDeadline);
     });
@@ -251,10 +259,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }
 
     // 3. Uncompleted expeditions with routine attribute
-    const activeRoutineDungeons = dungeons.filter(d => {
+    const activeRoutineDungeons = (dungeons || []).filter(d => {
       if (d.status === 'completed' || d.status === 'archived') return false;
       if (d.completedSessions >= d.totalSessions && d.totalSessions > 0) return false;
       const parentMajor = d.parentId ? majorDungeonMap.get(d.parentId) : undefined;
+      if (parentMajor && (parentMajor.status === 'completed' || parentMajor.status === 'archived')) return false;
       return Boolean(d.isRoutine || parentMajor?.isRoutine);
     });
 
@@ -269,8 +278,24 @@ export const TodayView: React.FC<TodayViewProps> = ({
       });
     }
 
+    const activeRoutineMajors = (majorDungeons || []).filter(m => {
+      if (m.status === 'completed' || m.status === 'archived') return false;
+      return Boolean(m.isRoutine);
+    });
+
+    for (const m of activeRoutineMajors) {
+      if (existingDungeonIds.has(m.id)) continue;
+      existingDungeonIds.add(m.id);
+      const cleanMajorName = m.name.replace(/^\[Tier\s*\d+\]\s*/i, '').trim();
+      itemsToAdd.push({
+        title: cleanMajorName,
+        dungeonId: m.id,
+        source: 'routine'
+      });
+    }
+
     return itemsToAdd;
-  }, [baseDate, allTodos, todos, dungeons, dungeonMap, majorDungeonMap, state.timeSettings]);
+  }, [baseDate, allTodos, todos, dungeons, majorDungeons, dungeonMap, majorDungeonMap, state.timeSettings]);
 
   const handleImportPendingAndDdl = () => {
     if (importableTasks.length === 0) return;

@@ -1024,7 +1024,7 @@ function App() {
   };
 
   const handleDeleteMajor = (id: string) => {
-    const dungeonsToDelete = new Set<string>();
+    const dungeonsToDelete = new Set<string>([id]);
     const rootSubs = dungeons.filter(d => d.parentId === id);
     
     const collectAllDescendants = (parentId: string) => {
@@ -1038,6 +1038,21 @@ function App() {
     
     setMajorDungeons(majorDungeons.filter(m => m.id !== id));
     setDungeons(dungeons.filter(d => d.parentId !== id && !dungeonsToDelete.has(d.id)));
+
+    setState(prev => {
+      const nextTodos = (prev.todayTodos || []).filter(t => !t.dungeonId || !dungeonsToDelete.has(t.dungeonId));
+      const nextCurrentDungeonId = prev.currentDungeonId && dungeonsToDelete.has(prev.currentDungeonId) ? null : prev.currentDungeonId;
+      const nextHiddenRoutines = (prev.statsViewOpts?.hiddenRoutines || []).filter(rId => !dungeonsToDelete.has(rId));
+      return {
+        ...prev,
+        todayTodos: nextTodos,
+        currentDungeonId: nextCurrentDungeonId,
+        statsViewOpts: {
+          ...prev.statsViewOpts,
+          hiddenRoutines: nextHiddenRoutines
+        }
+      };
+    });
   };
 
   const handleDeleteSub = (id: string) => {
@@ -1053,9 +1068,21 @@ function App() {
     collectAllDescendants(id);
 
     setDungeons(dungeons.filter(d => !dungeonsToDelete.has(d.id)));
-    if (state.currentDungeonId && dungeonsToDelete.has(state.currentDungeonId)) {
-      setState(prev => ({ ...prev, currentDungeonId: null }));
-    }
+    
+    setState(prev => {
+      const nextTodos = (prev.todayTodos || []).filter(t => !t.dungeonId || !dungeonsToDelete.has(t.dungeonId));
+      const nextCurrentDungeonId = prev.currentDungeonId && dungeonsToDelete.has(prev.currentDungeonId) ? null : prev.currentDungeonId;
+      const nextHiddenRoutines = (prev.statsViewOpts?.hiddenRoutines || []).filter(rId => !dungeonsToDelete.has(rId));
+      return {
+        ...prev,
+        todayTodos: nextTodos,
+        currentDungeonId: nextCurrentDungeonId,
+        statsViewOpts: {
+          ...prev.statsViewOpts,
+          hiddenRoutines: nextHiddenRoutines
+        }
+      };
+    });
   };
 
   const progressToNextLevel = (state.xp / getXPForLevel(state.level)) * 100;

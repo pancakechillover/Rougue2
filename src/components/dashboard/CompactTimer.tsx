@@ -79,7 +79,7 @@ const PIP_STYLE = `
     .pip-icon svg { width: 11px; height: 11px; }
     .pip-title { font-size: 11px; font-weight: 600; }
     .pip-stats { font-size: 9.5px; }
-    .pip-bar { height: 2.5px; }
+    .pip-bar { height: 3.5px; }
     .pip-countdown-container { flex-direction: row; justify-content: space-between; align-items: center; padding: 0; margin-top: auto; margin-bottom: auto; gap: 0.5rem; }
     .pip-time { font-size: 2.85rem; line-height: 1; letter-spacing: -0.04em; }
     .pip-status { display: none; }
@@ -100,6 +100,7 @@ const PIP_STYLE = `
   @media (max-height: 120px) {
     .pip-container { padding: 0.15rem 0.375rem 0.15rem 0.375rem; }
     .pip-dungeon-mb { margin-bottom: 0.1rem; }
+    .pip-bar { height: 3px; }
     .pip-time { font-size: 2.35rem; line-height: 1; }
     .pip-play-btn-minimal { width: 1.75rem !important; height: 1.75rem !important; }
     .pip-play-btn-minimal svg { width: 12px !important; height: 12px !important; }
@@ -599,11 +600,19 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                 {Math.floor(currentDungeon.completedSessions * (standardSessionMinutes || 25))}m / {currentDungeon.totalSessions * (standardSessionMinutes || 25)}m
             </span>
           </div>
-          <div className="pip-bar w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-            <motion.div 
-              initial={false}
-              animate={{ width: `${(currentDungeon.completedSessions / currentDungeon.totalSessions) * 100}%` }}
-              className="h-full bg-indigo-500"
+          <div className="pip-bar w-full bg-slate-800/40 rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full rounded-full transition-all duration-500 ease-out",
+                currentDungeon.totalSessions > 0 && currentDungeon.completedSessions >= currentDungeon.totalSessions
+                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  : isResting
+                    ? "bg-emerald-500/80"
+                    : "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]"
+              )}
+              style={{
+                width: `${currentDungeon.totalSessions > 0 ? Math.min(100, Math.max(0, (currentDungeon.completedSessions / currentDungeon.totalSessions) * 100)) : 0}%`
+              }}
             />
           </div>
         </div>
@@ -739,8 +748,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Brain size={17} className={isResting ? "text-slate-500" : "text-indigo-400"} />
             {distractions.internal > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/30 text-indigo-300"
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-600 text-white"
               )}>{distractions.internal}</span>
             )}
           </button>
@@ -756,8 +765,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Wind size={17} className={isResting ? "text-slate-500" : "text-orange-400"} />
             {distractions.external > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/30 text-orange-300"
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-orange-600 text-white"
               )}>{distractions.external}</span>
             )}
           </button>
@@ -773,8 +782,8 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             <Zap size={17} className={isResting ? "text-slate-500" : "text-red-400"} />
             {distractions.unavoidable > 0 && (
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black",
-                isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/30 text-red-300"
+                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-red-600 text-white"
               )}>{distractions.unavoidable}</span>
             )}
           </button>
@@ -833,7 +842,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Brain size={12} />
                <span className="font-bold">INT</span>
             </div>
-            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-indigo-500/20 text-indigo-400")}>{distractions.internal}</span>}
+            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-600 text-white")}>{distractions.internal}</span>}
           </button>
           <button 
             {...(isResting ? {} : externalDistraction)}
@@ -848,7 +857,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Wind size={12} />
                <span className="font-bold">EXT</span>
             </div>
-            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-orange-500/20 text-orange-400")}>{distractions.external}</span>}
+            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-orange-600 text-white")}>{distractions.external}</span>}
           </button>
           <button 
             {...(isResting ? {} : unavoidableDistraction)}
@@ -863,7 +872,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Zap size={12} />
                <span className="font-bold">UNA</span>
             </div>
-            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center rounded-tl text-[7px] font-black", isResting ? "bg-slate-700/60 text-slate-500" : "bg-red-500/20 text-red-400")}>{distractions.unavoidable}</span>}
+            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-red-600 text-white")}>{distractions.unavoidable}</span>}
           </button>
         </div>
       </motion.div>

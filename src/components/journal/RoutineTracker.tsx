@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { StudySession, Dungeon, MajorDungeon } from '../../types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear, eachMonthOfInterval, endOfYear, subDays } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
 import { CalendarCheck2, ChevronLeft, ChevronRight, Check, Settings, X, Activity, Clock, Target } from 'lucide-react';
 import { AppState } from '../../types';
 import { PopoverPortal } from '../common/PopoverPortal';
@@ -43,18 +43,29 @@ export const RoutineTracker: React.FC<RoutineTrackerProps> = ({ history, dungeon
 
 
   const routines = useMemo(() => {
-    const majors = (majorDungeons || []).filter(m => m.isRoutine && m.routineType === activeTab).map(m => ({
-      id: m.id,
-      name: m.name,
-      isMajor: true,
-      tier: 'major' as const
-    }));
-    const subs = (dungeons || []).filter(d => d.isRoutine && d.routineType === activeTab).map(d => ({
-      id: d.id,
-      name: d.name,
-      isMajor: false,
-      tier: 'sub' as const
-    }));
+    const majors = (majorDungeons || [])
+      .filter(m => m.isRoutine && m.routineType === activeTab && m.status !== 'archived')
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+        isMajor: true,
+        tier: 'major' as const
+      }));
+    const subs = (dungeons || [])
+      .filter(d => {
+        if (!d.isRoutine || d.routineType !== activeTab || d.status === 'archived') return false;
+        if (d.parentId) {
+          const parent = majorDungeons.find(m => m.id === d.parentId);
+          if (parent && parent.status === 'archived') return false;
+        }
+        return true;
+      })
+      .map(d => ({
+        id: d.id,
+        name: d.name,
+        isMajor: false,
+        tier: 'sub' as const
+      }));
     return [...majors, ...subs];
   }, [majorDungeons, dungeons, activeTab]);
 
@@ -92,49 +103,38 @@ export const RoutineTracker: React.FC<RoutineTrackerProps> = ({ history, dungeon
 
   const checkIns = useMemo(() => {
     const records: Record<string, Set<string>> = {}; 
+    const routineDescendantsMap: Record<string, Set<string>> = {};
     
     visibleRoutines.forEach(r => {
       records[r.id] = new Set();
+      routineDescendantsMap[r.id] = getDescendantDungeonIds(r.id, dungeons);
     });
 
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
     history.forEach(session => {
-      let sessionDate = new Date(session.timestamp);
-      
-      if (timezone) {
-        try {
-          const str = sessionDate.toLocaleString('en-US', { timeZone: timezone });
-          sessionDate = new Date(str);
-        } catch (e) {}
-      }
+      const dayStr = getSessionSettlementDate(session, timeSettings, timezone); // 'yyyy-MM-dd'
+      const sessionYear = parseInt(dayStr.substring(0, 4), 10);
+      const sessionMonth = parseInt(dayStr.substring(5, 7), 10) - 1;
 
-      const resetHour = timeSettings?.night?.end || 0;
-      if (resetHour > 0 && sessionDate.getHours() < resetHour) {
-        sessionDate = subDays(sessionDate, 1);
-      }
-      
       if (activeTab === 'monthly') {
-        if (sessionDate.getFullYear() !== currentDate.getFullYear()) return;
+        if (sessionYear !== currentYear) return;
       } else {
-        if (sessionDate.getFullYear() !== currentDate.getFullYear() || sessionDate.getMonth() !== currentDate.getMonth()) return;
+        if (sessionYear !== currentYear || sessionMonth !== currentMonth) return;
       }
 
-      const key = activeTab === 'monthly' ? format(sessionDate, 'yyyy-MM') : format(sessionDate, 'yyyy-MM-dd');
+      const key = activeTab === 'monthly' ? dayStr.substring(0, 7) : dayStr;
 
-      const isSubDungeon = dungeons.find(d => d.id === session.dungeonId);
-      const isMajorDungeon = majorDungeons && majorDungeons.find(m => m.id === session.dungeonId);
-      
-      if (!isSubDungeon && !isMajorDungeon) return;
-
-      if (records[session.dungeonId]) {
-        records[session.dungeonId].add(key);
-      }
-      if (isSubDungeon && isSubDungeon.parentId && records[isSubDungeon.parentId]) {
-        records[isSubDungeon.parentId].add(key);
-      }
+      visibleRoutines.forEach(r => {
+        if (routineDescendantsMap[r.id]?.has(session.dungeonId)) {
+          records[r.id].add(key);
+        }
+      });
     });
 
     return records;
-  }, [history, visibleRoutines, currentDate, activeTab, dungeons, majorDungeons]);
+  }, [history, visibleRoutines, currentDate, activeTab, dungeons, timeSettings, timezone]);
 
   const dateLabel = activeTab === 'monthly' ? format(currentDate, 'yyyy') : format(currentDate, 'MMM yyyy');
 

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { StudySession, Dungeon, MajorDungeon, AppState } from '../../types';
 import { X, Target, Clock, Activity, Calendar } from 'lucide-react';
 import { DatePicker } from '../common/DatePicker';
-import { cn } from '../../lib/utils';
+import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
 import { createPortal } from 'react-dom';
 import { startOfYear, subDays, format } from 'date-fns';
 
@@ -45,43 +45,31 @@ export const RoutineDetailModal: React.FC<RoutineDetailModalProps> = ({ routineI
   }, [preset, customStart, customEnd]);
 
   const stats = useMemo(() => {
-    // Collect related routines (major and their sub-dungeons)
-    const validDungeonIds = new Set<string>();
-    if (routine) {
-        validDungeonIds.add(routine.id);
-        const childDungeons = dungeons.filter(d => d.parentId === routine.id);
-        childDungeons.forEach(d => validDungeonIds.add(d.id));
-    }
+    // Collect related routines (major and all descendant sub-dungeons)
+    const validDungeonIds = routine ? getDescendantDungeonIds(routine.id, dungeons) : new Set<string>();
 
     let totalDuration = 0;
     let completedDaysSet = new Set<string>();
 
+    const boundStart = new Date(start);
+    boundStart.setHours(0, 0, 0, 0);
+    const boundEnd = new Date(end);
+    boundEnd.setHours(23, 59, 59, 999);
+
     history.forEach(session => {
         if (!validDungeonIds.has(session.dungeonId)) return;
         
-        // Parse time with timezone considerations if needed
-        let sessionDate = new Date(session.timestamp);
-        if (timezone) {
-            try {
-              const str = sessionDate.toLocaleString('en-US', { timeZone: timezone });
-              sessionDate = new Date(str);
-            } catch (e) {}
-        }
-        
-        // Bound end to the end of the day visually
-        const boundStart = new Date(start.setHours(0, 0, 0, 0));
-        const boundEnd = new Date(end.setHours(23, 59, 59, 999));
+        const dayStr = getSessionSettlementDate(session, undefined, timezone);
+        const [sYear, sMonth, sDay] = dayStr.split('-').map(Number);
+        const sessionDate = new Date(sYear, sMonth - 1, sDay, 12, 0, 0);
         
         if (sessionDate >= boundStart && sessionDate <= boundEnd) {
              totalDuration += Math.round(session.duration || 0);
-             completedDaysSet.add(format(sessionDate, 'yyyy-MM-dd'));
+             completedDaysSet.add(dayStr);
         }
     });
 
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    // Since start is at 00:00:00 and end is at 23:59:59, diffDays will be very close to the true difference + 1.
-    // e.g. for last_7, subDays(today, 6) and today. Both adjusted above to 00:00 and 23:59.
-    // So 6.99 days -> ceiling -> 7 days.
+    const diffDays = Math.ceil((boundEnd.getTime() - boundStart.getTime()) / (1000 * 60 * 60 * 24));
     const actualDays = Math.max(1, diffDays);
 
     const completedDays = completedDaysSet.size;
