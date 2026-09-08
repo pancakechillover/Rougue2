@@ -20,7 +20,8 @@ import { cn, formatDuration, getSettlementDay } from '../../lib/utils';
 import { 
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
-  getActiveSessionDurationFormatted 
+  getActiveSessionDurationFormatted,
+  MAX_WORKSTATION_SESSION_MINUTES
 } from '../../lib/workstationUtils';
 import { WorkstationModal } from './WorkstationModal';
 import { playSound } from '../../lib/sound';
@@ -123,7 +124,7 @@ export const WorkstationHeaderControls: React.FC<WorkstationHeaderControlsProps>
     if (!activeSession) return;
     const end = new Date();
     const start = parseISO(activeSession.startTime);
-    const durMins = Math.max(1, differenceInMinutes(end, start));
+    const durMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(1, differenceInMinutes(end, start)));
     const sessionDate = getSettlementDay(start, state.timeSettings);
 
     const completedInterval: WorkstationInterval = {

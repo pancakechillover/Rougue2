@@ -209,6 +209,7 @@ export interface EfficiencyRatingConfig {
   focusQualityWeight?: number; // d, default 30 (%)
   ratingDisplayPreference?: 'efficiency' | 'star';
   targetTimeMode?: 'workstation' | 'daily_goal' | 'manual';
+  capMetrics?: boolean; // When true (default), Completion Rate is capped at 1.0 (min(1, actual/target)) and Focus is bounded at 0 (max(0, 1 - dist/max)). When false, Completion Rate can exceed 1 (>100%) and Focus can be negative (<0).
 }
 
 export interface TodayTodo {

@@ -705,7 +705,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                 </div>
 
                 <div className="flex-1 relative py-2 sm:py-6 flex flex-col items-center justify-center min-h-0 w-full h-full">
-                  {renderTimerContent()}
+                  {!isFullscreenExplore && renderTimerContent()}
                 </div>
               </div>
             </div>

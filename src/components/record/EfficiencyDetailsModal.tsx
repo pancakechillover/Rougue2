@@ -14,10 +14,12 @@ import {
   Minus,
   Plus,
   Table,
-  Building2
+  Building2,
+  History
 } from 'lucide-react';
 import { cn, formatDuration } from '../../lib/utils';
-import { EfficiencyRatingConfig } from '../../types';
+import { AppState, EfficiencyRatingConfig } from '../../types';
+import { RecalculateHistoryModal } from './RecalculateHistoryModal';
 
 interface EfficiencyDetailsModalProps {
   effectiveMinutes: number;
@@ -33,6 +35,8 @@ interface EfficiencyDetailsModalProps {
   workstationPresenceMinutes?: number;
   workstationIntervalCount?: number;
   conversionRate?: number;
+  state?: AppState;
+  onUpdateState?: (updates: Partial<AppState>) => void;
 }
 
 export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
@@ -48,7 +52,9 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   targetSource,
   workstationPresenceMinutes = 0,
   workstationIntervalCount = 0,
-  conversionRate = 0
+  conversionRate = 0,
+  state,
+  onUpdateState
 }) => {
   // Local state for interactive parameter editing
   const [localTargetHours, setLocalTargetHours] = useState<number>(
@@ -66,34 +72,44 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   const [ratingDisplay, setRatingDisplay] = useState<'efficiency' | 'star'>(
     config.ratingDisplayPreference ?? 'star'
   );
+  const [capMetrics, setCapMetrics] = useState<boolean>(
+    config.capMetrics ?? true
+  );
 
   // Focus quality weight is complementary to completion weight
   const focusWeight = Math.max(0, 100 - completionWeight);
 
+  const [showRecalculateModal, setShowRecalculateModal] = useState<boolean>(false);
+
   // Live calculation based on current parameters
   const actualHours = effectiveMinutes / 60;
   const completionRate = (localTargetHours > 0 && actualHours > 0)
-    ? Math.min(actualHours / localTargetHours, 1.0) 
+    ? (capMetrics ? Math.min(actualHours / localTargetHours, 1.0) : (actualHours / localTargetHours))
     : 0;
   const distractionsPerHour = actualHours > 0 
     ? totalDistractions / actualHours 
     : 0;
+  const rawFocusQuality = actualHours > 0
+    ? (1.0 - (distractionsPerHour / (maxDistractions > 0 ? maxDistractions : 10)))
+    : 0;
   const focusQuality = actualHours > 0
-    ? Math.max(0, 1.0 - (distractionsPerHour / (maxDistractions > 0 ? maxDistractions : 10)))
+    ? (capMetrics ? Math.max(0, rawFocusQuality) : rawFocusQuality)
     : 0;
 
   const wComp = completionWeight / 100;
   const wFocus = focusWeight / 100;
   const efficiency = actualHours > 0 ? (wComp * completionRate) + (wFocus * focusQuality) : 0;
   const rawStars = efficiency * 5;
-  const calculatedStars = Math.min(5, Math.max(0, rawStars));
+  const calculatedStars = capMetrics ? Math.min(5, Math.max(0, rawStars)) : rawStars;
   const calculatedEfficiency = Math.round(efficiency * 1000) / 10;
   const displayStarIcon = Math.round(calculatedStars * 2) / 2;
 
   // Rate penalty per distraction string (e.g. "10%" when max=10)
-  const penaltyPerDistractionPercent = maxDistractions > 0 
-    ? (100 / maxDistractions).toFixed(1).replace(/\.0$/, '') 
-    : '10';
+  const penaltyPerDistractionVal = maxDistractions > 0 ? (100 / maxDistractions) : 10;
+  const penaltyPerDistractionPercent = penaltyPerDistractionVal.toFixed(1).replace(/\.0$/, '');
+  const effPenaltyPerDistraction = (penaltyPerDistractionVal * focusWeight) / 100;
+  const effGainPerHour = localTargetHours > 0 ? (completionWeight / localTargetHours) : 0;
+  const compGainPerHour = localTargetHours > 0 ? (100 / localTargetHours) : 12.5;
 
   const handleApply = () => {
     // Save target hours (for today only)
@@ -109,7 +125,9 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
       maxDistractionsPerHour: maxDistractions,
       completionRateWeight: completionWeight,
       focusQualityWeight: focusWeight,
-      ratingDisplayPreference: ratingDisplay
+      ratingDisplayPreference: ratingDisplay,
+      capMetrics: capMetrics,
+      targetTimeMode: config.targetTimeMode
     });
 
     // Apply calculated rating
@@ -178,15 +196,19 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
         ? `≥ ${rowHoursFormatted}h` 
         : `${rowHoursFormatted}h`;
 
-      const comp = localTargetHours > 0 ? Math.min(rowHours / localTargetHours, 1.0) : 0;
+      const comp = localTargetHours > 0 
+        ? (capMetrics ? Math.min(rowHours / localTargetHours, 1.0) : (rowHours / localTargetHours))
+        : 0;
 
       const cells = colRatios.map((colRatio) => {
         const colDist = maxDistractions * colRatio;
-        const focus = Math.max(0, 1.0 - (colDist / (maxDistractions > 0 ? maxDistractions : 10)));
+        const rawFocus = 1.0 - (colDist / (maxDistractions > 0 ? maxDistractions : 10));
+        const focus = capMetrics ? Math.max(0, rawFocus) : rawFocus;
         const eff = comp * (wComp + wFocus * focus);
         const effPct = Math.round(eff * 1000) / 10;
         const effStr = effPct.toString().replace(/\.0$/, '');
-        const stars = Math.min(5, Math.max(0, Math.round(eff * 5 * 2) / 2));
+        const rawS = eff * 5;
+        const stars = capMetrics ? Math.min(5, Math.max(0, Math.round(rawS * 2) / 2)) : Math.round(rawS * 2) / 2;
         const starStr = `${stars.toFixed(1).replace(/\.0$/, '')}★`;
 
         return {
@@ -199,7 +221,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
     });
 
     return { headers, rows };
-  }, [localTargetHours, maxDistractions, wComp, wFocus]);
+  }, [localTargetHours, maxDistractions, wComp, wFocus, capMetrics]);
 
   return createPortal(
     <AnimatePresence>
@@ -262,26 +284,36 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
             
             {/* Formula Breakdown Card */}
             <div className="bg-slate-950/50 rounded-2xl border border-slate-800/80 p-4 sm:p-5 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <Percent size={14} className="text-indigo-400" /> Active Mathematical Formula
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                  <Percent size={14} className="text-indigo-400" /> Active Mathematical Formula
+                </h3>
+                <span className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                  capMetrics 
+                    ? "bg-slate-800 border-slate-700 text-slate-400" 
+                    : "bg-amber-500/10 border-amber-500/25 text-amber-300"
+                )}>
+                  {capMetrics ? "Bounds: Capped (0–100%)" : "Bounds: Uncapped (No Limits)"}
+                </span>
+              </div>
               
               <div className="space-y-2 text-xs font-mono">
                 <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                   <div className="text-slate-300">
-                    <span className="text-indigo-400 font-bold">Completion Rate</span> = min(Actual / Target, 100%)
+                    <span className="text-indigo-400 font-bold">Completion Rate</span> = {capMetrics ? "min(Actual / Target, 100%)" : "Actual / Target"}
                   </div>
                   <div className="text-slate-400 bg-slate-950/50 px-2 py-1 rounded-lg border border-slate-800/50 whitespace-nowrap">
-                    = min({actualHours.toFixed(1)}h / {localTargetHours.toFixed(1)}h) = <span className="text-indigo-400 font-bold">{Math.round(completionRate * 100)}%</span>
+                    = {capMetrics ? `min(${actualHours.toFixed(1)}h / ${localTargetHours.toFixed(1)}h)` : `${actualHours.toFixed(1)}h / ${localTargetHours.toFixed(1)}h`} = <span className="text-indigo-400 font-bold">{Math.round(completionRate * 100)}%</span>
                   </div>
                 </div>
 
                 <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                   <div className="text-slate-300">
-                    <span className="text-sky-400 font-bold">Focus Degree</span> = max(0, 100% - Distractions/hr × {penaltyPerDistractionPercent}%)
+                    <span className="text-sky-400 font-bold">Focus Degree</span> = {capMetrics ? `max(0, 100% - Distractions/hr × ${penaltyPerDistractionPercent}%)` : `100% - Distractions/hr × ${penaltyPerDistractionPercent}%`}
                   </div>
                   <div className="text-slate-400 bg-slate-950/50 px-2 py-1 rounded-lg border border-slate-800/50 whitespace-nowrap">
-                    = max(0, 100% - {distractionsPerHour.toFixed(1)} × {penaltyPerDistractionPercent}%) = <span className="text-sky-400 font-bold">{Math.round(focusQuality * 100)}%</span>
+                    = {capMetrics ? `max(0, 100% - ${distractionsPerHour.toFixed(1)} × ${penaltyPerDistractionPercent}%)` : `100% - ${distractionsPerHour.toFixed(1)} × ${penaltyPerDistractionPercent}%`} = <span className="text-sky-400 font-bold">{Math.round(focusQuality * 100)}%</span>
                   </div>
                 </div>
 
@@ -339,7 +371,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                   <span className="text-sm font-bold text-emerald-300 mt-1">
                     {(completionRate * 100).toFixed(1)}%
                   </span>
-                  <span className="text-[10px] text-slate-400">Cap at 100%</span>
+                  <span className="text-[10px] text-slate-400">{capMetrics ? "Cap at 100%" : "Uncapped"}</span>
                 </div>
 
                 <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800 flex flex-col">
@@ -347,7 +379,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                   <span className="text-sm font-bold text-sky-300 mt-1">
                     {(focusQuality * 100).toFixed(1)}%
                   </span>
-                  <span className="text-[10px] text-slate-400">{distractionsPerHour.toFixed(1)} dist/h</span>
+                  <span className="text-[10px] text-slate-400">{capMetrics ? `${distractionsPerHour.toFixed(1)} dist/h` : (focusQuality < 0 ? "Negative score" : `${distractionsPerHour.toFixed(1)} dist/h`)}</span>
                 </div>
               </div>
 
@@ -509,9 +541,14 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Completion Rate Weight */}
                   <div className="space-y-1.5">
-                    <span className="text-[11px] font-semibold text-indigo-400 block">
-                      Completion Rate Weight
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-indigo-400 block">
+                        Completion Rate Weight
+                      </span>
+                      <span className="text-[10px] text-indigo-400/90 font-mono" title="Efficiency gain per 1 hour of focus">
+                        +{compGainPerHour.toFixed(1).replace(/\.0$/, '')}% × {completionWeight}% = +{effGainPerHour.toFixed(1).replace(/\.0$/, '')}% / hr
+                      </span>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
@@ -548,9 +585,14 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
 
                   {/* Focus Degree Weight */}
                   <div className="space-y-1.5">
-                    <span className="text-[11px] font-semibold text-sky-400 block">
-                      Focus Degree Weight
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-sky-400 block">
+                        Focus Degree Weight
+                      </span>
+                      <span className="text-[10px] text-sky-400/90 font-mono" title="Overall efficiency reduction per distraction">
+                        -{penaltyPerDistractionPercent}% × {focusWeight}% = -{effPenaltyPerDistraction.toFixed(1).replace(/\.0$/, '')}% / dist
+                      </span>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
@@ -587,26 +629,66 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* 4. Auto Calculate on Open Toggle */}
-              <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-200">
-                  Auto-Calculate on Open
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setAutoCalcOnOpen(!autoCalcOnOpen)}
-                  className={cn(
-                    "w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
-                    autoCalcOnOpen ? "bg-indigo-600" : "bg-slate-800"
-                  )}
-                >
-                  <div
+              {/* 4. Metric Bounds Clamping (Cap) & Auto Calculate on Open Toggles */}
+              <div className="pt-3 border-t border-slate-800/60 space-y-3">
+                {/* Cap Metric Limits Toggle */}
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-200 block">
+                      Cap Metric Limits (0%–100%)
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      {capMetrics 
+                        ? "Capped: Completion max 100%, Focus min 0%" 
+                        : "Uncapped: Completion can exceed 100%, Focus can be negative (<0%)"}
+                    </span>
+                  </div>
+                  <button
+                    id="toggle-cap-metrics-button"
+                    type="button"
+                    onClick={() => setCapMetrics(!capMetrics)}
                     className={cn(
-                      "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
-                      autoCalcOnOpen ? "translate-x-5" : "translate-x-0"
+                      "w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
+                      capMetrics ? "bg-indigo-600" : "bg-slate-800"
                     )}
-                  />
-                </button>
+                    title={capMetrics ? "Disable clamping to allow uncapped scores" : "Enable clamping to cap scores between 0% and 100%"}
+                  >
+                    <div
+                      className={cn(
+                        "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                        capMetrics ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Auto Calculate on Open Toggle */}
+                <div className="pt-2.5 border-t border-slate-800/40 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-200 block">
+                      Auto-Calculate on Open
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Automatically evaluate ratings when opening daily summary cards
+                    </span>
+                  </div>
+                  <button
+                    id="toggle-auto-calc-button"
+                    type="button"
+                    onClick={() => setAutoCalcOnOpen(!autoCalcOnOpen)}
+                    className={cn(
+                      "w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
+                      autoCalcOnOpen ? "bg-indigo-600" : "bg-slate-800"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                        autoCalcOnOpen ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -668,28 +750,81 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
           </div>
 
           {/* Footer Action Buttons */}
-          <div className="p-4 sm:p-5 border-t border-slate-800 flex items-center justify-end gap-2.5 bg-slate-900/90 flex-shrink-0">
+          <div className="p-4 sm:p-5 border-t border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 bg-slate-900/90 flex-shrink-0">
             <button
               id="cancel-efficiency-details-button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors w-full sm:w-auto text-center"
             >
               Cancel
             </button>
-            <button
-              id="apply-efficiency-details-button"
-              onClick={handleApply}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition-all active:scale-95"
-            >
-              <Check size={14} />
-              <span>
-                Apply & Calculate ({ratingDisplay === 'efficiency' ? `${calculatedEfficiency}%` : `${calculatedStars.toFixed(1)}★`})
-              </span>
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              {state && (
+                <button
+                  id="recalculate-all-efficiency-button"
+                  type="button"
+                  onClick={() => setShowRecalculateModal(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-indigo-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                  title="Recalculate historical efficiency records with new formula parameters"
+                >
+                  <RotateCcw size={14} className="text-indigo-400" />
+                  <span>Apply & Recalculate All...</span>
+                </button>
+              )}
+              <button
+                id="apply-efficiency-details-button"
+                onClick={handleApply}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              >
+                <Check size={14} />
+                <span>
+                  Apply & Calculate ({ratingDisplay === 'efficiency' ? `${calculatedEfficiency}%` : `${calculatedStars.toFixed(1)}★`})
+                </span>
+              </button>
+            </div>
           </div>
 
         </motion.div>
       </div>
+
+      {/* Recalculate History Modal */}
+      {state && showRecalculateModal && (
+        <RecalculateHistoryModal
+          isOpen={showRecalculateModal}
+          onClose={() => setShowRecalculateModal(false)}
+          state={state}
+          newConfig={{
+            autoCalculateOnOpen: autoCalcOnOpen,
+            maxDistractionsPerHour: maxDistractions,
+            completionRateWeight: completionWeight,
+            focusQualityWeight: focusWeight,
+            ratingDisplayPreference: ratingDisplay,
+            targetTimeMode: config.targetTimeMode,
+            capMetrics: capMetrics
+          }}
+          onUpdateState={onUpdateState}
+          onSuccess={(count) => {
+            if (Math.abs(localTargetHours - defaultTargetHours) < 0.01) {
+              onUpdateCustomTargetHours(null);
+            } else {
+              onUpdateCustomTargetHours(localTargetHours);
+            }
+            onUpdateConfig({
+              autoCalculateOnOpen: autoCalcOnOpen,
+              maxDistractionsPerHour: maxDistractions,
+              completionRateWeight: completionWeight,
+              focusQualityWeight: focusWeight,
+              ratingDisplayPreference: ratingDisplay,
+              targetTimeMode: config.targetTimeMode,
+              capMetrics: capMetrics
+            });
+            onApplyRating(calculatedStars);
+            setTimeout(() => {
+              onClose();
+            }, 600);
+          }}
+        />
+      )}
     </AnimatePresence>,
     document.body
   );

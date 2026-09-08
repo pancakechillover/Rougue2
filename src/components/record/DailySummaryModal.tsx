@@ -283,7 +283,8 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     targetH: number,
     maxDist: number,
     compWeight: number,
-    focusWeight: number
+    focusWeight: number,
+    capMetrics: boolean = true
   ) => {
     const actualH = effectiveMinutes / 60;
     if (actualH <= 0) {
@@ -299,14 +300,17 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         calculatedStars: 0
       };
     }
-    const completionRate = targetH > 0 ? Math.min(actualH / targetH, 1.0) : 0;
+    const completionRate = targetH > 0
+      ? (capMetrics ? Math.min(actualH / targetH, 1.0) : (actualH / targetH))
+      : 0;
     const distractionsPerHour = totalDistractions / actualH;
-    const focusQuality = Math.max(0, 1.0 - (distractionsPerHour / (maxDist > 0 ? maxDist : 10)));
+    const rawFocusQuality = 1.0 - (distractionsPerHour / (maxDist > 0 ? maxDist : 10));
+    const focusQuality = capMetrics ? Math.max(0, rawFocusQuality) : rawFocusQuality;
     const wComp = compWeight / 100;
     const wFocus = focusWeight / 100;
     const efficiency = (wComp * completionRate) + (wFocus * focusQuality);
     const rawStars = efficiency * 5;
-    const calculatedStars = Math.min(5, Math.max(0, rawStars));
+    const calculatedStars = capMetrics ? Math.min(5, Math.max(0, rawStars)) : rawStars;
 
     return {
       actualH,
@@ -328,6 +332,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
     const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
     const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+    const isCapped = state.efficiencyRatingConfig?.capMetrics !== false;
 
     const res = calculateEfficiencyRating(
       dailyStats.effectiveMinutes,
@@ -335,7 +340,8 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       tHours,
       maxDist,
       compW,
-      focusW
+      focusW,
+      isCapped
     );
 
     setTimeout(() => {
@@ -360,6 +366,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
         const compW = state.efficiencyRatingConfig?.completionRateWeight ?? 70;
         const focusW = state.efficiencyRatingConfig?.focusQualityWeight ?? 30;
+        const isCapped = state.efficiencyRatingConfig?.capMetrics !== false;
 
         const res = calculateEfficiencyRating(
           dailyStats.effectiveMinutes,
@@ -367,7 +374,8 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           tHours,
           maxDist,
           compW,
-          focusW
+          focusW,
+          isCapped
         );
         setRating(res.calculatedStars);
       } else if (existingLog) {
@@ -699,6 +707,8 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
             setTimeout(() => setIsCalculating(false), 600);
           }}
           onClose={() => setShowEfficiencyDetails(false)}
+          state={state}
+          onUpdateState={onUpdateState}
         />
       )}
       {createPortal(

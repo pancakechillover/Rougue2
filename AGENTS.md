@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.2.9
-- **Last Update Date:** 2026-09-07
-- **Last Update Time:** 06:35:00
+- **Current Version:** v9.3.0
+- **Last Update Date:** 2026-09-08
+- **Last Update Time:** 02:30:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,19 +69,16 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.2.9 (2026-09-07):** Weekly Distraction Hourly Rate Metric & Efficiency Trend Interaction Fix
-  - *Distraction Rate Metric (/h):* Updated the distraction line charts in the Weekly view (`StatsWeeklySection.tsx` & `Stats.tsx`) to measure distraction intensity by hourly rate (`distractions / (focusHours)` as `count/h`) rather than raw counts; updated Y-axis tick formatting to `${val}/h` with flexible decimal support and appropriate right padding.
-  - *Efficiency Trend Bubble Interaction:* Fixed unclickable bubble points on the Weekly Efficiency Trend chart by decoupling the LineChart key from the ComposedChart key with `lineChartKey`, stabilizing tooltips against unmount cycles, and mapping direct data property keys for precise Recharts hit detection.
+- **v9.3.0 (2026-09-08):** Fix Duplicate Session Completion Bug on PiP/Fullscreen Transitions & State Guard
+  - *Prevent Concurrent Dual-Instance Timer Mounting:* Fixed an issue in `ExploreView.tsx` where `renderTimerContent()` was simultaneously rendered in both the fullscreen portal and the standard page view layout when `isFullscreenExplore` was active, causing two distinct `Timer` component instances to run worker timers and fire duplicate completions. Conditioned the standard view container with `{!isFullscreenExplore && renderTimerContent()}`.
+  - *State Manager Completion Deduplication Guard:* Added an idempotent sub-second cooldown guard (`2000ms`) inside `completeSession` in `useGameState.ts` to intercept and safely drop identical concurrent completion calls.
+  - *Official Release Rollout:* Aggregated changelog and updated `RELEASE_HISTORY` and `public/version.json` for major release `v9.3.0`.
 
-- **v9.2.8 (2026-09-07):** Modernized Edit Session Architecture & Full-Featured Bulk Session Operations Hub
-  - *Unified Edit Session Modal:* Transferred Study Note authoring/editing directly into the dedicated `EditSessionModal` with live hashtag insertion pills; added editable distraction breakdown counters (`Internal`, `External`, `Unavoidable`); eliminated manual Total Duration input by auto-calculating `Total = Focus + Rest`.
-  - *Full-Featured Bulk Session Operations Hub:* Completely modernized `BulkSessionModal.tsx` into a 3-tab hub:
-    - `Batch Actions`: Interactive session search and dungeon/time filters, multi-select toolbar, batch dungeon re-assignment, bulk tag append, batch timestamp shift (+/- hours), distraction reset, batch deletion, and JSON data export.
-    - `Generator`: Presets (Pomodoro, Deep Work, Ultradian, Custom), date/time boundaries, auto or fixed session counts, and live timeline preview.
-    - `Range Purge`: Visual date/time range purge with matching session counter and destructive confirmation.
-  - *Cleaned Recent Sessions Table:* Replaced cluttered inline accordion rows with direct modal triggers and added elegant note previews in the objective column.
+- **v9.2.14 (2026-09-08):** Fix Phantom Rest Duration Bug When Timer Rest Mode is Disabled
+  - *Rest Mode State Check on Focus Completion:* Fixed an issue in `Timer.tsx` where completed sessions were unconditionally passed the preset's configured `restDuration` value regardless of `enableRest` toggle state. Now strictly calculates `actualRestDuration = (enableRest && restDuration > 0) ? restDuration : 0`.
+  - *Defensive Progress & Session State Clamping:* Hardened `completeSession` and `getAddedProgress` in `useGameState.ts` to strictly handle `restDuration === 0` as 0 instead of falling back to `standardRestMinutes`, and updated `RecentSessions.tsx` to safely fallback on legacy session `duration`.
 
-- **v9.2.7 (2026-09-07):** Recent Sessions Elimination of Scrollbar Flash on Row Deletion
-  - *Table Row Exit Animation Optimization:* Removed disruptive `mode="popLayout"` from `<AnimatePresence>` in `RecentSessions.tsx` and switched to `layout="position"` with a fast, smooth fade-out (`duration: 0.15s`), preventing deleted `<tr>` elements from turning into absolute-positioned out-of-flow blocks that momentarily expand container height.
-  - *Confirm Modal Non-Intrusive Scroll State:* Removed `document.body.style.overflow = 'hidden'` toggling from `ConfirmModal.tsx`, keeping page body overflow completely stable during dialog confirmation without triggering scrollbar show/hide layout shifts.
-  - *Cross-Browser Scrollbar Rule Hardening:* Added standard `scrollbar-width: none` and `-ms-overflow-style: none` to `html, body, #root` in `src/index.css` to prevent brief browser-native scrollbar flashes on modern browsers.
+- **v9.2.13 (2026-09-07):** Efficiency Rating Formula Metric Bounds (Cap) Toggle & Uncapped Calculation Engine
+  - *Metric Bounds Clamping Toggle (`capMetrics`):* Added a dedicated toggle switch in `EfficiencyDetailsModal` allowing users to configure whether Completion Rate and Focus Degree should be clamped to [0%, 100%] bounds or remain uncapped.
+  - *Uncapped Arithmetic Behavior:* When uncapped, Completion Rate does not clamp to `min(..., 1.0)` (can exceed 100%), and Focus Degree does not clamp to `max(0, ...)` (can drop into negative values), reflecting actual focus overtime and distraction penalties authentically.
+  - *Synchronized Across Calculation Points:* Fully synchronized uncapped math across `calculateEfficiencyValue` in `efficiencyUtils.ts`, `EfficiencyDetailsModal.tsx`, `DailyRecordCard.tsx`, `DailySummaryModal.tsx`, `JournalView.tsx`, and the batch `RecalculateHistoryModal.tsx`.

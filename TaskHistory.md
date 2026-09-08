@@ -1,5 +1,34 @@
 # Task History Archive
 
+- **v9.3.0 (2026-09-08):** Fix Duplicate Session Completion Bug on PiP/Fullscreen Transitions & State Guard
+  - *Prevent Concurrent Dual-Instance Timer Mounting:* Fixed an issue in `ExploreView.tsx` where `renderTimerContent()` was simultaneously rendered in both the fullscreen portal and the standard page view layout when `isFullscreenExplore` was active, causing two distinct `Timer` component instances to run worker timers and fire duplicate completions. Conditioned the standard view container with `{!isFullscreenExplore && renderTimerContent()}`.
+  - *State Manager Completion Deduplication Guard:* Added an idempotent sub-second cooldown guard (`2000ms`) inside `completeSession` in `useGameState.ts` to intercept and safely drop identical concurrent completion calls.
+  - *Official Release Rollout:* Aggregated changelog and updated `RELEASE_HISTORY` and `public/version.json` for major release `v9.3.0`.
+
+- **v9.2.14 (2026-09-08):** Fix Phantom Rest Duration Bug When Timer Rest Mode is Disabled
+  - *Rest Mode State Check on Focus Completion:* Fixed an issue in `Timer.tsx` where completed sessions were unconditionally passed the preset's configured `restDuration` value regardless of `enableRest` toggle state. Now strictly calculates `actualRestDuration = (enableRest && restDuration > 0) ? restDuration : 0`.
+  - *Defensive Progress & Session State Clamping:* Hardened `completeSession` and `getAddedProgress` in `useGameState.ts` to strictly handle `restDuration === 0` as 0 instead of falling back to `standardRestMinutes`, and updated `RecentSessions.tsx` to safely fallback on legacy session `duration`.
+
+- **v9.2.13 (2026-09-07):** Efficiency Rating Formula Metric Bounds (Cap) Toggle & Uncapped Calculation Engine
+  - *Metric Bounds Clamping Toggle (`capMetrics`):* Added a dedicated toggle switch in `EfficiencyDetailsModal` allowing users to configure whether Completion Rate and Focus Degree should be clamped to [0%, 100%] bounds or remain uncapped.
+  - *Uncapped Arithmetic Behavior:* When uncapped, Completion Rate does not clamp to `min(..., 1.0)` (can exceed 100%), and Focus Degree does not clamp to `max(0, ...)` (can drop into negative values), reflecting actual focus overtime and distraction penalties authentically.
+  - *Synchronized Across Calculation Points:* Fully synchronized uncapped math across `calculateEfficiencyValue` in `efficiencyUtils.ts`, `EfficiencyDetailsModal.tsx`, `DailyRecordCard.tsx`, `DailySummaryModal.tsx`, `JournalView.tsx`, and the batch `RecalculateHistoryModal.tsx`.
+
+- **v9.2.12 (2026-09-07):** Efficiency Rating Formula Weight Formulas & Batch History Recalculation Modal
+  - *Dynamic Weight Formula Annotations:* Added live annotations next to "Completion Rate Weight" (`+X% × W% = +Y% / hr`) and "Focus Degree Weight" (`-X% × W% = -Y% / dist`), explicitly demonstrating the exact efficiency gain per 1 hour of focus and penalty deduction per distraction.
+  - *Apply & Recalculate History Modal (`RecalculateHistoryModal.tsx`):* Added "Apply & Recalculate All..." button in `EfficiencyDetailsModal`, allowing users to batch re-compute past daily ratings across configurable timeframes (All Recorded Time, Past 7/30/90 Days, This Month, Custom Range) with irreversible action warnings, progress spinners, sound effects, and instant state synchronization.
+  - *Cross-Modal State Integration:* Connected batch recalculation across `DailyRecordCard.tsx`, `DailySummaryModal.tsx`, and `JournalView.tsx`.
+
+- **v9.2.11 (2026-09-07):** Workstation Timeout Modal Theme Adaptation, Content Streamlining & Date Display
+  - *Full Theme Adaptation:* Refactored `WorkstationTimeoutModal` to strictly use the application's theme-aware design tokens (`bg-slate-900`, `border-slate-800`, `text-indigo-400`, `bg-indigo-500/10`, `bg-indigo-600`), ensuring seamless contrast and unified aesthetics across all 6 themes (Night, Forest, Ocean, Daylight, Warm, Candy).
+  - *Content Streamlining:* Removed verbose subtitles and redundant paragraphs, creating a clean, high-efficiency single-sentence prompt (`Auto-saved to workstation logs. Continue timing now?`).
+  - *Date in Time Recorded:* Updated the recorded time display to explicitly include the date (e.g., `Sep 7, 21:25 – 01:25 (4h)` or multi-day format if crossing midnight).
+
+- **v9.2.10 (2026-09-07):** Workstation Active Session 4-Hour Limit & Auto-Stop Prompt Modal
+  - *4-Hour Continuous Limit:* Implemented continuous session monitoring across the entire application; whenever an active workstation check-in reaches 4 hours (240 minutes), the timer automatically stops and saves the completed 4-hour interval to the daily workstation logs and syncs with cloud storage.
+  - *Interactive Timeout Prompt Modal (`WorkstationTimeoutModal`):* Created a dedicated popup dialog displaying recorded session details (location with icon, time range, note, and 4h duration), asking the user if they wish to start a new timing session or finish.
+  - *Defensive Clamping Across Views:* Added strict 240-minute duration clamping to `workstationUtils.ts`, `WorkstationHeaderControls.tsx`, `WorkstationModal.tsx`, and `WorkstationView.tsx` to ensure total minutes and active session timers never exceed the maximum single-session threshold.
+
 - **v9.2.9 (2026-09-07):** Weekly Distraction Hourly Rate Metric & Efficiency Trend Interaction Fix
   - *Distraction Rate Metric (/h):* Updated the distraction line charts in the Weekly view (`StatsWeeklySection.tsx` & `Stats.tsx`) to measure distraction intensity by hourly rate (`distractions / (focusHours)` as `count/h`) rather than raw counts; updated Y-axis tick formatting to `${val}/h` with flexible decimal support and appropriate right padding.
   - *Efficiency Trend Bubble Interaction:* Fixed unclickable bubble points on the Weekly Efficiency Trend chart by decoupling the LineChart key from the ComposedChart key with `lineChartKey`, stabilizing tooltips against unmount cycles, and mapping direct data property keys for precise Recharts hit detection.

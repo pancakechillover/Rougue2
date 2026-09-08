@@ -43,7 +43,8 @@ import {
   getWorkstationTotalMinutes, 
   getEffectiveTargetFocusMinutes, 
   getActiveSessionDurationFormatted,
-  DEFAULT_WORKSTATION_LOCATIONS
+  DEFAULT_WORKSTATION_LOCATIONS,
+  MAX_WORKSTATION_SESSION_MINUTES
 } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
 import { DatePicker } from '../common/DatePicker';
@@ -213,7 +214,7 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
     if (!activeSession) return;
     const end = new Date();
     const start = parseISO(activeSession.startTime);
-    const durMins = Math.max(1, differenceInMinutes(end, start));
+    const durMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(1, differenceInMinutes(end, start)));
     const sessionDate = getSettlementDay(start, state.timeSettings);
 
     const completedInterval: WorkstationInterval = {

@@ -294,7 +294,8 @@ export const Timer = React.memo<TimerProps>(({
       // Finished focus
       const actualFocusDuration = overrideDuration !== undefined ? overrideDuration : focusDuration;
       const actualDuration = overrideDuration !== undefined ? overrideDuration : duration;
-      const session = onComplete(actualDuration, actualFocusDuration, restDuration, distractions);
+      const actualRestDuration = (enableRest && restDuration > 0) ? restDuration : 0;
+      const session = onComplete(actualDuration, actualFocusDuration, actualRestDuration, distractions);
       setDistractions({ internal: 0, external: 0, unavoidable: 0 });
       if (session) {
         const generated = generateRewardChoicesForSession(session, {

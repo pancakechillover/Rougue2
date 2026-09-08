@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.2.9';
-export const LAST_UPDATE_DATE = '2026-09-07';
-export const LAST_UPDATE_TIME = '06:35:00';
+export const APP_VERSION = 'v9.3.0';
+export const LAST_UPDATE_DATE = '2026-09-08';
+export const LAST_UPDATE_TIME = '02:30:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,18 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.3.0',
+    date: '2026-09-08',
+    time: '02:30:00',
+    title: 'Version 9.3 Major Update: Multi-Window Synchronization & Focus Architecture Hardening',
+    items: [
+      { category: 'Multi-Window & PiP Hardening', description: 'Eliminated dual-instance session duplication bug caused by simultaneous rendering of fullscreen portal and standard explore timer views during PiP and popup transitions.' },
+      { category: 'Session Deduplication Guard', description: 'Implemented global sub-second completion deduplication engine in state manager to guarantee idempotent focus session logging across all window modes.' },
+      { category: 'Efficiency & Progress Engine', description: 'Hardened rest duration calculations and added customizable efficiency bounds (capped vs uncapped) with dynamic weight formula annotations and batch historical recalculation tools.' },
+      { category: 'Workstation Tracking & Analytics', description: 'Enhanced workstation presence monitoring with 4-hour continuous duration safety limits, auto-timeout prompts, multi-layer distraction rate charts (/h), and full theme adaptation.' }
+    ]
+  },
   {
     version: 'v9.2.0',
     date: '2026-09-06',

@@ -1,29 +1,29 @@
 {
-  "version": "v9.2.0",
-  "date": "2026-09-06",
+  "version": "v9.3.0",
+  "date": "2026-09-08",
   "latestRelease": {
-    "version": "v9.2.0",
-    "date": "2026-09-06",
-    "time": "03:00:00",
-    "title": "Version 9.2 Major Update: Workstation Presence Tracking & Precision Focus System",
+    "version": "v9.3.0",
+    "date": "2026-09-08",
+    "time": "02:30:00",
+    "title": "Version 9.3 Major Update: Multi-Window Synchronization & Focus Architecture Hardening",
     "items": [
       {
-        "category": "Workstation Tracking",
-        "description": "Replaced fixed target focus time with real-time workstation presence tracking. Check in across locations (Office, Lab, Library, Home Desk, Cafe) with automatic conversion rate metrics and fallback support."
+        "category": "Multi-Window & PiP Hardening",
+        "description": "Eliminated dual-instance session duplication bug caused by simultaneous rendering of fullscreen portal and standard explore timer views during PiP and popup transitions."
       },
       {
-        "category": "Presence & Efficiency Hub",
-        "description": "Integrated Presence Hub with location distribution bars, live status tracking, manual interval logging, and retroactive punch-card adjustments."
+        "category": "Session Deduplication Guard",
+        "description": "Implemented global sub-second completion deduplication engine in state manager to guarantee idempotent focus session logging across all window modes."
       },
       {
-        "category": "Location Icon Library",
-        "description": "Customizable 12-icon preset library for check-in locations with responsive selector grids and seamless in-place editing."
+        "category": "Efficiency & Progress Engine",
+        "description": "Hardened rest duration calculations and added customizable efficiency bounds (capped vs uncapped) with dynamic weight formula annotations and batch historical recalculation tools."
       },
       {
-        "category": "Visual Polish & Consistency",
-        "description": "Standardized header banners, subtitle time range formats, theme-aware color palettes, and precision TimePicker wheel controls across Agenda, Workstation, and Journal."
+        "category": "Workstation Tracking & Analytics",
+        "description": "Enhanced workstation presence monitoring with 4-hour continuous duration safety limits, auto-timeout prompts, multi-layer distraction rate charts (/h), and full theme adaptation."
       }
     ]
   },
-  "timestamp": 1788750000000
+  "timestamp": 1788863400000
 }

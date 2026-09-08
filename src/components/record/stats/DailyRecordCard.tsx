@@ -95,14 +95,18 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
     const maxDist = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
     const compW = (state.efficiencyRatingConfig?.completionRateWeight ?? 70) / 100;
     const focusW = (state.efficiencyRatingConfig?.focusQualityWeight ?? 30) / 100;
+    const isCapped = state.efficiencyRatingConfig?.capMetrics !== false;
 
     let calculatedRating = 0;
     if (actualH > 0) {
-      const completionRate = targetH > 0 ? Math.min(1.0, actualH / targetH) : 0;
+      const completionRate = targetH > 0
+        ? (isCapped ? Math.min(1.0, actualH / targetH) : (actualH / targetH))
+        : 0;
       const distractionRate = dayStats.totalDistractions / actualH;
-      const focusQuality = Math.max(0.0, 1.0 - (distractionRate / (maxDist > 0 ? maxDist : 10)));
+      const rawFocusQuality = 1.0 - (distractionRate / (maxDist > 0 ? maxDist : 10));
+      const focusQuality = isCapped ? Math.max(0.0, rawFocusQuality) : rawFocusQuality;
       const efficiency = (compW * completionRate) + (focusW * focusQuality);
-      calculatedRating = Math.max(0, Math.min(5, efficiency * 5));
+      calculatedRating = isCapped ? Math.max(0, Math.min(5, efficiency * 5)) : (efficiency * 5);
     }
 
     setTimeout(() => {
@@ -404,6 +408,8 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
           workstationPresenceMinutes={dayStats.workstationMinutes}
           workstationIntervalCount={dayStats.workstationIntervalCount}
           conversionRate={dayStats.conversionRate}
+          state={state}
+          onUpdateState={onUpdateState}
         />
       )}
     </div>

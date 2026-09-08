@@ -19,7 +19,8 @@ const getAddedProgress = (
   let val = focusDurationOrDuration;
   let denom = standardSessionMinutes || 25;
   if (includeRestTimeInTasks) {
-    val += (restDuration || standardRestMinutes || 5);
+    const effectiveRest = typeof restDuration === 'number' ? restDuration : (standardRestMinutes || 5);
+    val += effectiveRest;
     denom += (standardRestMinutes || 5);
   }
   return Math.max(1, val) / denom;
@@ -1078,7 +1079,20 @@ export function useGameState() {
     }
   }, [dungeons, majorDungeons, addRewardToHistory, getNow, setState]);
 
+  const lastCompletedSessionRef = useRef<{ time: number; key: string } | null>(null);
+
   const completeSession = useCallback((dungeonId: string | null, duration: number, focusDuration?: number, restDuration?: number, customTimestamp?: number, distractions?: { internal: number; external: number; unavoidable: number }) => {
+    // Deduplication safeguard for active live sessions (prevents concurrent double trigger in multi-window/portal states)
+    if (!customTimestamp) {
+      const sessionKey = `${dungeonId || 'free_study'}_${duration}_${focusDuration || 0}_${restDuration || 0}_${distractions?.internal || 0}_${distractions?.external || 0}_${distractions?.unavoidable || 0}`;
+      const nowMs = Date.now();
+      if (lastCompletedSessionRef.current && lastCompletedSessionRef.current.key === sessionKey && (nowMs - lastCompletedSessionRef.current.time) < 2000) {
+        console.warn('[completeSession] Duplicate live session completion detected and prevented within 2s cooldown window.');
+        return null;
+      }
+      lastCompletedSessionRef.current = { time: nowMs, key: sessionKey };
+    }
+
     const absoluteNow = customTimestamp ? new Date(customTimestamp) : getNow();
     let localTimeRecord = new Date(absoluteNow);
     if (state.timezone) {
@@ -1143,11 +1157,12 @@ export function useGameState() {
     if (state.doubleGoldActive) baseCoins *= 2;
 
     const baseFocusOrDuration = focusDuration || duration;
+    const sessionRest = restDuration !== undefined ? restDuration : 0;
     const sessionDurationVal = state.includeRestTimeInTasks 
-      ? baseFocusOrDuration + (restDuration || 0) 
+      ? baseFocusOrDuration + sessionRest 
       : baseFocusOrDuration;
       
-    const addedProgress = getAddedProgress(state.includeRestTimeInTasks, baseFocusOrDuration, restDuration, state.standardSessionMinutes, state.standardRestMinutes);
+    const addedProgress = getAddedProgress(state.includeRestTimeInTasks, baseFocusOrDuration, sessionRest, state.standardSessionMinutes, state.standardRestMinutes);
     
     // Scale base rewards by the time blocks completed
     const progressMultiplier = Math.max(1, Math.floor(addedProgress));
@@ -1159,7 +1174,7 @@ export function useGameState() {
       dungeonId: dungeonId || 'free_study',
       duration,
       focusDuration,
-      restDuration,
+      restDuration: sessionRest,
       distractions,
       timestamp: absoluteNow.toISOString(),
       coinsEarned: Math.ceil(baseCoins),

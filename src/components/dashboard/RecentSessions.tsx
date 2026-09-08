@@ -719,7 +719,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex flex-col items-center">
                              <div className="text-[10px] sm:text-xs font-bold text-slate-300">
-                               <span className="text-indigo-400">{session.focusDuration || 0} min</span>
+                               <span className="text-indigo-400">{session.focusDuration || session.duration || 0} min</span>
                                <span className="text-slate-500"> + </span>
                                <span className="text-emerald-400">{session.restDuration || 0} min</span>
                              </div>

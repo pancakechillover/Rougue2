@@ -29,7 +29,8 @@ import {
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
   getEffectiveTargetFocusMinutes, 
-  getActiveSessionDurationFormatted 
+  getActiveSessionDurationFormatted,
+  MAX_WORKSTATION_SESSION_MINUTES
 } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
 import { LocationIcon } from '../workstation/LocationIcon';
@@ -135,7 +136,7 @@ export const WorkstationModal: React.FC<WorkstationModalProps> = ({
     if (!activeSession) return;
     const end = new Date();
     const start = parseISO(activeSession.startTime);
-    const durMins = Math.max(1, differenceInMinutes(end, start));
+    const durMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(1, differenceInMinutes(end, start)));
     const sessionDate = getSettlementDay(start, state.timeSettings);
 
     const completedInterval: WorkstationInterval = {

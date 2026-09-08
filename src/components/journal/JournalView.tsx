@@ -308,20 +308,21 @@ export const JournalView: React.FC<JournalViewProps> = ({
     const b = state.efficiencyRatingConfig?.maxDistractionsPerHour ?? 10;
     const c = (state.efficiencyRatingConfig?.completionRateWeight ?? 70) / 100;
     const d = (state.efficiencyRatingConfig?.focusQualityWeight ?? 30) / 100;
+    const isCapped = state.efficiencyRatingConfig?.capMetrics !== false;
 
     let calculatedRating = 0;
 
     if (actualHours > 0) {
       const targetCompletionRate = targetHours > 0 ? actualHours / targetHours : 0;
-      const normalizedCompletion = Math.min(1.0, targetCompletionRate);
+      const normalizedCompletion = isCapped ? Math.min(1.0, targetCompletionRate) : targetCompletionRate;
 
       const distractionRate = distractions / actualHours;
       const penaltyRatio = b > 0 ? distractionRate / b : 0;
-      const focusDegree = Math.max(0.0, 1.0 - penaltyRatio);
+      const rawFocusDegree = 1.0 - penaltyRatio;
+      const focusDegree = isCapped ? Math.max(0.0, rawFocusDegree) : rawFocusDegree;
 
       const finalEfficiency = (c * normalizedCompletion) + (d * focusDegree);
-      const rawRating = Math.max(0, Math.min(5, finalEfficiency * 5));
-      calculatedRating = rawRating;
+      calculatedRating = isCapped ? Math.max(0, Math.min(5, finalEfficiency * 5)) : (finalEfficiency * 5);
     }
 
     setTimeout(() => {
@@ -960,6 +961,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
             setTimeout(() => setIsCalculating(false), 600);
           }}
           onClose={() => setShowEfficiencyDetails(false)}
+          state={state}
+          onUpdateState={onUpdateState}
         />
       )}
 

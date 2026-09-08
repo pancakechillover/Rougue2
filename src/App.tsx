@@ -47,13 +47,16 @@ import { useCloudSync } from './hooks/useCloudSync';
 import { triggerSimpleConfetti } from './lib/effects';
 import { cn, getXPForLevel, getSettlementDay, getTitleForLevel } from './lib/utils';
 import { playSound } from './lib/sound';
-import { Dungeon, MajorDungeon, DungeonReward, AppState } from './types';
+import { Dungeon, MajorDungeon, DungeonReward, AppState, WorkstationInterval, ActiveWorkstationSession } from './types';
 import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
 import { UpdateChecker } from './components/common/UpdateChecker';
 import { useTimerStore } from './hooks/useTimerStore';
 import { renderAvatar } from './components/guild/TeamModule';
+import { WorkstationTimeoutModal, WorkstationTimeoutInfo } from './components/modals/WorkstationTimeoutModal';
+import { MAX_WORKSTATION_SESSION_MS, MAX_WORKSTATION_SESSION_MINUTES } from './lib/workstationUtils';
+import { parseISO, isValid } from 'date-fns';
 
 const isTalentLevel = (lvl: number) => {
   if (lvl <= 4) return true;
@@ -430,6 +433,100 @@ function App() {
       if (interval) clearInterval(interval);
     };
   }, [state.teamId, activeTab, state.secretCode, state.userName]);
+
+  // Workstation Active Session 4-Hour Limit Check & State
+  const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);
+  const isHandlingWorkstationTimeoutRef = useRef(false);
+
+  useEffect(() => {
+    const active = state.activeWorkstationSession;
+    if (!active || !active.startTime) return;
+
+    const checkWorkstationTimeout = () => {
+      if (isHandlingWorkstationTimeoutRef.current) return;
+      const start = parseISO(active.startTime);
+      if (!isValid(start)) return;
+
+      const elapsedMs = Date.now() - start.getTime();
+      if (elapsedMs >= MAX_WORKSTATION_SESSION_MS) {
+        isHandlingWorkstationTimeoutRef.current = true;
+        const end = new Date(start.getTime() + MAX_WORKSTATION_SESSION_MS);
+        const sessionDate = getSettlementDay(start, state.timeSettings);
+
+        const completedInterval: WorkstationInterval = {
+          id: active.id,
+          date: sessionDate,
+          startTime: active.startTime,
+          endTime: end.toISOString(),
+          durationMinutes: MAX_WORKSTATION_SESSION_MINUTES,
+          location: active.location || 'Home',
+          note: active.note
+        };
+
+        const timeoutDetails: WorkstationTimeoutInfo = {
+          id: active.id,
+          location: active.location || 'Home',
+          startTime: active.startTime,
+          endTime: end.toISOString(),
+          durationMinutes: MAX_WORKSTATION_SESSION_MINUTES,
+          note: active.note
+        };
+
+        setState(prev => {
+          const existing = prev.workstationLogs?.[sessionDate] || [];
+          const updatedLogs = {
+            ...(prev.workstationLogs || {}),
+            [sessionDate]: [...existing, completedInterval]
+          };
+          const next: AppState = {
+            ...prev,
+            workstationLogs: updatedLogs,
+            activeWorkstationSession: null
+          };
+          if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
+          return next;
+        });
+
+        setWorkstationTimeoutInfo(timeoutDetails);
+        playSound('reward');
+
+        setTimeout(() => {
+          isHandlingWorkstationTimeoutRef.current = false;
+        }, 1200);
+      }
+    };
+
+    checkWorkstationTimeout();
+    const interval = setInterval(checkWorkstationTimeout, 1000);
+    return () => clearInterval(interval);
+  }, [state.activeWorkstationSession, state.timeSettings, syncToCloud, setState]);
+
+  const handleContinueWorkstationSession = (location: string, note?: string) => {
+    const startISO = new Date().toISOString();
+    const newSession: ActiveWorkstationSession = {
+      id: `ws_${Date.now()}`,
+      startTime: startISO,
+      location: location || 'Home',
+      note: note || undefined
+    };
+
+    setState(prev => {
+      const next: AppState = {
+        ...prev,
+        activeWorkstationSession: newSession
+      };
+      if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
+      return next;
+    });
+
+    setWorkstationTimeoutInfo(null);
+    playSound('click');
+  };
+
+  const handleDismissWorkstationTimeout = () => {
+    setWorkstationTimeoutInfo(null);
+    playSound('click');
+  };
 
   // Auto show start of day modal
   useEffect(() => {
@@ -2006,6 +2103,15 @@ function App() {
         }}
         isTalentLevel={isTalentLevel}
         getNextTalentLevel={getNextTalentLevel}
+      />
+
+      {/* Workstation 4-Hour Timeout Prompt Modal */}
+      <WorkstationTimeoutModal 
+        isOpen={!!workstationTimeoutInfo}
+        info={workstationTimeoutInfo}
+        onContinue={handleContinueWorkstationSession}
+        onDismiss={handleDismissWorkstationTimeout}
+        theme={state.theme}
       />
 
       {createPortal(

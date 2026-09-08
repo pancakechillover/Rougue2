@@ -8,6 +8,9 @@ export const DEFAULT_WORKSTATION_LOCATIONS = [
   'Library'
 ] as const;
 
+export const MAX_WORKSTATION_SESSION_MINUTES = 240; // 4 hours maximum single session
+export const MAX_WORKSTATION_SESSION_MS = MAX_WORKSTATION_SESSION_MINUTES * 60 * 1000;
+
 /**
  * Returns the configured workstation locations for the user or default 3 locations.
  */
@@ -48,7 +51,7 @@ export function getWorkstationTotalMinutes(
     if (isValid(activeStart)) {
       const activeDateStr = getSettlementDay(activeStart, state.timeSettings);
       if (activeDateStr === dateStr) {
-        const activeMins = Math.max(0, differenceInMinutes(now, activeStart));
+        const activeMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(0, differenceInMinutes(now, activeStart)));
         totalMins += activeMins;
       }
     }
@@ -171,7 +174,10 @@ export function getActiveSessionDurationFormatted(
     return { hours: 0, minutes: 0, seconds: 0, textShort: '0m', textClock: '00:00:00' };
   }
 
-  const totalSecs = Math.max(0, differenceInSeconds(now, start));
+  const totalSecs = Math.min(
+    MAX_WORKSTATION_SESSION_MINUTES * 60,
+    Math.max(0, differenceInSeconds(now, start))
+  );
   const hours = Math.floor(totalSecs / 3600);
   const minutes = Math.floor((totalSecs % 3600) / 60);
   const seconds = totalSecs % 60;
