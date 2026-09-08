@@ -59,13 +59,11 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   const formattedRate = distractionRate < 0.1 ? distractionRate.toFixed(2) : (distractionRate >= 10 ? Math.round(distractionRate).toString() : distractionRate.toFixed(1));
 
   const handleSave = () => {
-    const updatedDistractions = (internalDistractions > 0 || externalDistractions > 0 || unavoidableDistractions > 0)
-      ? {
-          internal: internalDistractions,
-          external: externalDistractions,
-          unavoidable: unavoidableDistractions
-        }
-      : undefined;
+    const updatedDistractions = {
+      internal: Number(internalDistractions) || 0,
+      external: Number(externalDistractions) || 0,
+      unavoidable: Number(unavoidableDistractions) || 0
+    };
 
     let isoTimestamp = session.timestamp;
     try {

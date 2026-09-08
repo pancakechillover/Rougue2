@@ -148,8 +148,14 @@ export function getSessionEffectiveMinutes(session: any, includeRestTimeInTasks:
 
 export function getSessionDistractionCount(distractions: any): number {
   if (!distractions) return 0;
-  if (typeof distractions === 'number') return distractions;
+  if (typeof distractions === 'number') return isNaN(distractions) ? 0 : distractions;
   if (Array.isArray(distractions)) return distractions.length;
+  if (typeof distractions === 'object') {
+    const internal = Number(distractions.internal) || 0;
+    const external = Number(distractions.external) || 0;
+    const unavoidable = Number(distractions.unavoidable) || 0;
+    return internal + external + unavoidable;
+  }
   return 0;
 }
 

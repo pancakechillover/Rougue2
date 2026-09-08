@@ -86,6 +86,9 @@ export const RoutineCellEditor = ({
       dungeonId: routineId,
       timestamp: new Date(targetTimestamp).toISOString(),
       duration: mins,
+      focusDuration: mins,
+      restDuration: 0,
+      distractions: { internal: 0, external: 0, unavoidable: 0 },
       coinsEarned: 0,
       xpEarned: 0
     };

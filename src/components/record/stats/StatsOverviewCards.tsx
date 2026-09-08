@@ -6,6 +6,9 @@ interface StatsOverviewCardsProps {
   exp: number;
   timeMinutes: number;
   distractions: number;
+  totalTimeMinutes?: number;
+  totalDistractions?: number;
+  weeklyDivisor?: number;
   isAverage?: boolean;
   formatDuration?: (minutes: number) => string;
 }
@@ -15,12 +18,22 @@ export const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({
   exp,
   timeMinutes,
   distractions,
+  totalTimeMinutes,
+  totalDistractions,
+  weeklyDivisor,
   isAverage = false,
   formatDuration = (mins) => `${mins}m`,
 }) => {
-  const distractionsPerHour = timeMinutes > 0
-    ? (Math.round((distractions / (timeMinutes / 60)) * 10) / 10).toFixed(1)
-    : (distractions > 0 ? String(distractions) : '0.0');
+  const effectiveMinutes = totalTimeMinutes !== undefined ? totalTimeMinutes : timeMinutes;
+  const effectiveDistractions = totalDistractions !== undefined ? totalDistractions : distractions;
+
+  const distractionsPerHour = effectiveMinutes > 0
+    ? (Math.round((effectiveDistractions / (effectiveMinutes / 60)) * 10) / 10).toFixed(1)
+    : (effectiveDistractions > 0 ? String(effectiveDistractions) : '0.0');
+
+  const tooltipTitle = isAverage
+    ? `Total interruptions: ${effectiveDistractions} across ${formatDuration(effectiveMinutes)} focus time${weeklyDivisor ? ` (Avg ${(effectiveDistractions / weeklyDivisor).toFixed(1)}/day)` : ''}`
+    : `Total interruptions: ${effectiveDistractions} across ${formatDuration(effectiveMinutes)} focus time`;
 
   return (
     <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
@@ -62,7 +75,7 @@ export const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({
       {/* Distracted Card */}
       <div 
         className="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-1.5 sm:p-3 flex flex-col items-center justify-center text-center min-w-0" 
-        title={`Total interruptions: ${distractions} across ${formatDuration(timeMinutes)} focus time`}
+        title={tooltipTitle}
       >
         <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mb-1 sm:mb-1.5 line-clamp-1 break-all w-full truncate">
           {isAverage ? 'Avg Distracted' : 'Distracted'}

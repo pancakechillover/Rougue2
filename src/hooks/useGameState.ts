@@ -1169,13 +1169,19 @@ export function useGameState() {
     baseXP *= progressMultiplier;
     baseCoins *= progressMultiplier;
 
+    const sessionDistractions = distractions ? {
+      internal: Number(distractions.internal) || 0,
+      external: Number(distractions.external) || 0,
+      unavoidable: Number(distractions.unavoidable) || 0
+    } : { internal: 0, external: 0, unavoidable: 0 };
+
     const session: StudySession = {
       id: Math.random().toString(36).substr(2, 9),
       dungeonId: dungeonId || 'free_study',
       duration,
       focusDuration,
       restDuration: sessionRest,
-      distractions,
+      distractions: sessionDistractions,
       timestamp: absoluteNow.toISOString(),
       coinsEarned: Math.ceil(baseCoins),
       xpEarned: Math.floor(baseXP),
@@ -2481,6 +2487,7 @@ export function useGameState() {
           duration,
           focusDuration: focus,
           restDuration: rest,
+          distractions: { internal: 0, external: 0, unavoidable: 0 },
           timestamp: randomTimestamp,
           coinsEarned: 0,
           xpEarned: 0,

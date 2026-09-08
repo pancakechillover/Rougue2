@@ -1,5 +1,14 @@
 # Task History Archive
 
+- **v9.3.2 (2026-09-08):** Fix Missing Distraction Counts in Newly Created Focus Sessions
+  - *Live Distraction Store Retrieval in Timer:* Fixed an issue in `Timer.tsx` where `handleComplete` closed over stale initial `distractions` state (`0, 0, 0`), discarding user distraction clicks upon timer completion or skip. Now reads fresh live distraction counts directly from `useTimerStore.getState().distractions` and safely resets the store only after completion payload dispatch.
+  - *Defensive Distraction Normalization across Session Creation:* Added strict distraction object normalization (`{ internal, external, unavoidable }`) across `completeSession` and `bulkCreateSessions` in `useGameState.ts`, `RoutineCellEditor.tsx`, and `EditSessionModal.tsx`, guaranteeing that all newly generated or updated sessions maintain a non-null, structured distraction record.
+
+- **v9.3.1 (2026-09-08):** Fix Distraction Statistics Aggregation & Weekly Avg Distracted Rate Calculation
+  - *Distraction Object Parsing in Utils:* Fixed `getSessionDistractionCount` in `src/lib/utils.ts` which omitted object distraction schemas `{ internal, external, unavoidable }`, causing heatmap statistics and utility aggregators to miss distraction counts and return 0.
+  - *Weekly Hourly Rate & Overview Cards Fix:* Fixed an arithmetic mismatch in `StatsWeeklySection.tsx` and `StatsOverviewCards.tsx` where 7-day total distractions were divided by 1 day's average focus time (artificially multiplying the hourly distraction rate by 7). Now accurately computes `distractionsPerHour` against total focus minutes (`totalDistractions / (totalFocusMinutes / 60)`), and enhanced the card tooltip to display full weekly totals and daily averages.
+  - *Consistent Weekly Rolling Period Filtering:* Fixed `getGainsForPeriod` in `Stats.tsx` to filter on `s.assignedDate` using full day intervals (`startOfDay` to `endOfDay`), ensuring 100% data synchronization with `weeklyData` across both Natural and Last 7d rolling modes.
+
 - **v9.3.0 (2026-09-08):** Fix Duplicate Session Completion Bug on PiP/Fullscreen Transitions & State Guard
   - *Prevent Concurrent Dual-Instance Timer Mounting:* Fixed an issue in `ExploreView.tsx` where `renderTimerContent()` was simultaneously rendered in both the fullscreen portal and the standard page view layout when `isFullscreenExplore` was active, causing two distinct `Timer` component instances to run worker timers and fire duplicate completions. Conditioned the standard view container with `{!isFullscreenExplore && renderTimerContent()}`.
   - *State Manager Completion Deduplication Guard:* Added an idempotent sub-second cooldown guard (`2000ms`) inside `completeSession` in `useGameState.ts` to intercept and safely drop identical concurrent completion calls.

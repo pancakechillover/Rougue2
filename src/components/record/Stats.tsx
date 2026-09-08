@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { 
   format, subDays, addDays, 
   startOfWeek, endOfWeek,
+  startOfDay, endOfDay,
   parseISO, isWithinInterval,
   eachDayOfInterval, isSameDay
 } from 'date-fns';
@@ -622,16 +623,15 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
 
   // --- Aggregate Helpers ---
   const getGainsForPeriod = (sessions: StudySession[], rewards: RewardHistoryItem[], dateRange?: { start: Date, end: Date }) => {
-    const periodSessions = dateRange 
-      ? processedHistory.filter(s => {
-          if (heatmapMode === 'year' || weeklyMode === 'calendar') {
-             return isWithinInterval(s.assignedDate, dateRange);
-          }
-          return isWithinInterval(new Date(s.timestamp), dateRange);
-        })
+    const rangeInterval = dateRange 
+      ? { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) }
+      : undefined;
+
+    const periodSessions = rangeInterval 
+      ? processedHistory.filter(s => isWithinInterval(s.assignedDate, rangeInterval))
       : processedHistory;
-    const periodRewards = dateRange
-      ? processedRewards.filter(r => isWithinInterval(new Date(r.timestamp), dateRange))
+    const periodRewards = rangeInterval
+      ? processedRewards.filter(r => isWithinInterval(r.assignedDate, rangeInterval))
       : processedRewards;
 
     const coins = periodSessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 

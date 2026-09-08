@@ -295,8 +295,14 @@ export const Timer = React.memo<TimerProps>(({
       const actualFocusDuration = overrideDuration !== undefined ? overrideDuration : focusDuration;
       const actualDuration = overrideDuration !== undefined ? overrideDuration : duration;
       const actualRestDuration = (enableRest && restDuration > 0) ? restDuration : 0;
-      const session = onComplete(actualDuration, actualFocusDuration, actualRestDuration, distractions);
-      setDistractions({ internal: 0, external: 0, unavoidable: 0 });
+      const liveDistractions = useTimerStore.getState().distractions || distractions || { internal: 0, external: 0, unavoidable: 0 };
+      const recordedDistractions = {
+        internal: Number(liveDistractions.internal) || 0,
+        external: Number(liveDistractions.external) || 0,
+        unavoidable: Number(liveDistractions.unavoidable) || 0
+      };
+      const session = onComplete(actualDuration, actualFocusDuration, actualRestDuration, recordedDistractions);
+      useTimerStore.getState().setDistractions({ internal: 0, external: 0, unavoidable: 0 });
       if (session) {
         const generated = generateRewardChoicesForSession(session, {
           rewardPool,

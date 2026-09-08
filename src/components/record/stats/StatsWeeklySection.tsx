@@ -426,6 +426,9 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
         exp={Math.round(weeklyGains.xp / weeklyDivisor)}
         timeMinutes={Math.round(weeklyGains.tasks / weeklyDivisor)}
         distractions={weeklyGains.distractions}
+        totalTimeMinutes={weeklyGains.tasks}
+        totalDistractions={weeklyGains.distractions}
+        weeklyDivisor={weeklyDivisor}
         isAverage={true}
         formatDuration={formatDuration}
       />
