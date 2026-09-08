@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, Dungeon, StudySession, Talent, RewardCard, MajorDungeon, RewardHistoryItem, DungeonReward, Quest } from '../types';
 import { TALENTS, INITIAL_REWARD_POOL, INITIAL_GACHA, DEFAULT_QUESTS, DEFAULT_SAGE_PROMPTS } from '../constants';
 import { format, isSameDay, parseISO, differenceInDays, subDays } from 'date-fns';
