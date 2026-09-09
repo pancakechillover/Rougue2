@@ -741,7 +741,7 @@ export const Timer = React.memo<TimerProps>(({
               "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
               isResting 
                 ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-indigo-600/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
+                : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Internal: Distracted by your own thoughts (Hold 0.8s to decrease)"}
           >
@@ -750,7 +750,7 @@ export const Timer = React.memo<TimerProps>(({
             {distractions.internal > 0 && (
               <span className={cn(
                 "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure"
               )}>
                 {distractions.internal}
               </span>
@@ -763,7 +763,7 @@ export const Timer = React.memo<TimerProps>(({
               "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
               isResting 
                 ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-orange-600/20 hover:text-orange-400 cursor-pointer touch-manipulation"
+                : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "External: Interrupted by environment (Hold 0.8s to decrease)"}
           >
@@ -772,7 +772,7 @@ export const Timer = React.memo<TimerProps>(({
             {distractions.external > 0 && (
               <span className={cn(
                 "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-orange-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure"
               )}>
                 {distractions.external}
               </span>
@@ -785,7 +785,7 @@ export const Timer = React.memo<TimerProps>(({
               "w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
               isResting 
                 ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-red-600/20 hover:text-red-400 cursor-pointer touch-manipulation"
+                : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Unavoidable: Forced to interrupt (Hold 0.8s to decrease)"}
           >
@@ -794,7 +794,7 @@ export const Timer = React.memo<TimerProps>(({
             {distractions.unavoidable > 0 && (
               <span className={cn(
                 "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-red-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure"
               )}>
                 {distractions.unavoidable}
               </span>

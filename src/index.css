@@ -644,6 +644,10 @@ html, body, #root {
 [data-theme="daylight"] .bg-emerald-500,
 [data-theme="daylight"] .bg-amber-600,
 [data-theme="daylight"] .bg-amber-500,
+[data-theme="daylight"] .bg-amber-400,
+[data-theme="daylight"] .bg-orange-600,
+[data-theme="daylight"] .bg-orange-500,
+[data-theme="daylight"] .bg-orange-400,
 [data-theme="daylight"] .bg-rose-600,
 [data-theme="daylight"] .bg-rose-500,
 [data-theme="daylight"] .bg-red-600,
@@ -658,6 +662,10 @@ html, body, #root {
 [data-theme="warm"] .bg-emerald-500,
 [data-theme="warm"] .bg-amber-600,
 [data-theme="warm"] .bg-amber-500,
+[data-theme="warm"] .bg-amber-400,
+[data-theme="warm"] .bg-orange-600,
+[data-theme="warm"] .bg-orange-500,
+[data-theme="warm"] .bg-orange-400,
 [data-theme="warm"] .bg-rose-600,
 [data-theme="warm"] .bg-rose-500,
 [data-theme="warm"] .bg-red-600,
@@ -672,6 +680,10 @@ html, body, #root {
 [data-theme="candy"] .bg-emerald-500,
 [data-theme="candy"] .bg-amber-600,
 [data-theme="candy"] .bg-amber-500,
+[data-theme="candy"] .bg-amber-400,
+[data-theme="candy"] .bg-orange-600,
+[data-theme="candy"] .bg-orange-500,
+[data-theme="candy"] .bg-orange-400,
 [data-theme="candy"] .bg-rose-600,
 [data-theme="candy"] .bg-rose-500,
 [data-theme="candy"] .bg-red-600,
@@ -822,16 +834,19 @@ svg:focus {
   }
 }
 
-/* TipTap Editor Styles */
-.tiptap {
-  outline: none;
-  min-height: 100%;
+/* TipTap & Markdown Editor Styles */
+.markdown-content p {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
 }
-.tiptap p.is-editor-empty:first-child::before {
-  color: #475569;
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
 }
+.markdown-content li {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
 

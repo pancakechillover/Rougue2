@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { motion, Reorder, useDragControls } from 'motion/react';
-import { cn, getSettlementDay, sortAgendaTodos } from '../../lib/utils';
+import { cn, getSettlementDay, sortAgendaTodos, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { format, addDays, subDays, parseISO, differenceInCalendarDays, isToday } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
@@ -773,37 +773,62 @@ export const TodayView: React.FC<TodayViewProps> = ({
                               
                               {dungeonItem && (
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                  <div className="h-1.5 w-12 sm:w-14 bg-slate-900 rounded-full overflow-hidden border border-slate-800/50 shrink-0">
-                                    <div 
-                                      className={cn(
-                                        "h-full transition-all", 
-                                        isChecked 
-                                          ? "bg-emerald-500" 
-                                          : tagInfo.barColor
-                                      )}
-                                      style={{ width: `${Math.min(100, (dungeonItem.completedSessions / dungeonItem.totalSessions) * 100)}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
-                                    {(() => {
-                                      const timePerRoom = (state.standardSessionMinutes || 25) + (state.includeRestTimeInTasks ? (state.standardRestMinutes || 5) : 0);
-                                      const formatTime = (mins: number) => {
-                                        if (mins < 60) return <>{Math.floor(mins)}<span className="text-[9px] opacity-70 ml-[0.5px]">m</span></>;
-                                        const h = Math.floor(mins / 60);
-                                        const m = Math.floor(mins % 60);
-                                        return m > 0 
-                                          ? <>{h}<span className="text-[9px] opacity-70 ml-[0.5px]">h</span> {m}<span className="text-[9px] opacity-70 ml-[0.5px]">m</span></>
-                                          : <>{h}<span className="text-[9px] opacity-70 ml-[0.5px]">h</span></>;
-                                      };
+                                  {(() => {
+                                    const timePerRoom = (state.standardSessionMinutes || 25) + (state.includeRestTimeInTasks ? (state.standardRestMinutes || 5) : 0);
+                                    const stats = getDungeonHierarchyStats(dungeonItem.id, dungeons || [], timePerRoom);
+
+                                    const formatTime = (mins: number) => {
+                                      if (mins < 60) return <>{Math.floor(mins)}<span className="text-[9px] opacity-70 ml-[0.5px]">m</span></>;
+                                      const h = Math.floor(mins / 60);
+                                      const m = Math.floor(mins % 60);
+                                      return m > 0 
+                                        ? <>{h}<span className="text-[9px] opacity-70 ml-[0.5px]">h</span> {m}<span className="text-[9px] opacity-70 ml-[0.5px]">m</span></>
+                                        : <>{h}<span className="text-[9px] opacity-70 ml-[0.5px]">h</span></>;
+                                    };
+
+                                    if (stats.isOpenEnded) {
                                       return (
-                                        <>
-                                          {formatTime(dungeonItem.completedSessions * timePerRoom)}
-                                          <span className="opacity-50 text-[9px] mx-0.5">/</span>
-                                          {formatTime(dungeonItem.totalSessions * timePerRoom)}
-                                        </>
+                                        <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
+                                          {stats.completedMinutes}<span className="text-[9px] opacity-70 ml-[0.5px]">m</span>
+                                        </span>
                                       );
-                                    })()}
-                                  </span>
+                                    }
+
+                                    const isParent = stats.hasChildren;
+                                    const isCompleted = isChecked || stats.isAllCompleted;
+
+                                    return (
+                                      <>
+                                        <div 
+                                          className={cn(
+                                            "h-1.5 w-12 sm:w-14 rounded-full overflow-hidden border shrink-0 flex",
+                                            isParent ? "bg-slate-900/90 border-slate-800/80" : "bg-slate-900 border-slate-800/50"
+                                          )}
+                                          title={
+                                            stats.tierSegments.length > 0
+                                              ? `Total: ${stats.completedMinutes}m (${stats.tierSegments.map(s => `${s.label}: ${s.minutes}m`).join(', ')})`
+                                              : undefined
+                                          }
+                                        >
+                                          {stats.tierSegments.map((seg, idx) => (
+                                            <div 
+                                              key={idx}
+                                              className={cn(
+                                                "h-full transition-all duration-300", 
+                                                getTierProgressColor(seg.level, isCompleted, 'indigo')
+                                              )}
+                                              style={{ width: `${seg.percent}%` }}
+                                            />
+                                          ))}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
+                                          {formatTime(stats.completedMinutes)}
+                                          <span className="opacity-50 text-[9px] mx-0.5">/</span>
+                                          {formatTime(stats.targetMinutes)}
+                                        </span>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </div>

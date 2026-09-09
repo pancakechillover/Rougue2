@@ -1,5 +1,52 @@
 # Task History Archive
 
+- **v9.3.18 (2026-09-09):** Harmonize Dungeon Colors with Record Interface Palette (Vibrant Amber & Emerald)
+  - *Unified Record Color Standards:* Replaced washed-out pale amber and dull greens with the clean, vibrant, high-contrast amber (`text-amber-400`, `bg-amber-500`) and emerald (`text-emerald-400`, `bg-emerald-500`) palette used throughout the Record and Dashboard stats modules.
+  - *Polished Progress Bars & Typography:* Upgraded progress bar tier segment colors and text styles for both Major Goals and Sub-Dungeons to match the Record interface aesthetic.
+
+- **v9.3.17 (2026-09-09):** Fix Completed Status Color Synchronization for Major Goals and Sub-Dungeon Text & Borders
+  - *Unified Emerald Completion Aesthetics:* Fixed a bug where Major Goal time text remained hardcoded to gold when the progress bar turned emerald green upon completion; now synchronously switches both time readings, separators, and border outlines to radiant emerald green (`text-emerald-400 border-emerald-500/30`).
+  - *Completed Status Clarification:* Clarified hierarchy completion evaluation where multi-tier parents require both sub-tier task completion and target time fulfillment to switch from in-progress golden/indigo to complete emerald green.
+
+- **v9.3.16 (2026-09-09):** Compact Distance Between Progress/Time Statistics and Checkbox Action Column
+  - *Eliminated Stranded Action Spacing:* Removed forced wide action container wrapper when outside edit mode and tightened time typography column (`w-20 font-mono`), seamlessly bringing the progress/time statistics into comfortable proximity with the status checkbox and chevron controls.
+  - *Maintained Unified Vertical Column Baseline:* Preserved exact left and right alignment baselines across Major Goals and nested sub-dungeons.
+
+- **v9.3.15 (2026-09-09):** Perfect Column Grid Alignment Across Major Dungeons & Nested Sub-Tiers
+  - *Full-Width Row Architecture & Left-Only Tree Indentation:* Eliminated outer container margin/padding shifts on nested sub-tiers, applying hierarchical indentation purely to the left title area (`paddingLeft`).
+  - *Standardized Control Slot Geometry:* Unified right action slots to fixed `w-20 shrink-0` across Major Dungeons and all Sub-Dungeon tiers, ensuring progress bars and time readings align in an unbroken vertical column across the entire manager view.
+
+- **v9.3.14 (2026-09-09):** Standardized Sizing & Uniform Left Alignment for Dungeon Progress Bars & Time Indicators
+  - *Unified Left Alignment for Time Statistics:* Replaced right-aligned time text with left-aligned (`justify-start w-28 font-mono`), ensuring focus time readings across Major Dungeons and all nested sub-tiers start at the exact same horizontal position.
+  - *Full-Width Tree Container & Progress Bar Sizing:* Standardized progress bar containers to uniform dimensions (`w-16 h-1.5`) and refactored nested sub-tier tree containers to maintain full-width right boundaries, perfectly aligning progress bars, time displays, and action controls across all tier depths.
+
+- **v9.3.13 (2026-09-09):** Tier Depth-Based Multi-Level Color Scale for Stacked Progress Bars
+  - *Tier-Graded Color Hierarchy (色阶区分):* Enhanced stacked progress bars to dynamically render segmented time contributions based on tree depth level (Tier 1 uses deepest solid tone, Tier 2 medium tone, Tier 3+ soft light tone).
+  - *Unified Multi-Segment Rendering:* Refactored `DungeonManager`, `TodayView`, and `StartOfDayModal` to iterate over `stats.tierSegments` with precision color assignments via `getTierProgressColor`.
+
+- **v9.3.12 (2026-09-09):** Hierarchical Expedition Time Aggregation & Stacked Depth Progress Bars
+  - *Recursive Tier Time Aggregation:* Implemented `getDungeonHierarchyStats` to calculate parent tier time and sessions as the recursive sum of direct time plus all sub-tier times across Major Dungeons, sub-tiers, expedition pickers, and agenda views.
+  - *Stacked Segmented Progress Bars (堆积进度条):* Converted progress bars to stacked multi-segment indicators where direct/self focus time renders in solid, deeper shades and children/sub-tier accumulated time renders in lighter, soft shades. Removed all `Σ` symbols for a clean, minimalist display.
+
+- **v9.3.11 (2026-09-08):** Overhaul Markdown Editor with True Syntax Editing, Live Preview & Typography Controls
+  - *True Markdown Syntax Fidelity:* Replaced TipTap hidden-syntax formatting with a transparent, responsive Markdown editor where raw syntax (`##`, `**`, `-`, `>`) remains fully editable and never stripped.
+  - *Interactive View Modes & Smart Lists:* Added Edit, Live Split (Side-by-side), and Rendered Preview view modes with smart Enter list continuation (tasks, bullets, numbered lists), tab indentation, and format shortcut hotkeys.
+  - *Customizable Typography & Compact Spacing:* Created `useEditorTypography` and `EditorTypographyMenu` allowing users to freely adjust base font size (12px to 18px) and line spacing (Tight 1.35x to Loose 2.1x) with local persistence and synchronized preview rendering across `JournalView`, `ImmersiveReflectionModal`, and daily summary modals.
+
+- **v9.3.10 (2026-09-08):** Modernize Default Daily Reflection & Journal Templates
+  - *Deep Work & Dungeon Alignment:* Refreshed default presets (`Standard Review`, `3-2-1 Summary`, `KISS Retrospective`) with rich headings and actionable placeholders tailored to dungeon quests, distractions tracking, and routine habit consistency.
+  - *Seamless Data Migration:* Updated state migration logic in `useGameState.ts` to seamlessly upgrade default system templates for existing users without modifying any custom user-authored templates.
+
+- **v9.3.9 (2026-09-08):** Streamline Reflection Template Dropdown with Bottom Auto-Load Toggle Switch
+  - *Clean Minimalist Dropdown UI:* Removed all per-row sparkle buttons, cluttered badges, and jarring top status banners from `ReflectionTemplatesDropdown.tsx`, restoring clean single-click template insertion and tidy delete actions.
+  - *Bottom Unified Toggle Switch:* Added a sleek, modern toggle switch ("Auto-load on open") in the bottom action bar for instantaneous enable/disable of blank reflection auto-insertion, retaining clear active checkmarks next to the selected template.
+
+
+- **v9.3.7 (2026-09-08):** Add Automatic Template Insertion (Auto-Load) for Daily Reflections & Journal
+  - *Template Auto-Load Configuration:* Added `autoLoadTemplateId` and `autoLoadTemplateMode` (`empty` | `example`) to global `AppState` and template models, enabling users to designate a favorite template to automatically populate empty daily reflections.
+  - *Template Management Dropdown UI:* Enhanced `ReflectionTemplatesDropdown.tsx` with dedicated Auto-load toggle buttons, active status banners, and sparkle indicators for quick toggling between blank framework or example content insertion.
+  - *Seamless Cross-Modal Initialization:* Integrated automatic blank reflection injection across `JournalView.tsx` (on date switching and page open), `DailyRecordCard.tsx`, `DailySummaryModal.tsx`, and `StartOfDayModal.tsx` while strictly preserving any existing user writings.
+
 - **v9.3.6 (2026-09-08):** Restore & Enhance PiP Header Progress Bar Fill Color & Track Thickness
   - *Vibrant Filled Progress Bar:* Replaced the flat hairline/border in `CompactTimer.tsx` with a dedicated, theme-adaptive filled progress bar (`bg-indigo-500` / `bg-emerald-500` with subtle glow) across all PiP window sizes.
   - *Detached Window Style Resilience:* Switched from framer-motion DOM bindings to direct CSS width percentage transitions (`transition-all duration-500`), ensuring the progress fill renders instantly and reliably in Document Picture-in-Picture windows.

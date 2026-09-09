@@ -246,22 +246,24 @@ export function useGameState() {
         {
           id: 'preset-1',
           name: 'Standard Review',
-          content: '### Highlights\n- \n\n### Challenges\n- \n\n### Lessons Learned\n- ',
-          exampleContent: '### Highlights\n- Finished the project proposal early.\n\n### Challenges\n- Kept getting sidetracked by emails.\n\n### Lessons Learned\n- I need to mute notifications during deep work blocks.'
+          content: '### 🎯 Accomplishments & Deep Work\n- \n\n### 🧠 Focus Quality & Distractions\n- \n\n### 💡 Key Insights & Adjustments\n- \n\n### 🚀 Top Priority for Tomorrow\n- ',
+          exampleContent: '### 🎯 Accomplishments & Deep Work\n- Completed 4 deep work sessions on primary dungeon quest.\n- Kept daily routine streaks intact and logged check-ins.\n\n### 🧠 Focus Quality & Distractions\n- Kept internal distractions low during the morning flow state.\n- Handled external interruptions calmly by logging them immediately.\n\n### 💡 Key Insights & Adjustments\n- Preparing workstation materials the night before removes morning friction.\n- 5-minute active stretching between focus blocks restored afternoon energy.\n\n### 🚀 Top Priority for Tomorrow\n- Complete the primary dungeon quest during the morning 90-minute focus block.'
         },
         {
           id: 'preset-2',
           name: '3-2-1 Summary',
-          content: '### 3 Tasks Completed\n1. \n2. \n3. \n\n### 2 Ideas/Thoughts\n1. \n2. \n\n### 1 Goal for Tomorrow\n1. ',
-          exampleContent: '### 3 Tasks Completed\n1. Responded to pending client tickets\n2. Completed 30 mins workout\n3. Planned meals for the week\n\n### 2 Ideas/Thoughts\n1. Waking up 30 mins earlier felt good.\n2. Should prepare gym bag the night before.\n\n### 1 Goal for Tomorrow\n1. Start on the new feature development.'
+          content: '### 3 Completed Quests / Tasks\n1. \n2. \n3. \n\n### 2 Insights & Lessons Learned\n1. \n2. \n\n### 1 Main Goal for Tomorrow\n1. ',
+          exampleContent: '### 3 Completed Quests / Tasks\n1. Completed deep work on primary project milestone\n2. Finished daily routine exercise and check-in\n3. Reviewed daily metrics and planned tomorrow\'s schedule\n\n### 2 Insights & Lessons Learned\n1. Tackling high-priority quests in the morning yields 2x focus efficiency.\n2. Stepping away from screens during rest intervals prevents cognitive fatigue.\n\n### 1 Main Goal for Tomorrow\n1. Finalize the release build and complete routine reviews.'
         },
         {
           id: 'preset-3',
           name: 'KISS Retrospective',
-          content: `### 🟢 Keep (What went well and should continue)\n- \n\n### 🟡 Improve (What could be done better)\n- \n\n### 🔴 Stop (What didn't work and should stop)\n- \n\n### 🔵 Start (What new things to try)\n- `,
-          exampleContent: `### 🟢 Keep (What went well and should continue)\n- I woke up early and completed the most important task first.\n- Kept distractions to a minimum during the morning.\n\n### 🟡 Improve (What could be done better)\n- I could communicate my status more clearly to the team.\n- Need to take more consistent breaks to avoid afternoon fatigue.\n\n### 🔴 Stop (What didn't work and should stop)\n- Stop checking social media during small 5-minute breaks.\n- Stop agreeing to meetings that don't have an agenda.\n\n### 🔵 Start (What new things to try)\n- Start scheduling 15 minutes at the end of the day to plan tomorrow.\n- Start drinking a glass of water every hour.`
+          content: `### 🟢 Keep (What worked well and should continue)\n- \n\n### 🟡 Improve (What could be done better)\n- \n\n### 🔴 Stop (What caused distractions or friction)\n- \n\n### 🔵 Start (What new habit or strategy to try)\n- `,
+          exampleContent: `### 🟢 Keep (What worked well and should continue)\n- Tracking distractions accurately in real-time to maintain awareness.\n- Completing the most difficult quest first thing in the day.\n\n### 🟡 Improve (What could be done better)\n- Take structured movement breaks rather than browsing social feeds.\n- Protect 2-hour uninterrupted focus blocks in the morning.\n\n### 🔴 Stop (What caused distractions or friction)\n- Stop checking phone notifications during short pomodoro rests.\n- Stop context switching between unrelated dungeons simultaneously.\n\n### 🔵 Start (What new habit or strategy to try)\n- Start reviewing daily targets and reflection templates during Start of Day.\n- Start ending each work day with a 5-minute workspace tidy-up.`
         }
       ],
+      autoLoadTemplateId: null,
+      autoLoadTemplateMode: 'empty',
       rewardPoolMode: 'fixed',
       rewardPool: INITIAL_REWARD_POOL,
       shopItems: [
@@ -403,22 +405,43 @@ export function useGameState() {
         if (!parsed.reflectionTemplates) {
           parsed.reflectionTemplates = defaultState.reflectionTemplates;
         } else {
-          // Migration: Change preset-3 to KISS
-          const preset3 = parsed.reflectionTemplates.find((t: any) => t.id === 'preset-3');
-          if (preset3 && preset3.name === 'Rose, Bud, Thorn') {
-            preset3.name = 'KISS Retrospective';
-            preset3.content = `### 🟢 Keep (What went well and should continue)\n- \n\n### 🟡 Improve (What could be done better)\n- \n\n### 🔴 Stop (What didn't work and should stop)\n- \n\n### 🔵 Start (What new things to try)\n- `;
-            preset3.exampleContent = defaultState.reflectionTemplates.find(t => t.id === 'preset-3')?.exampleContent;
-          }
+          // Migration: Refresh default presets to latest system version if they have legacy content
+          const defaultTpls = defaultState.reflectionTemplates;
+          parsed.reflectionTemplates = parsed.reflectionTemplates.map((t: any) => {
+            if (t.id === 'preset-1') {
+              const def1 = defaultTpls.find(d => d.id === 'preset-1');
+              if (def1 && (!t.content || t.content.includes('### Highlights') || !t.exampleContent || t.exampleContent.includes('proposal early'))) {
+                return { ...t, name: def1.name, content: def1.content, exampleContent: def1.exampleContent };
+              }
+            }
+            if (t.id === 'preset-2') {
+              const def2 = defaultTpls.find(d => d.id === 'preset-2');
+              if (def2 && (!t.content || t.content.includes('### 3 Tasks Completed') || !t.exampleContent || t.exampleContent.includes('client tickets'))) {
+                return { ...t, name: def2.name, content: def2.content, exampleContent: def2.exampleContent };
+              }
+            }
+            if (t.id === 'preset-3') {
+              const def3 = defaultTpls.find(d => d.id === 'preset-3');
+              if (def3 && (t.name === 'Rose, Bud, Thorn' || !t.content || t.content.includes("What didn't work and should stop") || !t.exampleContent || t.exampleContent.includes('woke up early'))) {
+                return { ...t, name: def3.name, content: def3.content, exampleContent: def3.exampleContent };
+              }
+            }
+            return t;
+          });
           
-          // Migration: Ensure preset example contents exist
-          const preset1 = parsed.reflectionTemplates.find((t: any) => t.id === 'preset-1');
-          if (preset1 && !preset1.exampleContent) preset1.exampleContent = defaultState.reflectionTemplates.find(t => t.id === 'preset-1')?.exampleContent;
-          
-          const preset2 = parsed.reflectionTemplates.find((t: any) => t.id === 'preset-2');
-          if (preset2 && !preset2.exampleContent) preset2.exampleContent = defaultState.reflectionTemplates.find(t => t.id === 'preset-2')?.exampleContent;
+          // Ensure all default presets exist
+          defaultTpls.forEach(defTpl => {
+            if (!parsed.reflectionTemplates.some((t: any) => t.id === defTpl.id)) {
+              parsed.reflectionTemplates.push(defTpl);
+            }
+          });
+        }
 
-          if (preset3 && !preset3.exampleContent) preset3.exampleContent = defaultState.reflectionTemplates.find(t => t.id === 'preset-3')?.exampleContent;
+        if (parsed.autoLoadTemplateId === undefined) {
+          parsed.autoLoadTemplateId = null;
+        }
+        if (parsed.autoLoadTemplateMode === undefined) {
+          parsed.autoLoadTemplateMode = 'empty';
         }
 
         // Migration: Default active pool IDs

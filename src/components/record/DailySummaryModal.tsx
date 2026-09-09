@@ -355,9 +355,23 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   React.useEffect(() => {
     if (!hasInitializedFromLog.current && today.dateString) {
       const existingLog = state.dailyLogs?.[today.dateString];
-      if (existingLog) {
-        setReflection(existingLog.reflection || '');
+      if (existingLog && existingLog.reflection?.trim()) {
+        setReflection(existingLog.reflection);
         if (existingLog.mood) setMood(existingLog.mood);
+      } else {
+        // If no existing reflection saved, check auto-load template
+        if (state.autoLoadTemplateId && state.reflectionTemplates) {
+          const tpl = state.reflectionTemplates.find((t) => t.id === state.autoLoadTemplateId);
+          if (tpl) {
+            const tplText = (state.autoLoadTemplateMode === 'example' && tpl.exampleContent)
+              ? tpl.exampleContent
+              : tpl.content;
+            if (tplText) {
+              setReflection(tplText);
+            }
+          }
+        }
+        if (existingLog?.mood) setMood(existingLog.mood);
       }
 
       // Auto-calculate rating on modal open if enabled (default: true)
@@ -623,6 +637,14 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                 onSelectTemplate={setReflection}
                 templates={state.reflectionTemplates}
                 onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+                autoLoadTemplateId={state.autoLoadTemplateId}
+                autoLoadTemplateMode={state.autoLoadTemplateMode}
+                onSetAutoLoadTemplate={(templateId, mode) => {
+                  onUpdateState?.({
+                    autoLoadTemplateId: templateId,
+                    autoLoadTemplateMode: mode || 'empty'
+                  });
+                }}
                 onOpenImmersive={() => setIsImmersiveMode(true)}
                 immersiveLabel="Immersive"
                 immersiveVariant="sky"
@@ -679,6 +701,14 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         setIsMarkdownEnabled={setIsMarkdownEnabled}
         templates={state.reflectionTemplates}
         onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+        autoLoadTemplateId={state.autoLoadTemplateId}
+        autoLoadTemplateMode={state.autoLoadTemplateMode}
+        onSetAutoLoadTemplate={(templateId, mode) => {
+          onUpdateState?.({
+            autoLoadTemplateId: templateId,
+            autoLoadTemplateMode: mode || 'empty'
+          });
+        }}
       />
       {showEfficiencyDetails && (
         <EfficiencyDetailsModal

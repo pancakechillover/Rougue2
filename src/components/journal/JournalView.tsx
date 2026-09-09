@@ -1,4 +1,6 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
+import { EditorTypographyMenu } from "../common/EditorTypographyMenu";
+import { useEditorTypography, LINE_HEIGHT_MAP } from "../../hooks/useEditorTypography";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
 
@@ -76,6 +78,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialPeakDate());
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const { fontSize, lineHeight, lineMultiplier } = useEditorTypography();
   const [pageFlipDirection, setPageFlipDirection] = useState<'left' | 'right'>('right');
 
   // Logs state
@@ -124,14 +127,28 @@ export const JournalView: React.FC<JournalViewProps> = ({
     isSwitchingDateRef.current = true;
     const log = dailyLogs[selectedDateStr];
     setRating(log?.rating || 0);
-    setReflection(log?.reflection || '');
+
+    let initialReflection = log?.reflection || '';
+    if (!initialReflection.trim() && state.autoLoadTemplateId && state.reflectionTemplates) {
+      const tpl = state.reflectionTemplates.find((t) => t.id === state.autoLoadTemplateId);
+      if (tpl) {
+        const tplText = (state.autoLoadTemplateMode === 'example' && tpl.exampleContent)
+          ? tpl.exampleContent
+          : tpl.content;
+        if (tplText) {
+          initialReflection = tplText;
+        }
+      }
+    }
+
+    setReflection(initialReflection);
     setMood(log?.mood);
     setSaveStatus('saved');
     setIsQuickEditing(false);
     setTimeout(() => {
       isSwitchingDateRef.current = false;
     }, 50);
-  }, [selectedDateStr, dailyLogs]);
+  }, [selectedDateStr, dailyLogs, state.autoLoadTemplateId, state.autoLoadTemplateMode, state.reflectionTemplates]);
 
   // Track changes & auto-save or mark unsaved
   const handleReflectionChange = (val: string) => {
@@ -707,13 +724,26 @@ export const JournalView: React.FC<JournalViewProps> = ({
                       <div className="flex items-center gap-1.5">
                         <ReflectionHeaderControls
                           reflection={reflection}
-                          onSelectTemplate={isQuickEditing ? handleReflectionChange : undefined}
+                          onSelectTemplate={(content) => {
+                            handleReflectionChange(content);
+                            setIsQuickEditing(true);
+                          }}
                           templates={state.reflectionTemplates}
                           onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+                          autoLoadTemplateId={state.autoLoadTemplateId}
+                          autoLoadTemplateMode={state.autoLoadTemplateMode}
+                          onSetAutoLoadTemplate={(templateId, mode) => {
+                            onUpdateState?.({
+                              autoLoadTemplateId: templateId,
+                              autoLoadTemplateMode: mode || 'empty'
+                            });
+                          }}
                           showCopy={true}
                           showImportExport={reflection.trim().length > 0}
                           exportFileName={`journal-${selectedDateStr}.md`}
                         />
+
+                        <EditorTypographyMenu />
 
                         <button
                           onClick={() => setIsQuickEditing(!isQuickEditing)}
@@ -765,8 +795,83 @@ export const JournalView: React.FC<JournalViewProps> = ({
                         </div>
                       ) : reflection.trim() ? (
                         <div className="w-full h-full p-4 sm:p-5 bg-slate-950/40 rounded-2xl border border-slate-800/60 overflow-y-auto max-h-[440px] custom-scrollbar">
-                          <div className="prose prose-invert prose-slate max-w-none text-slate-200 prose-p:text-slate-200 prose-p:leading-relaxed prose-headings:text-slate-100 prose-headings:font-bold prose-strong:text-indigo-400 prose-li:text-slate-200 prose-ol:text-slate-200 prose-ul:text-slate-200 marker:text-slate-200 marker:font-bold prose-blockquote:border-indigo-500/60 prose-blockquote:text-slate-300">
-                            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                          <div 
+                            className="markdown-content text-slate-200 selection:bg-indigo-500/30"
+                            style={{
+                              fontSize: `${fontSize}px`,
+                              lineHeight: lineMultiplier,
+                            }}
+                          >
+                            <Markdown 
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              components={{
+                                h1: ({ node, ...props }) => (
+                                  <h1 
+                                    className="font-black text-slate-100 mt-4 mb-2 pb-1 border-b border-slate-800/80 tracking-tight" 
+                                    style={{ fontSize: `${Math.round(fontSize * 1.55)}px`, lineHeight: 1.3 }}
+                                    {...props} 
+                                  />
+                                ),
+                                h2: ({ node, ...props }) => (
+                                  <h2 
+                                    className="font-bold text-slate-100 mt-3.5 mb-1.5 tracking-tight flex items-center gap-1.5" 
+                                    style={{ fontSize: `${Math.round(fontSize * 1.3)}px`, lineHeight: 1.35 }}
+                                    {...props} 
+                                  />
+                                ),
+                                h3: ({ node, ...props }) => (
+                                  <h3 
+                                    className="font-bold text-indigo-300 mt-3 mb-1 tracking-tight" 
+                                    style={{ fontSize: `${Math.round(fontSize * 1.15)}px`, lineHeight: 1.4 }}
+                                    {...props} 
+                                  />
+                                ),
+                                p: ({ node, ...props }) => (
+                                  <p className="my-1.5 text-slate-200" style={{ lineHeight: lineMultiplier }} {...props} />
+                                ),
+                                ul: ({ node, ...props }) => (
+                                  <ul className="list-disc pl-5 my-1.5 space-y-0.5 marker:text-indigo-400" {...props} />
+                                ),
+                                ol: ({ node, ...props }) => (
+                                  <ol className="list-decimal pl-5 my-1.5 space-y-0.5 marker:text-indigo-400 font-medium" {...props} />
+                                ),
+                                li: ({ node, ...props }) => (
+                                  <li className="text-slate-200 pl-0.5" style={{ lineHeight: lineMultiplier }} {...props} />
+                                ),
+                                blockquote: ({ node, ...props }) => (
+                                  <blockquote className="border-l-4 border-indigo-500/70 bg-indigo-500/5 pl-3 py-1 my-2 rounded-r italic text-slate-300" {...props} />
+                                ),
+                                code: ({ node, className, children, ...props }: any) => {
+                                  const isInline = !className?.includes('language-');
+                                  return isInline ? (
+                                    <code className="px-1.5 py-0.5 mx-0.5 bg-slate-900 border border-slate-800 text-indigo-300 rounded text-[0.9em] font-mono" {...props}>
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <pre className="p-3 my-2 bg-slate-950 border border-slate-800 rounded-xl overflow-x-auto text-[0.9em] font-mono text-slate-200">
+                                      <code {...props}>{children}</code>
+                                    </pre>
+                                  );
+                                },
+                                hr: ({ node, ...props }) => (
+                                  <hr className="my-3 border-slate-800/80" {...props} />
+                                ),
+                                table: ({ node, ...props }) => (
+                                  <div className="overflow-x-auto my-2 rounded-lg border border-slate-800">
+                                    <table className="w-full text-left border-collapse text-xs" {...props} />
+                                  </div>
+                                ),
+                                th: ({ node, ...props }) => (
+                                  <th className="p-2 bg-slate-900 font-bold border-b border-slate-800 text-slate-300" {...props} />
+                                ),
+                                td: ({ node, ...props }) => (
+                                  <td className="p-2 border-b border-slate-800/60 text-slate-300" {...props} />
+                                ),
+                                a: ({ node, ...props }) => (
+                                  <a className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank" rel="noreferrer" {...props} />
+                                ),
+                              }}
+                            >
                               {reflection}
                             </Markdown>
                           </div>
@@ -979,6 +1084,14 @@ export const JournalView: React.FC<JournalViewProps> = ({
           setIsMarkdownEnabled={() => {}}
           templates={state.reflectionTemplates}
           onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+          autoLoadTemplateId={state.autoLoadTemplateId}
+          autoLoadTemplateMode={state.autoLoadTemplateMode}
+          onSetAutoLoadTemplate={(templateId, mode) => {
+            onUpdateState?.({
+              autoLoadTemplateId: templateId,
+              autoLoadTemplateMode: mode || 'empty'
+            });
+          }}
           onClose={() => {
             setIsImmersiveOpen(false);
             // Auto save when closing immersive modal

@@ -153,6 +153,7 @@ export interface ReflectionTemplate {
   name: string;
   content: string;
   exampleContent?: string;
+  isAutoLoad?: boolean;
 }
 
 export interface SageModelConfig {
@@ -332,6 +333,8 @@ export interface AppState {
   } | null;
   dailyLogs?: Record<string, DailyLog>;
   reflectionTemplates?: ReflectionTemplate[];
+  autoLoadTemplateId?: string | null;
+  autoLoadTemplateMode?: 'empty' | 'example';
   journalBookmarks?: string[]; // Array of bookmarked date strings (YYYY-MM-DD)
   enabledMoods?: string[];
   lastUpdated?: string;

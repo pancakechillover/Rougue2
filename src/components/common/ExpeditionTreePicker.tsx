@@ -10,7 +10,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Dungeon, MajorDungeon } from '../../types';
-import { cn } from '../../lib/utils';
+import { cn, getDungeonHierarchyStats } from '../../lib/utils';
 
 interface ExpeditionTreePickerProps {
   dungeons: Dungeon[];
@@ -136,8 +136,22 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-slate-500 group-hover:text-indigo-300 font-mono pr-1">
-            <span>{tier.completedSessions}/{tier.totalSessions}</span>
+          <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono pr-1">
+            {(() => {
+              const stats = getDungeonHierarchyStats(tier.id, dungeons, 25);
+              if (stats.isOpenEnded) {
+                return (
+                  <span className={stats.hasChildren ? "text-indigo-400/90" : "text-slate-500 group-hover:text-indigo-300"}>
+                    {stats.completedMinutes}m
+                  </span>
+                );
+              }
+              return (
+                <span className={stats.hasChildren ? "text-indigo-300/90" : "text-slate-500 group-hover:text-indigo-300"}>
+                  {stats.completedSessions}/{stats.totalSessions}
+                </span>
+              );
+            })()}
           </div>
         </div>
 

@@ -42,8 +42,7 @@ import remarkGfm from 'remark-gfm';
 import { TimePicker } from '../common/TimePicker';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
-import { cn, sortAgendaTodos } from '../../lib/utils';
-import { getSettlementDay } from '../../lib/utils';
+import { cn, sortAgendaTodos, getSettlementDay, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
@@ -239,7 +238,19 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
   const dailyLog = state.dailyLogs?.[todayStr];
   const [sleepTime, setSleepTime] = useState(dailyLog?.sleepTime || '23:00');
   const [wakeTime, setWakeTime] = useState(dailyLog?.wakeTime || '07:00');
-  const [reflection, setReflection] = useState(dailyLog?.reflection || '');
+  const [reflection, setReflection] = useState(() => {
+    if (dailyLog?.reflection?.trim()) return dailyLog.reflection;
+    if (state.autoLoadTemplateId && state.reflectionTemplates) {
+      const tpl = state.reflectionTemplates.find(t => t.id === state.autoLoadTemplateId);
+      if (tpl) {
+        const tplText = (state.autoLoadTemplateMode === 'example' && tpl.exampleContent)
+          ? tpl.exampleContent
+          : tpl.content;
+        if (tplText) return tplText;
+      }
+    }
+    return '';
+  });
   const [mood, setMood] = useState(dailyLog?.mood || '');
 
   const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(state.defaultMarkdownEnabled ?? true);
@@ -556,6 +567,16 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       onUpdateTemplates={(templates) => {
         if (onUpdateState) {
           onUpdateState({ reflectionTemplates: templates });
+        }
+      }}
+      autoLoadTemplateId={state.autoLoadTemplateId}
+      autoLoadTemplateMode={state.autoLoadTemplateMode}
+      onSetAutoLoadTemplate={(templateId, mode) => {
+        if (onUpdateState) {
+          onUpdateState({
+            autoLoadTemplateId: templateId,
+            autoLoadTemplateMode: mode || 'empty'
+          });
         }
       }}
     />
@@ -1014,37 +1035,62 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
                                   </span>
                                   {dungeonItem && (
                                     <div className="flex items-center gap-1 shrink-0">
-                                      <div className="h-1 w-8 sm:w-10 bg-slate-900 rounded-full overflow-hidden border border-slate-800/50 shrink-0">
-                                        <div 
-                                          className={cn(
-                                            "h-full transition-all", 
-                                            isChecked 
-                                              ? "bg-emerald-500" 
-                                              : tagInfo.barColor
-                                          )}
-                                          style={{ width: `${Math.min(100, (dungeonItem.completedSessions / dungeonItem.totalSessions) * 100)}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-[9px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
-                                        {(() => {
-                                          const timePerRoom = (state.standardSessionMinutes || 25) + (state.includeRestTimeInTasks ? (state.standardRestMinutes || 5) : 0);
-                                          const formatTime = (mins: number) => {
-                                            if (mins < 60) return <>{Math.floor(mins)}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>;
-                                            const h = Math.floor(mins / 60);
-                                            const m = Math.floor(mins % 60);
-                                            return m > 0 
-                                              ? <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span> {m}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>
-                                              : <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span></>;
-                                          };
+                                      {(() => {
+                                        const timePerRoom = (state.standardSessionMinutes || 25) + (state.includeRestTimeInTasks ? (state.standardRestMinutes || 5) : 0);
+                                        const stats = getDungeonHierarchyStats(dungeonItem.id, dungeons || [], timePerRoom);
+
+                                        const formatTime = (mins: number) => {
+                                          if (mins < 60) return <>{Math.floor(mins)}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>;
+                                          const h = Math.floor(mins / 60);
+                                          const m = Math.floor(mins % 60);
+                                          return m > 0 
+                                            ? <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span> {m}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span></>
+                                            : <>{h}<span className="text-[8px] opacity-70 ml-[0.5px]">h</span></>;
+                                        };
+
+                                        if (stats.isOpenEnded) {
                                           return (
-                                            <>
-                                              {formatTime(dungeonItem.completedSessions * timePerRoom)}
-                                              <span className="opacity-50 text-[8px] mx-0.5">/</span>
-                                              {formatTime(dungeonItem.totalSessions * timePerRoom)}
-                                            </>
+                                            <span className="text-[9px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
+                                              {stats.completedMinutes}<span className="text-[8px] opacity-70 ml-[0.5px]">m</span>
+                                            </span>
                                           );
-                                        })()}
-                                      </span>
+                                        }
+
+                                        const isParent = stats.hasChildren;
+                                        const isCompleted = isChecked || stats.isAllCompleted;
+
+                                        return (
+                                          <>
+                                            <div 
+                                              className={cn(
+                                                "h-1 w-8 sm:w-10 rounded-full overflow-hidden border shrink-0 flex",
+                                                isParent ? "bg-slate-900/90 border-slate-800/80" : "bg-slate-900 border-slate-800/50"
+                                              )}
+                                              title={
+                                                stats.tierSegments.length > 0
+                                                  ? `Total: ${stats.completedMinutes}m (${stats.tierSegments.map(s => `${s.label}: ${s.minutes}m`).join(', ')})`
+                                                  : undefined
+                                              }
+                                            >
+                                              {stats.tierSegments.map((seg, idx) => (
+                                                <div 
+                                                  key={idx}
+                                                  className={cn(
+                                                    "h-full transition-all duration-300", 
+                                                    getTierProgressColor(seg.level, isCompleted, 'indigo')
+                                                  )}
+                                                  style={{ width: `${seg.percent}%` }}
+                                                />
+                                              ))}
+                                            </div>
+                                            <span className="text-[9px] font-bold text-slate-400 tabular-nums flex items-center shrink-0 font-mono">
+                                              {formatTime(stats.completedMinutes)}
+                                              <span className="opacity-50 text-[8px] mx-0.5">/</span>
+                                              {formatTime(stats.targetMinutes)}
+                                            </span>
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                   )}
                                 </div>

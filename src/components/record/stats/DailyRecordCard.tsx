@@ -120,8 +120,20 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
   };
 
   const startEditing = () => {
+    let initialReflection = currentLog?.reflection || '';
+    if (!initialReflection.trim() && state.autoLoadTemplateId && state.reflectionTemplates) {
+      const tpl = state.reflectionTemplates.find((t) => t.id === state.autoLoadTemplateId);
+      if (tpl) {
+        const tplText = (state.autoLoadTemplateMode === 'example' && tpl.exampleContent)
+          ? tpl.exampleContent
+          : tpl.content;
+        if (tplText) {
+          initialReflection = tplText;
+        }
+      }
+    }
     setEditRating(currentLog?.rating || 0);
-    setEditReflection(currentLog?.reflection || '');
+    setEditReflection(initialReflection);
     setEditMood(currentLog?.mood);
     setIsEditingLog(true);
   };
@@ -174,6 +186,14 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
                 onSelectTemplate={setEditReflection}
                 templates={state.reflectionTemplates}
                 onUpdateTemplates={onUpdateTemplates}
+                autoLoadTemplateId={state.autoLoadTemplateId}
+                autoLoadTemplateMode={state.autoLoadTemplateMode}
+                onSetAutoLoadTemplate={(templateId, mode) => {
+                  onUpdateState?.({
+                    autoLoadTemplateId: templateId,
+                    autoLoadTemplateMode: mode || 'empty'
+                  });
+                }}
                 onOpenImmersive={() => setIsFullscreenEdit(true)}
                 showCopy={true}
                 showMetrics={true}
@@ -382,6 +402,14 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
         setReflection={setEditReflection}
         templates={state.reflectionTemplates}
         onUpdateTemplates={onUpdateTemplates}
+        autoLoadTemplateId={state.autoLoadTemplateId}
+        autoLoadTemplateMode={state.autoLoadTemplateMode}
+        onSetAutoLoadTemplate={(templateId, mode) => {
+          onUpdateState?.({
+            autoLoadTemplateId: templateId,
+            autoLoadTemplateMode: mode || 'empty'
+          });
+        }}
       />
 
       {/* Efficiency Details Modal */}

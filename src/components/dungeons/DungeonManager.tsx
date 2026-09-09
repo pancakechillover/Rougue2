@@ -3,7 +3,7 @@ import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react'
 import { Dungeon, MajorDungeon, DungeonReward } from '../../types';
 import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, FolderPlus, Folder, ChevronDown, ChevronUp, Gift, X, Edit2, Coins, Zap, Trophy, HelpCircle, Square, CheckSquare, EyeOff, Eye, Archive, Search, Filter, Calendar, GripVertical, Scroll, RefreshCcw } from 'lucide-react';
 import { PageHeader } from '../common/PageHeader';
-import { cn } from '../../lib/utils';
+import { cn, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
@@ -425,10 +425,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
         }}
         data-id={parentId}
         data-drop-target="true"
-        className={cn(
-        "space-y-0.5 min-h-[10px]",
-        "ml-3 border-l border-slate-800 pl-3"
-      )}>
+        className="space-y-1 min-h-[10px] w-full"
+      >
         {parentSubs.map((sub, idx) => {
           const hasChildren = dungeons.some(d => d.parentId === sub.id);
           const isExpanded = expandedSubDungeons.includes(sub.id);
@@ -442,21 +440,26 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               onMove={onMoveItem}
               onDragStart={onDragStart}
               handleClassName="w-6 h-6 p-0 hover:bg-slate-800 rounded-sm mt-[6px]"
-              className="space-y-0.5 relative z-10"
+              className="space-y-1 relative z-10 w-full"
             >
               <div
                 id={`dungeon-${sub.id}`}
                 data-id={sub.id}
                 data-drop-target="true"
                 className={cn(
-                  "p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 md:gap-4 transition-colors group/sub rounded-lg relative bg-slate-900/40",
-                  currentDungeonId === sub.id ? "bg-indigo-500/10" : "hover:bg-slate-800/40",
-                  "before:content-[''] before:absolute before:left-[-12px] before:top-1/2 before:w-[12px] before:h-[1px] before:bg-slate-800"
+                  "p-2.5 sm:px-2.5 flex items-center justify-between gap-2.5 transition-colors group/sub rounded-lg relative bg-slate-900/40",
+                  currentDungeonId === sub.id ? "bg-indigo-500/10" : "hover:bg-slate-800/40"
                 )}
                 onClick={() => onSelect(sub.id)}
               >
-                <div className="min-w-0 flex-1 flex items-start md:items-center gap-1.5">
-                  <div className="flex items-center shrink-0 mt-[2px] md:mt-0 gap-1">
+                <div 
+                  className="min-w-0 flex-1 flex items-center gap-1.5"
+                  style={{ paddingLeft: `${(level - 1) * 18}px` }}
+                >
+                  <div className="flex items-center shrink-0 gap-1">
+                    {level > 1 && (
+                      <span className="text-slate-600/80 font-mono text-[11px] select-none shrink-0 -ml-1 mr-0.5">└</span>
+                    )}
                     <span className="text-[10px] font-mono text-slate-500 w-4 text-center">{idx + 1}.</span>
                     {hasChildren && (
                       <button 
@@ -518,94 +521,114 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 md:gap-3 pl-7 md:pl-0 shrink-0 w-full md:w-auto mt-1 md:mt-0">
-                  <div className="hidden sm:flex items-center gap-2 opacity-60">
-                    {sub.isOpenEnded ? (
-                      <span className="text-[10px] font-bold text-slate-400 tabular-nums inline-block w-24 text-right whitespace-nowrap overflow-hidden text-ellipsis mr-auto">
-                        {sub.totalFocusTime || 0} min focused
-                      </span>
-                    ) : (
-                      <>
-                        <div className="h-1.5 w-16 bg-slate-900 rounded-full overflow-hidden border border-slate-800/50">
-                          <div 
-                            className={cn("h-full transition-all", sub.status === 'completed' ? "bg-emerald-500" : "bg-indigo-500")}
-                            style={{ width: `${Math.min(100, (sub.completedSessions/sub.totalSessions)*100)}%` }}
-                          />
-                        </div>
-                          <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center justify-end w-20">
-                            {(() => {
-                              const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
-                              
-                              const formatTime = (mins: number) => {
-                                if (mins < 60) return <>{Math.floor(mins)}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>;
-                                const h = Math.floor(mins / 60);
-                                const m = Math.floor(mins % 60);
-                                return m > 0 
-                                  ? <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span> {m}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>
-                                  : <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span></>;
-                              };
+                <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                  <div className="hidden sm:flex items-center gap-2 opacity-85">
+                    {(() => {
+                      const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
+                      const stats = getDungeonHierarchyStats(sub.id, dungeons, timePerRoom);
 
-                              return (
-                                <>
-                                  {formatTime(sub.completedSessions * timePerRoom)}
-                                  <span className="opacity-50 text-[9px] mx-1">/</span>
-                                  {formatTime(sub.totalSessions * timePerRoom)}
-                                </>
-                              );
-                            })()}
+                      const formatTime = (mins: number) => {
+                        if (mins < 60) return <>{Math.floor(mins)}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>;
+                        const h = Math.floor(mins / 60);
+                        const m = Math.floor(mins % 60);
+                        return m > 0 
+                          ? <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span> {m}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>
+                          : <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span></>;
+                      };
+
+                      if (stats.isOpenEnded) {
+                        return (
+                          <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center justify-start w-20 font-mono whitespace-nowrap overflow-hidden text-ellipsis mr-auto">
+                            {stats.completedMinutes}m focused
                           </span>
-                      </>
-                    )}
+                        );
+                      }
+
+                      const isParent = stats.hasChildren;
+                      const isCompleted = sub.status === 'completed' || stats.isAllCompleted;
+
+                      return (
+                        <>
+                          <div 
+                            className={cn(
+                              "h-1.5 w-16 rounded-full overflow-hidden border shrink-0 flex",
+                              isCompleted
+                                ? "bg-slate-900/90 border-emerald-500/30"
+                                : isParent ? "bg-slate-900/90 border-slate-800/80" : "bg-slate-900 border-slate-800/50"
+                            )}
+                            title={
+                              stats.tierSegments.length > 0
+                                ? `Total: ${stats.completedMinutes}m (${stats.tierSegments.map(s => `${s.label}: ${s.minutes}m`).join(', ')})`
+                                : undefined
+                            }
+                          >
+                            {stats.tierSegments.map((seg, idx) => (
+                              <div 
+                                key={idx}
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  getTierProgressColor(seg.level, isCompleted, 'indigo')
+                                )}
+                                style={{ width: `${seg.percent}%` }}
+                              />
+                            ))}
+                          </div>
+                          <span className={cn(
+                            "text-[10px] tabular-nums flex items-center justify-start w-20 font-mono",
+                            isCompleted ? "font-bold text-emerald-400" : isParent ? "font-semibold text-slate-300" : "font-bold text-slate-300"
+                          )}>
+                            {formatTime(stats.completedMinutes)}
+                            <span className={cn("text-[9px] mx-0.5", isCompleted ? "opacity-60 text-emerald-400" : "opacity-50")}>/</span>
+                            {formatTime(stats.targetMinutes)}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
 
-                  <div className="flex flex-1 md:flex-none justify-end items-center gap-2">
-                    <div className={cn(
-                      "flex items-center gap-1.5 shrink-0 transition-opacity",
-                      isEditMode ? "opacity-100" : "opacity-0 group-hover/sub:opacity-100 md:opacity-0 md:group-hover/sub:opacity-100 opacity-100"
-                    )}>
-                      {isEditMode && (
-                        <>
-                          {currentDepth < 3 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIsAddingSub({ parentId: sub.id }); }}
-                              className="p-1 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded transition-all"
-                              title={`ADD TIER ${currentDepth + 1}`}
-                            >
-                              <Plus size={11} />
-                            </button>
-                          )}
+                  <div className="flex items-center justify-end shrink-0 gap-1">
+                    {isEditMode && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {currentDepth < 3 && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setEditingSub(sub); }}
-                            className={cn(
-                              "p-1 rounded transition-all",
-                              (sub.status === 'completed' || majorDungeons.find(m => m.id === (typeof sub.parentId === 'string' && sub.parentId.length > 10 ? dungeons.find(d => d.id === sub.parentId)?.parentId : sub.parentId))?.isFinalized)
-                                ? "bg-amber-500/10 text-amber-500"
-                                : "bg-slate-800/50 text-slate-500 hover:text-white"
-                            )}
+                            onClick={(e) => { e.stopPropagation(); setIsAddingSub({ parentId: sub.id }); }}
+                            className="p-1 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded transition-all"
+                            title={`ADD TIER ${currentDepth + 1}`}
                           >
-                            <Edit2 size={12} />
+                            <Plus size={11} />
                           </button>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setModalConfig({
-                                isOpen: true,
-                                title: `Delete ${getSubDungeonDepth(sub.id) > 1 ? 'Tier' : 'Sub-Dungeon'}`,
-                                message: `Are you sure you want to delete "${sub.name}"? This action cannot be undone.`,
-                                confirmText: "Delete",
-                                type: "danger",
-                                onConfirm: () => onDeleteSub(sub.id)
-                              });
-                            }}
-                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-red-400 rounded transition-all"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingSub(sub); }}
+                          className={cn(
+                            "p-1 rounded transition-all",
+                            (sub.status === 'completed' || majorDungeons.find(m => m.id === (typeof sub.parentId === 'string' && sub.parentId.length > 10 ? dungeons.find(d => d.id === sub.parentId)?.parentId : sub.parentId))?.isFinalized)
+                              ? "bg-amber-500/10 text-amber-500"
+                              : "bg-slate-800/50 text-slate-500 hover:text-white"
+                          )}
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setModalConfig({
+                              isOpen: true,
+                              title: `Delete ${getSubDungeonDepth(sub.id) > 1 ? 'Tier' : 'Sub-Dungeon'}`,
+                              message: `Are you sure you want to delete "${sub.name}"? This action cannot be undone.`,
+                              confirmText: "Delete",
+                              type: "danger",
+                              onConfirm: () => onDeleteSub(sub.id)
+                            });
+                          }}
+                          className="p-1 bg-slate-800/50 text-slate-500 hover:text-red-400 rounded transition-all"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
 
-                    <div className="shrink-0 flex items-center ml-1">
+                    <div className="shrink-0 flex items-center justify-center w-6 h-6">
                       <div className={currentDungeonId === sub.id ? "text-indigo-500" : "text-slate-800"}>
                         {sub.status === 'completed' ? (
                           <CheckSquare size={16} className="text-emerald-500" />
@@ -754,30 +777,48 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   </div>
                   {(editingSub || isAddingSub) && !(isAddingSub ? newSub.isOpenEnded : editingSub?.isOpenEnded) && (
                     <div className="space-y-1 sm:col-span-1">
-                      <div className="flex justify-between items-end">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Rooms</label>
-                          <div className="text-[10px] text-indigo-400 font-bold tabular-nums">
-                            {(() => {
-                              const rooms = isAddingSub ? (newSub.totalSessions || 0) : (editingSub?.totalSessions || 0);
-                              if (!rooms) return null;
-                              const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
-                              const totalMinutes = rooms * timePerRoom;
-                              if (totalMinutes < 60) return `${totalMinutes} min`;
-                              const h = Math.floor(totalMinutes / 60);
-                              const m = totalMinutes % 60;
-                              return m > 0 ? `${h} h ${m} min` : `${h} h`;
-                            })()}
-                          </div>
-                      </div>
-                      <SpinnerInput
-                        min={1}
-                        value={isAddingSub ? (newSub.totalSessions === undefined ? '' : newSub.totalSessions) : (editingSub?.totalSessions === undefined ? '' : editingSub.totalSessions)}
-                        onChange={(val) => {
-                          if (isAddingSub) setNewSub({ ...newSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
-                          else if (editingSub) setEditingSub({ ...editingSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
-                        }}
-                        className="w-full text-sm focus:border-indigo-500"
-                      />
+                      {(() => {
+                        const hasChildren = editingSub ? dungeons.some(d => d.parentId === editingSub.id) : false;
+                        const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
+                        const hierStats = (hasChildren && editingSub) ? getDungeonHierarchyStats(editingSub.id, dungeons, timePerRoom) : null;
+
+                        return (
+                          <>
+                            <div className="flex justify-between items-end">
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Rooms</label>
+                              <div className="text-[10px] text-indigo-400 font-bold tabular-nums">
+                                {(() => {
+                                  const rooms = hasChildren 
+                                    ? hierStats?.totalSessions 
+                                    : isAddingSub ? (newSub.totalSessions || 0) : (editingSub?.totalSessions || 0);
+                                  if (!rooms) return null;
+                                  const totalMinutes = hasChildren ? (hierStats?.targetMinutes || 0) : rooms * timePerRoom;
+                                  if (totalMinutes < 60) return `${totalMinutes} min`;
+                                  const h = Math.floor(totalMinutes / 60);
+                                  const m = totalMinutes % 60;
+                                  return m > 0 ? `${h} h ${m} min` : `${h} h`;
+                                })()}
+                              </div>
+                            </div>
+                            {hasChildren && hierStats ? (
+                              <div className="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2 text-slate-300 text-sm flex items-center justify-between">
+                                <span className="font-mono font-bold text-white">{hierStats.totalSessions} rooms</span>
+                                <span className="text-[10px] text-indigo-400 font-medium italic">Calculated from child tiers</span>
+                              </div>
+                            ) : (
+                              <SpinnerInput
+                                min={1}
+                                value={isAddingSub ? (newSub.totalSessions === undefined ? '' : newSub.totalSessions) : (editingSub?.totalSessions === undefined ? '' : editingSub.totalSessions)}
+                                onChange={(val) => {
+                                  if (isAddingSub) setNewSub({ ...newSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
+                                  else if (editingSub) setEditingSub({ ...editingSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
+                                }}
+                                className="w-full text-sm focus:border-indigo-500"
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                   {(editingMajor || isAddingMajor || editingSub || isAddingSub) && (
@@ -1295,60 +1336,124 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  
-                  {isEditMode && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setEditingMajor(major); }}
-                        className={cn(
-                          "p-1 rounded-md transition-all",
-                          (major.status === 'completed' || major.isFinalized)
-                            ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
-                            : "bg-slate-800 text-slate-500 hover:text-white"
-                        )}
-                        title="Edit"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (major.isFinalized) return;
-                          setModalConfig({
-                            isOpen: true,
-                            title: "Delete Dungeon Goal",
-                            message: `Are you sure you want to delete "${major.name}"? This action cannot be undone.`,
-                            confirmText: "Delete",
-                            type: "danger",
-                            onConfirm: () => onDeleteMajor(major.id)
-                          });
-                        }}
-                        className={cn(
-                          "p-1 rounded-md transition-all",
-                          major.isFinalized 
-                            ? "bg-slate-800/30 text-slate-600 cursor-not-allowed" 
-                            : "bg-slate-800 text-slate-500 hover:text-red-400"
-                        )}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                  <div className="hidden sm:flex items-center gap-2 opacity-85">
+                    {(() => {
+                      const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
+                      const stats = getDungeonHierarchyStats(major.id, dungeons, timePerRoom);
 
-                  {major.status === 'completed' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onArchiveMajor(major.id); }}
-                      className="p-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-md transition-all"
-                    >
-                      <Archive size={14} />
-                    </button>
-                  )}
+                      if (!stats.hasChildren) return null;
+
+                      const formatTime = (mins: number) => {
+                        if (mins < 60) return <>{Math.floor(mins)}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>;
+                        const h = Math.floor(mins / 60);
+                        const m = Math.floor(mins % 60);
+                        return m > 0 
+                          ? <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span> {m}<span className="text-[9px] opacity-70 ml-[1px]">m</span></>
+                          : <>{h}<span className="text-[9px] opacity-70 ml-[1px]">h</span></>;
+                      };
+
+                      if (stats.isOpenEnded) {
+                        return (
+                          <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center justify-start w-20 font-mono whitespace-nowrap overflow-hidden text-ellipsis mr-auto">
+                            {stats.completedMinutes}m focused
+                          </span>
+                        );
+                      }
+
+                      const isCompleted = major.status === 'completed' || stats.isAllCompleted;
+
+                      return (
+                        <>
+                          <div 
+                            className={cn(
+                              "h-1.5 w-16 bg-slate-900/90 rounded-full overflow-hidden border shrink-0 flex",
+                              isCompleted ? "border-emerald-500/30" : "border-amber-500/25"
+                            )}
+                            title={
+                              stats.tierSegments.length > 0
+                                ? `Total: ${stats.completedMinutes}m (${stats.tierSegments.map(s => `${s.label}: ${s.minutes}m`).join(', ')})`
+                                : undefined
+                            }
+                          >
+                            {stats.tierSegments.map((seg, idx) => (
+                              <div 
+                                key={idx}
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  getTierProgressColor(seg.level, isCompleted, 'amber')
+                                )}
+                                style={{ width: `${seg.percent}%` }}
+                              />
+                            ))}
+                          </div>
+                          <span className={cn(
+                            "text-[10px] tabular-nums flex items-center justify-start w-20 font-mono",
+                            isCompleted ? "font-bold text-emerald-400" : "font-semibold text-amber-400"
+                          )}>
+                            {formatTime(stats.completedMinutes)}
+                            <span className={cn("text-[9px] mx-0.5", isCompleted ? "opacity-60 text-emerald-400" : "opacity-60 text-amber-500/80")}>/</span>
+                            {formatTime(stats.targetMinutes)}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
                   
-                  <div className="p-1 text-slate-700 group-hover:text-indigo-400/50 transition-colors">
-                    <ChevronDown size={14} className={cn("transition-transform duration-300", expandedMajors.includes(major.id) ? "rotate-180" : "")} />
+                  <div className="flex items-center justify-end shrink-0 gap-1">
+                    {isEditMode && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingMajor(major); }}
+                          className={cn(
+                            "p-1 rounded-md transition-all",
+                            (major.status === 'completed' || major.isFinalized)
+                              ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                              : "bg-slate-800 text-slate-500 hover:text-white"
+                          )}
+                          title="Edit"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (major.isFinalized) return;
+                            setModalConfig({
+                              isOpen: true,
+                              title: "Delete Dungeon Goal",
+                              message: `Are you sure you want to delete "${major.name}"? This action cannot be undone.`,
+                              confirmText: "Delete",
+                              type: "danger",
+                              onConfirm: () => onDeleteMajor(major.id)
+                            });
+                          }}
+                          className={cn(
+                            "p-1 rounded-md transition-all",
+                            major.isFinalized 
+                              ? "bg-slate-800/30 text-slate-600 cursor-not-allowed" 
+                              : "bg-slate-800 text-slate-500 hover:text-red-400"
+                          )}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    {major.status === 'completed' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onArchiveMajor(major.id); }}
+                        className="p-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-md transition-all"
+                      >
+                        <Archive size={14} />
+                      </button>
+                    )}
+                    
+                    <div className="shrink-0 flex items-center justify-center w-6 h-6 text-slate-700 group-hover:text-indigo-400/50 transition-colors">
+                      <ChevronDown size={14} className={cn("transition-transform duration-300", expandedMajors.includes(major.id) ? "rotate-180" : "")} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1359,7 +1464,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-slate-950/20 px-3 pb-3 space-y-0.5 rounded-b-xl"
+                    className="bg-slate-950/20 px-1.5 sm:px-1.5 pb-2.5 pt-1 space-y-1 rounded-b-xl"
                   >
                     {renderSubDungeons(major.id)}
                     

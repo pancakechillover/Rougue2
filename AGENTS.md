@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.3.6
-- **Last Update Date:** 2026-09-08
-- **Last Update Time:** 05:58:00
+- **Current Version:** v9.3.18
+- **Last Update Date:** 2026-09-09
+- **Last Update Time:** 02:35:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,16 +69,14 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.3.6 (2026-09-08):** Restore & Enhance PiP Header Progress Bar Fill Color & Track Thickness
-  - *Vibrant Filled Progress Bar:* Replaced the flat hairline/border in `CompactTimer.tsx` with a dedicated, theme-adaptive filled progress bar (`bg-indigo-500` / `bg-emerald-500` with subtle glow) across all PiP window sizes.
-  - *Detached Window Style Resilience:* Switched from framer-motion DOM bindings to direct CSS width percentage transitions (`transition-all duration-500`), ensuring the progress fill renders instantly and reliably in Document Picture-in-Picture windows.
-  - *Optimized Track Height & Padding:* Raised the minimum progress bar height in ultra-compact modes to 3.5px/3px and eliminated border collapse so progress is vividly legible in all themes.
+- **v9.3.18 (2026-09-09):** Harmonize Dungeon Colors with Record Interface Palette (Vibrant Amber & Emerald)
+  - *Unified Record Color Standards:* Replaced washed-out pale amber and dull greens with the clean, vibrant, high-contrast amber (`text-amber-450/40`, `bg-amber-500`) and emerald (`text-emerald-400`, `bg-emerald-500`) palette used throughout the Record and Dashboard stats modules.
+  - *Polished Progress Bars & Typography:* Upgraded progress bar tier segment colors and text styles for both Major Goals and Sub-Dungeons to match the Record interface aesthetic.
 
-- **v9.3.5 (2026-09-08):** Enhance PiP & Timer Distraction Badge Legibility & Light Font Color
-  - *High-Contrast White Typography:* Upgraded distraction count badge typography in `CompactTimer.tsx` (both minimal horizontal pill and standard mode layouts) and `Timer.tsx` to use crisp, solid light text (`text-white font-black`) with high-contrast colored backgrounds (`bg-indigo-600`, `bg-orange-600`, `bg-red-600`).
-  - *Rest Mode Color Harmonization:* Improved resting state distraction badge readability with clear `bg-slate-700/60 text-slate-300` styling, ensuring optimal visibility across both light and dark themes.
+- **v9.3.17 (2026-09-09):** Fix Completed Status Color Synchronization for Major Goals and Sub-Dungeon Text & Borders
+  - *Unified Emerald Completion Aesthetics:* Fixed a bug where Major Goal time text remained hardcoded to gold when the progress bar turned emerald green upon completion; now synchronously switches both time readings, separators, and border outlines to radiant emerald green (`text-emerald-400 border-emerald-500/30`).
+  - *Completed Status Clarification:* Clarified hierarchy completion evaluation where multi-tier parents require both sub-tier task completion and target time fulfillment to switch from in-progress golden/indigo to complete emerald green.
 
-- **v9.3.4 (2026-09-08):** Fix Routine Manual Check-In State Persistence & Assigned Date Synchronization
-  - *Assigned Settlement Date Storage in CompleteSession:* Upgraded `completeSession` in `useGameState.ts` to accept and persist explicit `assignedDateStr` attributes onto new `StudySession` records, ensuring manually added check-in sessions are forever locked to the user's targeted calendar date.
-  - *Unified Date Settlement Evaluation:* Enhanced `getSessionSettlementDate` in `src/lib/utils.ts` to prioritize `session.assignedDateStr` and adapt seamlessly to timezones and custom day start thresholds across `RoutineTracker.tsx`, `RoutineCellEditor.tsx`, and `RoutineDetailModal.tsx`.
-  - *Manual Check-In Reactivity & Fallback:* Updated `RoutineCellEditor.tsx` to dispatch `completeSession` with explicit `targetDateStr` bounds and instant optimistic `onUpdateState` fallback, guaranteeing immediate checkmark rendering in the tracker table upon adding records.
+- **v9.3.16 (2026-09-09):** Compact Distance Between Progress/Time Statistics and Checkbox Action Column
+  - *Eliminated Stranded Action Spacing:* Removed forced wide action container wrapper when outside edit mode and tightened time typography column (`w-20 font-mono`), seamlessly bringing the progress/time statistics into comfortable proximity with the status checkbox and chevron controls.
+  - *Maintained Unified Vertical Column Baseline:* Preserved exact left and right alignment baselines across Major Goals and nested sub-dungeons.

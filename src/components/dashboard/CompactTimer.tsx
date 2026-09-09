@@ -741,7 +741,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             disabled={isResting}
             className={cn(
               "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-600/20 hover:text-indigo-400 active:scale-95 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Internal Distraction (Hold 0.8s to decrease)"}
           >
@@ -749,7 +749,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             {distractions.internal > 0 && (
               <span className={cn(
                 "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure"
               )}>{distractions.internal}</span>
             )}
           </button>
@@ -758,15 +758,15 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             disabled={isResting}
             className={cn(
               "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-orange-600/20 hover:text-orange-400 active:scale-95 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "External Distraction (Hold 0.8s to decrease)"}
           >
-            <Wind size={17} className={isResting ? "text-slate-500" : "text-orange-400"} />
+            <Wind size={17} className={isResting ? "text-slate-500" : "text-amber-400"} />
             {distractions.external > 0 && (
               <span className={cn(
                 "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-orange-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure"
               )}>{distractions.external}</span>
             )}
           </button>
@@ -775,15 +775,15 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             disabled={isResting}
             className={cn(
               "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-red-600/20 hover:text-red-400 active:scale-95 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 active:scale-95 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction (Hold 0.8s to decrease)"}
           >
-            <Zap size={17} className={isResting ? "text-slate-500" : "text-red-400"} />
+            <Zap size={17} className={isResting ? "text-slate-500" : "text-rose-400"} />
             {distractions.unavoidable > 0 && (
               <span className={cn(
                 "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-red-600 text-white"
+                isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure"
               )}>{distractions.unavoidable}</span>
             )}
           </button>
@@ -834,7 +834,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             disabled={isResting}
             className={cn(
               "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-600/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Internal (Hold 0.8s to decrease)"}
           >
@@ -842,14 +842,14 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Brain size={12} />
                <span className="font-bold">INT</span>
             </div>
-            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-600 text-white")}>{distractions.internal}</span>}
+            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure")}>{distractions.internal}</span>}
           </button>
           <button 
             {...(isResting ? {} : externalDistraction)}
             disabled={isResting}
             className={cn(
               "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-orange-600/20 hover:text-orange-400 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "External (Hold 0.8s to decrease)"}
           >
@@ -857,14 +857,14 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Wind size={12} />
                <span className="font-bold">EXT</span>
             </div>
-            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-orange-600 text-white")}>{distractions.external}</span>}
+            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure")}>{distractions.external}</span>}
           </button>
           <button 
             {...(isResting ? {} : unavoidableDistraction)}
             disabled={isResting}
             className={cn(
               "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-red-600/20 hover:text-red-400 cursor-pointer touch-manipulation"
+              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
             )}
             title={isResting ? "Distractions disabled during rest" : "Unavoidable (Hold 0.8s to decrease)"}
           >
@@ -872,7 +872,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
                <Zap size={12} />
                <span className="font-bold">UNA</span>
             </div>
-            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-red-600 text-white")}>{distractions.unavoidable}</span>}
+            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure")}>{distractions.unavoidable}</span>}
           </button>
         </div>
       </motion.div>

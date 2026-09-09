@@ -9,6 +9,9 @@ export interface ReflectionHeaderControlsProps {
   onSelectTemplate?: (text: string) => void;
   templates?: ReflectionTemplate[];
   onUpdateTemplates?: (templates: ReflectionTemplate[]) => void;
+  autoLoadTemplateId?: string | null;
+  autoLoadTemplateMode?: 'empty' | 'example';
+  onSetAutoLoadTemplate?: (templateId: string | null, mode?: 'empty' | 'example') => void;
   
   // Immersive / Fullscreen
   onOpenImmersive?: () => void;
@@ -38,6 +41,9 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
   onSelectTemplate,
   templates,
   onUpdateTemplates,
+  autoLoadTemplateId,
+  autoLoadTemplateMode,
+  onSetAutoLoadTemplate,
   onOpenImmersive,
   immersiveLabel,
   immersiveVariant = 'sky',
@@ -102,6 +108,9 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
           onSelectTemplate={onSelectTemplate}
           currentReflection={reflection}
           onUpdateTemplates={onUpdateTemplates}
+          autoLoadTemplateId={autoLoadTemplateId}
+          autoLoadTemplateMode={autoLoadTemplateMode}
+          onSetAutoLoadTemplate={onSetAutoLoadTemplate}
         />
       )}
 

@@ -1,18 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Minimize2, Bold, Italic, Underline, 
-  List, Heading1, Heading2, Heading3, Code, Quote, Link as LinkIcon, Download, Upload
-} from 'lucide-react';
+import { Minimize2, Download, Upload } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { cn } from '../../lib/utils';
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import { Markdown } from 'tiptap-markdown';
 import { ReflectionTemplate } from '../../types';
 import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
+import { MarkdownEditor } from '../common/MarkdownEditor';
 
 export interface ImmersiveReflectionModalProps {
   isOpen: boolean;
@@ -24,6 +16,9 @@ export interface ImmersiveReflectionModalProps {
   setIsMarkdownEnabled?: (val: boolean) => void;
   templates?: ReflectionTemplate[];
   onUpdateTemplates?: (templates: ReflectionTemplate[]) => void;
+  autoLoadTemplateId?: string | null;
+  autoLoadTemplateMode?: 'empty' | 'example';
+  onSetAutoLoadTemplate?: (templateId: string | null, mode?: 'empty' | 'example') => void;
   renderTemplateControls?: () => React.ReactNode;
 }
 
@@ -35,45 +30,11 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
   setReflection,
   templates,
   onUpdateTemplates,
+  autoLoadTemplateId,
+  autoLoadTemplateMode,
+  onSetAutoLoadTemplate,
   renderTemplateControls
 }) => {
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: 'Write your reflection... (Markdown shortcuts supported, e.g. # Heading, **bold**)' }),
-      Markdown,
-    ],
-    content: reflection,
-    onUpdate: ({ editor }) => {
-      const md = (editor.storage as any).markdown?.getMarkdown?.() || "";
-      setReflection(md);
-    },
-    editorProps: {
-      attributes: {
-        class: "prose prose-invert max-w-none text-slate-200 prose-p:text-slate-200 prose-headings:text-slate-100 prose-strong:text-indigo-400 prose-li:text-slate-200 prose-ol:text-slate-200 prose-ul:text-slate-200 marker:text-slate-200 marker:font-bold prose-blockquote:border-indigo-500/60 prose-blockquote:text-slate-300 prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800 focus:outline-none min-h-full",
-      }
-    }
-  });
-
-  // Sync external changes
-  useEffect(() => {
-    if (editor && isOpen) {
-      const currentMd = (editor.storage as any).markdown?.getMarkdown?.() || "";
-      if (reflection !== currentMd) {
-        editor.commands.setContent(reflection);
-      }
-    }
-  }, [reflection, isOpen, editor]);
-
-  // Focus when opened
-  useEffect(() => {
-    if (isOpen && editor) {
-      setTimeout(() => editor.commands.focus('end'), 100);
-    }
-  }, [isOpen, editor]);
-
   const content = (
     <AnimatePresence>
       {isOpen && (
@@ -92,87 +53,10 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
                   {dateString}
                 </span>
               </div>
-              
-              {/* WYSIWYG Toolbar */}
-              <div className="flex items-center gap-0.5 border-l border-slate-700/80 pl-2 sm:pl-3 shrink-0">
-                <button 
-                  onClick={() => editor?.chain().focus().toggleBold().run()}
-                  className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('bold') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                  title="Bold (Ctrl/Cmd + B)"
-                >
-                  <Bold size={15} />
-                </button>
-                <button 
-                  onClick={() => editor?.chain().focus().toggleItalic().run()}
-                  className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('italic') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                  title="Italic (Ctrl/Cmd + I)"
-                >
-                  <Italic size={15} />
-                </button>
-                <div className="hidden md:flex items-center gap-0.5 border-l border-slate-800 pl-1 ml-1">
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={cn("p-1.5 rounded-lg transition-colors text-xs font-bold font-mono", editor?.isActive('heading', { level: 1 }) ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Heading 1 (#)"
-                  >
-                    H1
-                  </button>
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={cn("p-1.5 rounded-lg transition-colors text-xs font-bold font-mono", editor?.isActive('heading', { level: 2 }) ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Heading 2 (##)"
-                  >
-                    H2
-                  </button>
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                    className={cn("p-1.5 rounded-lg transition-colors text-xs font-bold font-mono", editor?.isActive('heading', { level: 3 }) ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Heading 3 (###)"
-                  >
-                    H3
-                  </button>
-                </div>
-                <div className="flex items-center gap-0.5 border-l border-slate-800 pl-1 ml-1">
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                    className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('bulletList') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Bullet List (- item)"
-                  >
-                    <List size={15} />
-                  </button>
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-                    className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('blockquote') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Quote (> quote)"
-                  >
-                    <Quote size={14} />
-                  </button>
-                  <button 
-                    onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-                    className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('codeBlock') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Code Block (Ctrl/Cmd + E)"
-                  >
-                    <Code size={15} />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const url = window.prompt('URL:');
-                      if (url) {
-                        editor?.chain().focus().setLink({ href: url }).run();
-                      }
-                    }}
-                    className={cn("p-1.5 rounded-lg transition-colors", editor?.isActive('link') ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800")}
-                    title="Link (Ctrl/Cmd + K)"
-                  >
-                    <LinkIcon size={14} />
-                  </button>
-                </div>
-              </div>
             </div>
             
             {/* Header Right Actions */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
-              
               <div className="flex items-center gap-1 border-r border-slate-700/80 pr-2 mr-1">
                 <button
                   onClick={() => {
@@ -212,18 +96,17 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
                   <Download size={16} />
                 </button>
               </div>
+
               {templates ? (
                 <div className="flex items-center">
                   <ReflectionTemplatesDropdown
                     templates={templates}
-                    onSelectTemplate={(t) => {
-                      if (editor) {
-                        editor.commands.setContent(t);
-                      }
-                      setReflection(t);
-                    }}
+                    onSelectTemplate={(t) => setReflection(t)}
                     currentReflection={reflection}
                     onUpdateTemplates={onUpdateTemplates}
+                    autoLoadTemplateId={autoLoadTemplateId}
+                    autoLoadTemplateMode={autoLoadTemplateMode}
+                    onSetAutoLoadTemplate={onSetAutoLoadTemplate}
                   />
                 </div>
               ) : renderTemplateControls ? (
@@ -242,10 +125,19 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
             </div>
           </div>
 
-          {/* Single Pane Editor Area */}
-          <div className="flex-1 flex overflow-hidden bg-slate-950 justify-center">
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8 md:p-12 max-w-4xl custom-scrollbar w-full">
-              <EditorContent editor={editor} className="min-h-full h-full" />
+          {/* Fullscreen Editor Area */}
+          <div className="flex-1 flex overflow-hidden bg-slate-950 p-4 sm:p-6 md:p-8">
+            <div className="flex-1 max-w-6xl mx-auto w-full h-full flex flex-col bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden">
+              <MarkdownEditor
+                value={reflection}
+                onChange={setReflection}
+                placeholder="Write your reflection in Markdown... (Markdown supported)"
+                autoFocus
+                defaultMode="split"
+                showModeToggle={true}
+                className="h-full flex-1"
+                minHeight="100%"
+              />
             </div>
           </div>
         </motion.div>
