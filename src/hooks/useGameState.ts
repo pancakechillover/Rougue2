@@ -2252,19 +2252,23 @@ export function useGameState() {
     });
   }, []);
 
-  const saveDailyLog = useCallback((date: string, rating: number, reflection: string, mood?: string) => {
-    setState(prev => ({
-      ...prev,
-      dailyLogs: {
-        ...(prev.dailyLogs || {}),
-        [date]: { 
-          ...(prev.dailyLogs?.[date] || {}), // Preserve existing fields like sleep data
-          rating, 
-          reflection,
-          ...(mood ? { mood } : {})
+  const saveDailyLog = useCallback((date: string, rating: number, reflection: string, mood?: string, title?: string) => {
+    setState(prev => {
+      const existing = prev.dailyLogs?.[date] || {};
+      return {
+        ...prev,
+        dailyLogs: {
+          ...(prev.dailyLogs || {}),
+          [date]: { 
+            ...existing, // Preserve existing fields like sleep data
+            rating, 
+            reflection,
+            ...(mood !== undefined ? { mood } : {}),
+            ...(title !== undefined ? { title } : {})
+          }
         }
-      }
-    }));
+      };
+    });
   }, []);
 
   const resetLootPool = useCallback(() => {

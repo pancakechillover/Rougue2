@@ -59,7 +59,7 @@ interface DailySummaryModalProps {
   majorDungeons: MajorDungeon[];
   onClose: () => void;
   onNavigateToStats: () => void;
-  onSave: (date: string, rating: number, reflection: string, mood?: string) => void;
+  onSave: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (update: Partial<AppState>) => void;
 }
 
@@ -68,6 +68,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   const [rating, setRating] = useState(() => Number(localStorage.getItem('scholar_rating_draft')) || 0);
   const [reflection, setReflection] = useState(() => localStorage.getItem('scholar_reflection_draft') || '');
   const [mood, setMood] = useState(() => localStorage.getItem('scholar_mood_draft') || '');
+  const [title, setTitle] = useState(() => localStorage.getItem('scholar_title_draft') || '');
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
   const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(state.defaultMarkdownEnabled ?? true);
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
@@ -171,6 +172,11 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     if (mood) localStorage.setItem('scholar_mood_draft', mood);
     else localStorage.removeItem('scholar_mood_draft');
   }, [mood]);
+
+  React.useEffect(() => {
+    if (title) localStorage.setItem('scholar_title_draft', title);
+    else localStorage.removeItem('scholar_title_draft');
+  }, [title]);
 
   const dailyStats = useMemo(() => {
     const ts = state.timeSettings || {
@@ -627,10 +633,10 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           {/* Right Column */}
           <div className="space-y-4 flex flex-col lg:w-1/2 lg:flex-1 min-h-[500px] lg:h-full">
           {/* Daily Reflection */}
-          <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-6 border border-slate-700/30 space-y-4 flex flex-col flex-1">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
-                <MessageSquare size={16} className="text-sky-400" /> Daily Reflection
+          <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-6 border border-slate-700/30 space-y-3 flex flex-col flex-1">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
+                <MessageSquare size={15} className="text-sky-400" /> Daily Reflection
               </h3>
               <ReflectionHeaderControls
                 reflection={reflection}
@@ -646,10 +652,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
                   });
                 }}
                 onOpenImmersive={() => setIsImmersiveMode(true)}
-                immersiveLabel="Immersive"
-                immersiveVariant="sky"
                 showCopy={true}
-                showMetrics={true}
                 showImportExport={true}
                 onImportReflection={setReflection}
                 exportFileName={`reflection-${today.dateString}.md`}
@@ -657,15 +660,12 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
             </div>
             
             {/* Single Markdown Editor Pane (Regular Modal View) */}
-            <div className="flex flex-col flex-1 h-full min-h-[300px] bg-slate-950 border border-slate-800 rounded-3xl p-4 focus-within:border-indigo-500 transition-all overflow-hidden">
-              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <MarkdownEditor 
-                  value={reflection}
-                  onChange={setReflection}
-                  placeholder="Write down your thoughts, achievements, or what you learned today... (Markdown shortcuts supported)"
-                />
-              </div>
-            </div>
+            <MarkdownEditor 
+              value={reflection}
+              onChange={setReflection}
+              placeholder="Write down your thoughts, achievements, or what you learned today... (Markdown shortcuts supported)"
+              className="flex-1 h-full min-h-[300px]"
+            />
           </div>
 
           <button
@@ -674,7 +674,8 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
               localStorage.removeItem('scholar_rating_draft');
               localStorage.removeItem('scholar_mood_draft');
               localStorage.removeItem('scholar_mood_score_draft');
-              onSave(today.dateString, rating, reflection, mood);
+              localStorage.removeItem('scholar_title_draft');
+              onSave(today.dateString, rating, reflection, mood, title);
               onNavigateToStats();
             }}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 flex-shrink-0"
@@ -697,10 +698,13 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
         dateString={today.dateString}
         reflection={reflection}
         setReflection={setReflection}
+        title={title}
+        onTitleChange={setTitle}
         isMarkdownEnabled={isMarkdownEnabled}
         setIsMarkdownEnabled={setIsMarkdownEnabled}
         templates={state.reflectionTemplates}
         onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+        efficiencyRatingConfig={state.efficiencyRatingConfig}
         autoLoadTemplateId={state.autoLoadTemplateId}
         autoLoadTemplateMode={state.autoLoadTemplateMode}
         onSetAutoLoadTemplate={(templateId, mode) => {

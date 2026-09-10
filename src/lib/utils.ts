@@ -354,11 +354,11 @@ export function getDungeonHierarchyStats(
     const totalSessions = targetNode?.totalSessions || 0;
     const completedSessions = targetNode?.completedSessions || 0;
     const isOpenEnded = !!targetNode?.isOpenEnded;
-    const targetMinutes = isOpenEnded ? 0 : totalSessions * timePerRoom;
+    const targetMinutes = isOpenEnded ? 0 : Math.round(totalSessions * timePerRoom);
     const completedMinutes = isOpenEnded
-      ? (targetNode?.totalFocusTime || 0)
-      : completedSessions * timePerRoom;
-    const totalFocusTime = targetNode?.totalFocusTime || (completedSessions * timePerRoom);
+      ? Math.round(targetNode?.totalFocusTime || 0)
+      : Math.round(completedSessions * timePerRoom);
+    const totalFocusTime = Math.round(targetNode?.totalFocusTime || (completedSessions * timePerRoom));
     const isAllCompleted = targetNode?.status === 'completed' || (!isOpenEnded && totalSessions > 0 && completedSessions >= totalSessions);
     const progressPercent = isAllCompleted
       ? 100
@@ -428,9 +428,9 @@ export function getDungeonHierarchyStats(
     ? (targetNode?.totalFocusTime || 0)
     : (parentDirectSessions > 0 ? parentDirectSessions * timePerRoom : (targetNode?.totalFocusTime || 0));
 
-  const totalCompletedMinutes = sumCompletedMinutes + parentDirectFocusTime;
+  const totalCompletedMinutes = Math.round(sumCompletedMinutes + parentDirectFocusTime);
   const totalCompletedSessions = sumCompletedSessions + parentDirectSessions;
-  const effectiveFocusTime = sumFocusTime + (targetNode?.totalFocusTime || 0);
+  const effectiveFocusTime = Math.round(sumFocusTime + (targetNode?.totalFocusTime || 0));
 
   // If sub-tiers have 0 target minutes but parent has totalSessions, fallback to parent target
   const effectiveTargetMinutes = sumTargetMinutes > 0 

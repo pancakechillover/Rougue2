@@ -100,7 +100,7 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
   };
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
       {/* Template Dropdown */}
       {onSelectTemplate && (
         <ReflectionTemplatesDropdown
@@ -120,33 +120,15 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
           type="button"
           onClick={onToggleMarkdown}
           className={cn(
-            "flex items-center gap-1.5 h-[26px] px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+            "flex items-center gap-1.5 h-7 px-2 rounded-lg text-xs font-semibold transition-all border",
             isMarkdownEnabled
-              ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
-              : "bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-white"
+              ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+              : "bg-slate-800/80 text-slate-400 border-slate-700/70 hover:bg-slate-700/80 hover:text-white"
           )}
           title={isMarkdownEnabled ? "Switch to Text Edit" : "Switch to Markdown Preview"}
         >
-          {isMarkdownEnabled ? <Eye size={12} /> : <EyeOff size={12} />}
-          <span>MD</span>
-        </button>
-      )}
-
-      {/* Immersive / Fullscreen Writing Trigger */}
-      {onOpenImmersive && (
-        <button
-          type="button"
-          onClick={onOpenImmersive}
-          className={cn(
-            "flex items-center justify-center transition-all",
-            immersiveVariant === 'sky' && "gap-1.5 h-[26px] px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-400 border border-sky-500/30 hover:bg-sky-500/20",
-            immersiveVariant === 'indigo' && "p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-md shadow-indigo-600/20 active:scale-95",
-            immersiveVariant === 'icon-only' && "p-1.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700 hover:border-slate-600"
-          )}
-          title="Fullscreen Immersive Writing Mode"
-        >
-          <Maximize2 size={immersiveVariant === 'indigo' ? 14 : 12} />
-          {immersiveLabel && <span>{immersiveLabel}</span>}
+          {isMarkdownEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
+          <span className="text-[11px]">MD</span>
         </button>
       )}
 
@@ -155,36 +137,55 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
         <button
           type="button"
           onClick={handleCopy}
-          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700/60"
+          className="h-7 w-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/70 active:scale-95 shrink-0"
           title="Copy Reflection"
         >
-          {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
         </button>
       )}
 
       {/* Import / Export Controls */}
       {showImportExport && (
-        <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1.5 ml-0.5">
+        <div className="flex items-center gap-1 border-l border-slate-700/70 pl-1.5 ml-0.5">
           {onImportReflection && (
             <button
               type="button"
               onClick={handleImport}
-              className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+              className="h-7 w-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/70 active:scale-95 shrink-0"
               title="Import Reflection (.txt, .md)"
             >
-              <Upload size={14} />
+              <Upload size={13} />
             </button>
           )}
           <button
             type="button"
             onClick={handleExport}
-            className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+            className="h-7 w-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/70 active:scale-95 shrink-0"
             title="Export Reflection (.md)"
           >
-            <Download size={14} />
+            <Download size={13} />
           </button>
         </div>
       )}
+
+      {/* Immersive / Fullscreen Writing Trigger */}
+      {onOpenImmersive && (
+        <button
+          type="button"
+          onClick={onOpenImmersive}
+          className={cn(
+            "h-7 flex items-center justify-center rounded-lg transition-all active:scale-95 border",
+            immersiveVariant === 'sky' && (immersiveLabel ? "gap-1.5 px-2.5 bg-sky-500/10 text-sky-400 border-sky-500/30 hover:bg-sky-500/20 text-xs font-semibold" : "w-7 bg-sky-500/10 text-sky-400 border-sky-500/30 hover:bg-sky-500/20"),
+            immersiveVariant === 'indigo' && (immersiveLabel ? "gap-1.5 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-600/20 text-xs font-semibold" : "w-7 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-600/20"),
+            immersiveVariant === 'icon-only' && "w-7 bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/70 hover:border-slate-600"
+          )}
+          title="Fullscreen Immersive Writing Mode"
+        >
+          <Maximize2 size={13} />
+          {immersiveLabel && <span>{immersiveLabel}</span>}
+        </button>
+      )}
+
       {/* Metrics Badge */}
       {showMetrics && charCount > 0 && (
         <span className="text-[10px] font-mono text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800 tracking-wider">

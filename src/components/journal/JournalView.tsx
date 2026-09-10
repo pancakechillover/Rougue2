@@ -1,5 +1,4 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
-import { EditorTypographyMenu } from "../common/EditorTypographyMenu";
 import { useEditorTypography, LINE_HEIGHT_MAP } from "../../hooks/useEditorTypography";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
@@ -12,7 +11,7 @@ import {
   Star, StarHalf, Calculator, SlidersHorizontal, Heart, 
   Maximize2, Save, Download, Edit3, 
   Clock, Target, Zap, 
-  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar, Building2
+  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar, Building2, X, FileText
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -25,14 +24,13 @@ import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from '../record/EfficiencyDetailsModal';
 import { BatchExportModal } from '../modals/BatchExportModal';
 import { MoodSelector } from '../common/MoodSelector';
-import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 import { StarRating } from '../common/StarRating';
 
 import { playSound } from '../../lib/sound';
 
 export interface JournalViewProps {
   state: AppState;
-  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
+  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
   dungeons?: Dungeon[];
   majorDungeons?: MajorDungeon[];
@@ -111,6 +109,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [rating, setRating] = useState<number>(currentSavedLog?.rating || 0);
   const [reflection, setReflection] = useState<string>(currentSavedLog?.reflection || '');
   const [mood, setMood] = useState<string | undefined>(currentSavedLog?.mood);
+  const [title, setTitle] = useState<string>(currentSavedLog?.title || '');
   const [isQuickEditing, setIsQuickEditing] = useState<boolean>(false);
   const [isImmersiveOpen, setIsImmersiveOpen] = useState(false);
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
@@ -127,6 +126,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     isSwitchingDateRef.current = true;
     const log = dailyLogs[selectedDateStr];
     setRating(log?.rating || 0);
+    setTitle(log?.title || '');
 
     let initialReflection = log?.reflection || '';
     if (!initialReflection.trim() && state.autoLoadTemplateId && state.reflectionTemplates) {
@@ -150,30 +150,62 @@ export const JournalView: React.FC<JournalViewProps> = ({
     }, 50);
   }, [selectedDateStr, dailyLogs, state.autoLoadTemplateId, state.autoLoadTemplateMode, state.reflectionTemplates]);
 
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track title changes & auto-save
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!isSwitchingDateRef.current) {
+      setSaveStatus('unsaved');
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        saveDailyLog(selectedDateStr, rating, reflection, mood, val);
+        setSaveStatus('saved');
+      }, 800);
+    }
+  };
+
   // Track changes & auto-save or mark unsaved
   const handleReflectionChange = (val: string) => {
     setReflection(val);
     if (!isSwitchingDateRef.current) {
       setSaveStatus('unsaved');
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        saveDailyLog(selectedDateStr, rating, val, mood, title);
+        setSaveStatus('saved');
+      }, 800);
     }
   };
 
   const handleMoodChange = (newMood?: string) => {
     setMood(newMood);
-    saveDailyLog(selectedDateStr, rating, reflection, newMood);
+    saveDailyLog(selectedDateStr, rating, reflection, newMood, title);
     playSound('click', state.soundVolume, state.soundEnabled);
   };
 
   // Perform Save for reflection
   const handleSave = useCallback(() => {
     setSaveStatus('saving');
-    saveDailyLog(selectedDateStr, rating, reflection, mood);
+    saveDailyLog(selectedDateStr, rating, reflection, mood, title);
     playSound('success', state.soundVolume, state.soundEnabled);
     setTimeout(() => {
       setSaveStatus('saved');
       setIsQuickEditing(false);
     }, 300);
-  }, [saveDailyLog, selectedDateStr, rating, reflection, mood, state.soundVolume, state.soundEnabled]);
+  }, [saveDailyLog, selectedDateStr, rating, reflection, mood, title, state.soundVolume, state.soundEnabled]);
+
+  // Keyboard shortcut Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   // Date indicators for DatePicker
   const dateIndicators = useMemo(() => {
@@ -310,7 +342,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   // Handle star rating change
   const handleRatingChange = (newScore: number) => {
     setRating(newScore);
-    saveDailyLog(selectedDateStr, newScore, reflection, mood);
+    saveDailyLog(selectedDateStr, newScore, reflection, mood, title);
     playSound('click', state.soundVolume, state.soundEnabled);
   };
 
@@ -344,7 +376,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
     setTimeout(() => {
       setRating(calculatedRating);
-      saveDailyLog(selectedDateStr, calculatedRating, reflection, mood);
+      saveDailyLog(selectedDateStr, calculatedRating, reflection, mood, title);
       setIsCalculating(false);
       playSound('calculate', state.soundVolume, state.soundEnabled);
     }, 450);
@@ -712,58 +744,55 @@ export const JournalView: React.FC<JournalViewProps> = ({
                   )}
 
                   {/* Right Page Header & Actions */}
-                  <div className="flex flex-col flex-1 space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-800/70 gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-300">
-                          Reflection
-                        </h2>
+                  <div className="flex flex-col flex-1 space-y-3">
+                    {/* Unified Header & Actions Row */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/70 gap-2.5 min-w-0">
+                      {/* Left: Integrated Title / Heading Field */}
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText size={15} className="text-indigo-400 shrink-0" />
+                        <div className="flex items-center gap-1 min-w-0 flex-1">
+                          <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => handleTitleChange(e.target.value)}
+                            placeholder={selectedDateStr}
+                            className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-100 placeholder:text-slate-400 placeholder:font-bold outline-none hover:bg-slate-800/40 focus:bg-slate-800/60 px-2 py-1 rounded-lg border border-transparent focus:border-indigo-500/50 transition-all truncate"
+                            title="Journal Title (Default: date)"
+                          />
+                          {title && (
+                            <button
+                              type="button"
+                              onClick={() => handleTitleChange('')}
+                              className="p-1 text-slate-500 hover:text-slate-300 rounded transition-colors shrink-0"
+                              title="Reset to default date title"
+                            >
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Right Page Action Buttons */}
-                      <div className="flex items-center gap-1.5">
-                        <ReflectionHeaderControls
-                          reflection={reflection}
-                          onSelectTemplate={(content) => {
-                            handleReflectionChange(content);
-                            setIsQuickEditing(true);
-                          }}
-                          templates={state.reflectionTemplates}
-                          onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
-                          autoLoadTemplateId={state.autoLoadTemplateId}
-                          autoLoadTemplateMode={state.autoLoadTemplateMode}
-                          onSetAutoLoadTemplate={(templateId, mode) => {
-                            onUpdateState?.({
-                              autoLoadTemplateId: templateId,
-                              autoLoadTemplateMode: mode || 'empty'
-                            });
-                          }}
-                          showCopy={true}
-                          showImportExport={reflection.trim().length > 0}
-                          exportFileName={`journal-${selectedDateStr}.md`}
-                        />
-
-                        <EditorTypographyMenu />
-
+                      {/* Right: Only Edit & Fullscreen Buttons */}
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => setIsQuickEditing(!isQuickEditing)}
                           className={cn(
-                            "p-1.5 rounded-lg border transition-all",
+                            "h-7 w-7 flex items-center justify-center rounded-lg border transition-all active:scale-95 shrink-0",
                             isQuickEditing 
                               ? "bg-amber-500/20 text-amber-300 border-amber-500/40" 
-                              : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/80"
+                              : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-white border-slate-700/70"
                           )}
                           title={isQuickEditing ? "Finish Quick Edit" : "Quick Inline Edit"}
                         >
-                          <Edit3 size={14} />
+                          <Edit3 size={13} />
                         </button>
 
                         <button
                           onClick={() => setIsImmersiveOpen(true)}
-                          className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+                          className="h-7 w-7 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-md shadow-indigo-600/20 active:scale-95 border border-indigo-500 shrink-0"
                           title="Open Fullscreen Immersive Writing Mode"
                         >
-                          <Maximize2 size={14} />
+                          <Maximize2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -772,23 +801,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
                     <div className="flex-1 min-h-[360px] flex flex-col justify-start">
                       {isQuickEditing ? (
                         <div className="flex-1 flex flex-col space-y-2">
-                          <div className="w-full flex-1 min-h-[300px] bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus-within:border-indigo-500/80 transition-all custom-scrollbar flex overflow-hidden">
-                            <MarkdownEditor 
-                              value={reflection}
-                              onChange={handleReflectionChange}
-                              placeholder="Write your reflection for this day... (Markdown supported)"
-                              autoFocus
-                            />
-                          </div>
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-[10px] text-slate-500 font-mono">
-                              {wordCount} words · {reflection.length} characters
-                            </span>
+                          <MarkdownEditor 
+                            value={reflection}
+                            onChange={handleReflectionChange}
+                            placeholder="Write your reflection for this day... (Markdown supported)"
+                            autoFocus
+                            className="flex-1 min-h-[300px]"
+                          />
+                          <div className="flex items-center justify-end pt-1">
                             <button
                               onClick={handleSave}
-                              className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all shadow-sm active:scale-95"
                             >
-                              <Save size={12} />
+                              <Save size={13} />
                               <span>Save</span>
                             </button>
                           </div>
@@ -830,10 +855,10 @@ export const JournalView: React.FC<JournalViewProps> = ({
                                   <p className="my-1.5 text-slate-200" style={{ lineHeight: lineMultiplier }} {...props} />
                                 ),
                                 ul: ({ node, ...props }) => (
-                                  <ul className="list-disc pl-5 my-1.5 space-y-0.5 marker:text-indigo-400" {...props} />
+                                  <ul className="list-disc [&_ul]:list-[circle] [&_ul_ul]:list-[square] pl-5 my-1.5 space-y-0.5 marker:text-indigo-400" {...props} />
                                 ),
                                 ol: ({ node, ...props }) => (
-                                  <ol className="list-decimal pl-5 my-1.5 space-y-0.5 marker:text-indigo-400 font-medium" {...props} />
+                                  <ol className="list-decimal [&_ol]:list-[lower-alpha] [&_ol_ol]:list-[lower-roman] pl-5 my-1.5 space-y-0.5 marker:text-indigo-400 font-medium" {...props} />
                                 ),
                                 li: ({ node, ...props }) => (
                                   <li className="text-slate-200 pl-0.5" style={{ lineHeight: lineMultiplier }} {...props} />
@@ -899,7 +924,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
                   {/* Right Page Footer */}
                   <div className="pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500 font-mono">
                     <span className="font-bold text-slate-600 uppercase tracking-widest text-[10px]">
-                      {reflection.trim() ? `${wordCount} words` : 'Empty Page'}
+                      {!isQuickEditing && (reflection.trim() ? `${wordCount} words` : 'Empty Page')}
                     </span>
                     <button
                       onClick={() => navigateDay('next')}
@@ -1060,7 +1085,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
           }}
           onApplyRating={(calcRating) => {
             setRating(calcRating);
-            saveDailyLog(selectedDateStr, calcRating, reflection, mood);
+            saveDailyLog(selectedDateStr, calcRating, reflection, mood, title);
             setIsCalculating(true);
             playSound('calculate', state.soundVolume, state.soundEnabled);
             setTimeout(() => setIsCalculating(false), 600);
@@ -1080,6 +1105,23 @@ export const JournalView: React.FC<JournalViewProps> = ({
           dateString={selectedDateStr}
           reflection={reflection}
           setReflection={handleReflectionChange}
+          title={title}
+          onTitleChange={handleTitleChange}
+          dailyLogs={dailyLogs}
+          efficiencyRatingConfig={state.efficiencyRatingConfig}
+          onSelectDate={(newDateStr) => {
+            // Auto save current day first
+            saveDailyLog(selectedDateStr, rating, reflection, mood, title);
+            const parsed = parseISO(newDateStr);
+            if (isValid(parsed)) {
+              setPageFlipDirection(newDateStr > selectedDateStr ? 'right' : 'left');
+              setSelectedDate(parsed);
+              playSound('pageTurn', state.soundVolume, state.soundEnabled);
+            }
+          }}
+          bookmarks={bookmarks}
+          onToggleBookmark={toggleBookmark}
+          history={state.history}
           isMarkdownEnabled={true}
           setIsMarkdownEnabled={() => {}}
           templates={state.reflectionTemplates}
@@ -1095,7 +1137,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
           onClose={() => {
             setIsImmersiveOpen(false);
             // Auto save when closing immersive modal
-            saveDailyLog(selectedDateStr, rating, reflection, mood);
+            saveDailyLog(selectedDateStr, rating, reflection, mood, title);
           }}
         />
       )}

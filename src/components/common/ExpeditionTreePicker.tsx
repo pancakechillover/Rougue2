@@ -7,7 +7,9 @@ import {
   CheckCircle2, 
   Flame, 
   Search,
-  Sparkles
+  Sparkles,
+  Check,
+  X
 } from 'lucide-react';
 import { Dungeon, MajorDungeon } from '../../types';
 import { cn, getDungeonHierarchyStats } from '../../lib/utils';
@@ -18,6 +20,9 @@ interface ExpeditionTreePickerProps {
   onSelect: (dungeon: { id: string; name: string; parentName?: string; depth?: number }) => void;
   onClose?: () => void;
   className?: string;
+  selectedId?: string;
+  includeCompleted?: boolean;
+  allowFreeStudy?: boolean;
 }
 
 export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
@@ -25,19 +30,35 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
   majorDungeons = [],
   onSelect,
   onClose,
-  className
+  className,
+  selectedId,
+  includeCompleted = false,
+  allowFreeStudy = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const [filterMode, setFilterMode] = useState<'all' | 'active'>(includeCompleted ? 'all' : 'active');
 
-  // Filter only active / non-archived dungeons
+  // Filter dungeons based on status and mode
   const activeDungeons = useMemo(() => {
-    return dungeons.filter(d => d.status !== 'completed' && d.status !== 'archived');
-  }, [dungeons]);
+    return dungeons.filter(d => {
+      if (d.status === 'archived') return false;
+      if (!includeCompleted || filterMode === 'active') {
+        return d.status !== 'completed';
+      }
+      return true;
+    });
+  }, [dungeons, includeCompleted, filterMode]);
 
   const activeMajors = useMemo(() => {
-    return majorDungeons.filter(m => m.status !== 'completed' && m.status !== 'archived');
-  }, [majorDungeons]);
+    return majorDungeons.filter(m => {
+      if (m.status === 'archived') return false;
+      if (!includeCompleted || filterMode === 'active') {
+        return m.status !== 'completed';
+      }
+      return true;
+    });
+  }, [majorDungeons, includeCompleted, filterMode]);
 
   // Expand all by default when loaded or searching
   React.useEffect(() => {
@@ -98,17 +119,22 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
       return null;
     }
 
+    const isSelected = selectedId === tier.id;
+    const isCompleted = tier.status === 'completed';
+
     return (
       <div key={tier.id} className="space-y-1">
         <div 
           className={cn(
-            "group flex items-center justify-between gap-1.5 py-1.5 px-2 rounded-xl transition-all cursor-pointer select-none",
-            "hover:bg-indigo-500/15 hover:border-indigo-500/30 border border-transparent",
-            "text-slate-300 hover:text-white"
+            "group flex items-center justify-between gap-1.5 py-1.5 px-2 rounded-xl transition-all cursor-pointer select-none border",
+            isSelected 
+              ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-200" 
+              : "hover:bg-indigo-500/15 hover:border-indigo-500/30 border-transparent text-slate-300 hover:text-white"
           )}
           style={{ paddingLeft: `${Math.max(8, depthLevel * 14)}px` }}
           onClick={() => {
             onSelect({ id: tier.id, name: tier.name, parentName, depth: tierDepth });
+            if (onClose) onClose();
           }}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -122,33 +148,51 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
               </button>
             ) : (
               <div className="w-4 flex items-center justify-center shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors" />
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full transition-colors",
+                  isSelected ? "bg-indigo-400" : (isCompleted ? "bg-emerald-400" : "bg-slate-600 group-hover:bg-indigo-400")
+                )} />
               </div>
             )}
 
             <div className="min-w-0 flex-1 flex items-center gap-1.5">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 group-hover:bg-indigo-500/20 group-hover:text-indigo-300 transition-colors shrink-0 uppercase tracking-wider">
+              <span className={cn(
+                "text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors shrink-0 uppercase tracking-wider",
+                isSelected ? "bg-indigo-500/30 text-indigo-300" : "bg-slate-800 text-slate-400 group-hover:bg-indigo-500/20 group-hover:text-indigo-300"
+              )}>
                 Tier {tierDepth}
               </span>
               <span className="text-xs font-semibold truncate">
                 {tier.name}
               </span>
+              {isCompleted && (
+                <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0 uppercase tracking-wider">
+                  Completed
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono pr-1">
+            {isSelected && (
+              <span className="text-indigo-400 flex items-center gap-0.5 font-bold mr-1">
+                <Check size={12} />
+              </span>
+            )}
             {(() => {
               const stats = getDungeonHierarchyStats(tier.id, dungeons, 25);
               if (stats.isOpenEnded) {
                 return (
                   <span className={stats.hasChildren ? "text-indigo-400/90" : "text-slate-500 group-hover:text-indigo-300"}>
-                    {stats.completedMinutes}m
+                    {Math.round(stats.completedMinutes)}m
                   </span>
                 );
               }
+              const displayCompleted = Math.round(stats.completedSessions);
+              const displayTotal = Math.round(stats.totalSessions);
               return (
                 <span className={stats.hasChildren ? "text-indigo-300/90" : "text-slate-500 group-hover:text-indigo-300"}>
-                  {stats.completedSessions}/{stats.totalSessions}
+                  {displayCompleted}/{displayTotal}
                 </span>
               );
             })()}
@@ -168,7 +212,7 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
   // Find standalone sub-dungeons that don't belong to any major
   const standaloneDungeons = activeDungeons.filter(d => !d.parentId || !majorDungeons.some(m => m.id === d.parentId) && !dungeons.some(p => p.id === d.parentId));
 
-  const totalItemCount = activeMajors.length + activeDungeons.length;
+  const totalItemCount = activeMajors.length + activeDungeons.length + (allowFreeStudy ? 1 : 0);
 
   return (
     <div className={cn("bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50", className)}>
@@ -179,9 +223,45 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
             <Layers size={14} className="text-indigo-400" />
             <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Select from Expedition</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500 font-medium">
-            {activeDungeons.length} Tiers Active
-          </span>
+          <div className="flex items-center gap-2">
+            {includeCompleted && (
+              <div className="flex items-center gap-0.5 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('all')}
+                  className={cn(
+                    "px-2 py-0.5 rounded font-semibold transition-all",
+                    filterMode === 'all' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('active')}
+                  className={cn(
+                    "px-2 py-0.5 rounded font-semibold transition-all",
+                    filterMode === 'active' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  Active
+                </button>
+              </div>
+            )}
+            <span className="text-[10px] font-mono text-slate-500 font-medium">
+              {activeDungeons.length} {includeCompleted && filterMode === 'all' ? 'Tiers' : 'Active'}
+            </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors ml-0.5"
+                title="Close"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -200,6 +280,38 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
 
       {/* Content List */}
       <div className="p-2 overflow-y-auto max-h-72 custom-scrollbar space-y-2">
+        {/* Free Study Option */}
+        {allowFreeStudy && (!searchTerm.trim() || 'free study'.includes(searchTerm.toLowerCase())) && (
+          <div 
+            className={cn(
+              "group flex items-center justify-between gap-1.5 py-1.5 px-2 rounded-xl transition-all cursor-pointer select-none border",
+              selectedId === 'free_study'
+                ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                : "hover:bg-amber-500/10 hover:border-amber-500/20 border-transparent text-slate-300 hover:text-white"
+            )}
+            onClick={() => {
+              onSelect({ id: 'free_study', name: 'Free Study', depth: 0 });
+              if (onClose) onClose();
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-4 flex items-center justify-center shrink-0">
+                <Sparkles size={13} className="text-amber-400" />
+              </div>
+              <span className="text-xs font-semibold">Free Study</span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {selectedId === 'free_study' && (
+                <span className="text-[10px] font-bold text-amber-400 flex items-center gap-0.5">
+                  <Check size={12} />
+                  Current
+                </span>
+              )}
+              <span className="text-[10px] text-slate-500 font-mono">No Tier</span>
+            </div>
+          </div>
+        )}
+
         {totalItemCount === 0 ? (
           <div className="py-8 text-center flex flex-col items-center justify-center">
             <Target size={24} className="text-slate-600 mb-2" />
@@ -213,17 +325,22 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
               const rootTiers = activeDungeons.filter(d => d.parentId === major.id);
               const isExpanded = !!expandedNodes[major.id] || searchTerm.trim().length > 0;
               const hasTiers = rootTiers.length > 0;
+              const isSelected = selectedId === major.id;
+              const isCompleted = major.status === 'completed';
 
               if (searchTerm.trim() && !matchesSearch(major)) {
                 return null;
               }
 
               return (
-                <div key={major.id} className="border border-slate-800/80 bg-slate-950/30 rounded-xl p-1.5 space-y-1">
+                <div key={major.id} className={cn(
+                  "border rounded-xl p-1.5 space-y-1 transition-colors",
+                  isSelected ? "border-indigo-500/40 bg-indigo-950/20" : "border-slate-800/80 bg-slate-950/30"
+                )}>
                   <div 
                     className={cn(
                       "group flex items-center justify-between gap-1.5 py-1 px-2 rounded-lg transition-colors cursor-pointer select-none",
-                      "hover:bg-slate-800/80 text-slate-200"
+                      isSelected ? "bg-indigo-500/20 text-white" : "hover:bg-slate-800/80 text-slate-200"
                     )}
                     onClick={(e) => {
                       if (hasTiers) {
@@ -231,6 +348,7 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
                       } else {
                         // Allow picking major if no tiers
                         onSelect({ id: major.id, name: major.name, depth: 0 });
+                        if (onClose) onClose();
                       }
                     }}
                   >
@@ -253,11 +371,37 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
                       <span className="text-xs font-bold text-slate-200 truncate group-hover:text-indigo-300 transition-colors">
                         {major.name}
                       </span>
+                      {isCompleted && (
+                        <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0 uppercase tracking-wider">
+                          Completed
+                        </span>
+                      )}
                     </div>
 
-                    <span className="text-[10px] text-slate-500 font-medium shrink-0">
-                      {rootTiers.length} {rootTiers.length === 1 ? 'Tier' : 'Tiers'}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {hasTiers && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect({ id: major.id, name: major.name, depth: 0 });
+                            if (onClose) onClose();
+                          }}
+                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800/80 hover:bg-indigo-600 text-slate-400 hover:text-white transition-colors border border-slate-700/60"
+                          title={`Select ${major.name}`}
+                        >
+                          Select
+                        </button>
+                      )}
+                      {isSelected && (
+                        <span className="text-indigo-400 flex items-center">
+                          <Check size={12} />
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-500 font-medium shrink-0">
+                        {rootTiers.length} {rootTiers.length === 1 ? 'Tier' : 'Tiers'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Root Tiers list */}

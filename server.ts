@@ -5,6 +5,9 @@ import dotenv from "dotenv";
 import webpush from "web-push";
 import crypto from "crypto";
 import { isValidOrigin } from "./api/oauthUtils";
+import teamsHandler from "./api/teams";
+import sageHandler from "./api/sage";
+import webdavHandler from "./api/webdav/proxy";
 
 dotenv.config();
 
@@ -509,10 +512,7 @@ app.get('/api/auth/google/url', (req, res) => {
   res.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` });
 });
 
-// WebDAV Proxy for local development
-import teamsHandler from './api/teams';
-import sageHandler from './api/sage';
-
+// WebDAV and API Proxies for local development
 app.all('/api/teams', async (req, res) => {
   // Mock Vercel Request for Express
   await teamsHandler(req as any, res as any);
@@ -522,8 +522,6 @@ app.all('/api/sage', async (req, res) => {
   // Mock Vercel Request for Express
   await sageHandler(req as any, res as any);
 });
-
-import webdavHandler from './api/webdav/proxy';
 
 app.post('/api/webdav/proxy', async (req, res) => {
   // Mock Vercel Request for Express
@@ -620,7 +618,10 @@ async function startServer() {
     if (process.env.NODE_ENV !== "production") {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+        },
         appType: "spa",
       });
       app.use(vite.middlewares);
@@ -638,8 +639,20 @@ async function startServer() {
 
   // Only listen if not on Vercel
   if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server listening on port ${PORT}`);
+    });
+
+    server.on("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        console.warn(`Port ${PORT} is currently busy, retrying in 1.5s...`);
+        setTimeout(() => {
+          server.close();
+          server.listen(PORT, "0.0.0.0");
+        }, 1500);
+      } else {
+        console.error("Server listen error:", err);
+      }
     });
   }
 }

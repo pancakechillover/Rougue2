@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
-import { X, Edit2, Check, Clock, Calendar, Brain, Wind, Zap, Hash, RotateCcw, Sparkles } from 'lucide-react';
+import { X, Edit2, Check, Clock, Calendar, Brain, Wind, Zap, Hash, RotateCcw, Sparkles, Target, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { StudySession, Dungeon } from '../../types';
+import { StudySession, Dungeon, MajorDungeon } from '../../types';
 import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
+import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
 
 interface EditSessionModalProps {
   session: StudySession | null;
@@ -13,6 +14,7 @@ interface EditSessionModalProps {
   onClose: () => void;
   onSave: (sessionId: string, updates: Partial<StudySession>) => void;
   dungeons: Dungeon[];
+  majorDungeons?: MajorDungeon[];
   allHashtags?: string[];
 }
 
@@ -22,9 +24,11 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   onClose,
   onSave,
   dungeons,
+  majorDungeons = [],
   allHashtags = []
 }) => {
   const [dungeonId, setDungeonId] = useState('free_study');
+  const [showExpeditionPicker, setShowExpeditionPicker] = useState(false);
   const [timestamp, setTimestamp] = useState('');
   const [focusDuration, setFocusDuration] = useState<number>(25);
   const [restDuration, setRestDuration] = useState<number>(5);
@@ -47,10 +51,32 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       setExternalDistractions(session.distractions?.external || 0);
       setUnavoidableDistractions(session.distractions?.unavoidable || 0);
       setNote(session.note || '');
+      setShowExpeditionPicker(false);
     }
   }, [session, isOpen]);
 
+  // Close expedition picker when clicking outside
+  useEffect(() => {
+    if (!showExpeditionPicker) return;
+    const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.expedition-picker-container')) {
+        setShowExpeditionPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleGlobalClick);
+    document.addEventListener('touchstart', handleGlobalClick);
+    return () => {
+      document.removeEventListener('mousedown', handleGlobalClick);
+      document.removeEventListener('touchstart', handleGlobalClick);
+    };
+  }, [showExpeditionPicker]);
+
   if (!isOpen || !session) return null;
+
+  const selectedDungeon = dungeonId !== 'free_study'
+    ? (dungeons.find(d => d.id === dungeonId) || majorDungeons.find(m => m.id === dungeonId))
+    : null;
 
   const totalDuration = (Number(focusDuration) || 0) + (Number(restDuration) || 0);
   const totalDistractions = internalDistractions + externalDistractions + unavoidableDistractions;
@@ -141,20 +167,98 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
           {/* Body content */}
           <div className="p-5 sm:p-6 pt-4 space-y-5 overflow-y-auto min-h-0 custom-scrollbar">
             {/* Dungeon Objective */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Dungeon Objective
-              </label>
-              <select
-                value={dungeonId}
-                onChange={(e) => setDungeonId(e.target.value)}
-                className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl py-2.5 px-3.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-              >
-                <option value="free_study">Free Study</option>
-                {dungeons.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} {d.status === 'completed' ? '(Completed)' : ''}</option>
-                ))}
-              </select>
+            <div className="space-y-1.5 relative expedition-picker-container">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <Target size={12} className="text-indigo-400" />
+                  Dungeon Objective
+                </label>
+                {dungeonId !== 'free_study' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDungeonId('free_study');
+                      setShowExpeditionPicker(false);
+                    }}
+                    className="text-[10px] text-slate-500 hover:text-amber-400 transition-colors font-medium flex items-center gap-1 pr-1"
+                    title="Switch back to Free Study"
+                  >
+                    <RotateCcw size={10} />
+                    Reset to Free Study
+                  </button>
+                )}
+              </div>
+
+              {/* Selector Box */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
+                  className={cn(
+                    "w-full bg-slate-800/90 border rounded-xl py-2.5 px-3.5 text-sm text-left flex items-center justify-between transition-all group",
+                    showExpeditionPicker
+                      ? "border-indigo-500 ring-2 ring-indigo-500/30 text-white"
+                      : "border-slate-700/80 text-white hover:border-slate-600 hover:bg-slate-800"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {selectedDungeon ? (
+                      <>
+                        <div className="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                          <Target size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <span className="truncate font-semibold text-white">
+                            {selectedDungeon.name}
+                          </span>
+                          {'status' in selectedDungeon && selectedDungeon.status === 'completed' && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0 uppercase tracking-wider">
+                              Completed
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                          <Sparkles size={14} />
+                        </div>
+                        <span className="truncate font-semibold text-slate-200">
+                          Free Study
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-[11px] font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors">
+                      {showExpeditionPicker ? 'Close' : 'Change'}
+                    </span>
+                    <ChevronDown 
+                      size={15} 
+                      className={cn("text-slate-400 transition-transform duration-200", showExpeditionPicker && "rotate-180")} 
+                    />
+                  </div>
+                </button>
+
+                {/* Dropdown ExpeditionTreePicker */}
+                {showExpeditionPicker && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] shadow-2xl z-50">
+                    <ExpeditionTreePicker
+                      dungeons={dungeons}
+                      majorDungeons={majorDungeons}
+                      selectedId={dungeonId}
+                      includeCompleted={true}
+                      allowFreeStudy={true}
+                      onSelect={(item) => {
+                        setDungeonId(item.id);
+                        setShowExpeditionPicker(false);
+                      }}
+                      onClose={() => setShowExpeditionPicker(false)}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Start Time */}

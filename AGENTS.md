@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.3.18
-- **Last Update Date:** 2026-09-09
-- **Last Update Time:** 02:35:00
+- **Current Version:** v9.3.30
+- **Last Update Date:** 2026-09-10
+- **Last Update Time:** 02:44:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,14 +69,16 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
-- **v9.3.18 (2026-09-09):** Harmonize Dungeon Colors with Record Interface Palette (Vibrant Amber & Emerald)
-  - *Unified Record Color Standards:* Replaced washed-out pale amber and dull greens with the clean, vibrant, high-contrast amber (`text-amber-450/40`, `bg-amber-500`) and emerald (`text-emerald-400`, `bg-emerald-500`) palette used throughout the Record and Dashboard stats modules.
-  - *Polished Progress Bars & Typography:* Upgraded progress bar tier segment colors and text styles for both Major Goals and Sub-Dungeons to match the Record interface aesthetic.
+- **v9.3.30 (2026-09-10):** Journal Reflection Top Header & Editor Footer Simplification
+  - *Strict Minimalist Top Header:* Simplified the journal right-page top header to strictly feature the date-defaulted editable Title input on the left and only the Quick Edit (`Edit3`) and Fullscreen Immersive (`Maximize2`) action buttons on the right.
+  - *Removal of Unwanted Metric Footers:* Removed the word count and character count bar (`39 words · 209 characters`) from the bottom-left of the inline editor view, keeping a clean right-aligned Save button.
 
-- **v9.3.17 (2026-09-09):** Fix Completed Status Color Synchronization for Major Goals and Sub-Dungeon Text & Borders
-  - *Unified Emerald Completion Aesthetics:* Fixed a bug where Major Goal time text remained hardcoded to gold when the progress bar turned emerald green upon completion; now synchronously switches both time readings, separators, and border outlines to radiant emerald green (`text-emerald-400 border-emerald-500/30`).
-  - *Completed Status Clarification:* Clarified hierarchy completion evaluation where multi-tier parents require both sub-tier task completion and target time fulfillment to switch from in-progress golden/indigo to complete emerald green.
+- **v9.3.29 (2026-09-10):** Streamlined Reflection Header Controls Across Journal, Start of Day, and Daily Summary
+  - *Unified Header Layout & Dimension Standard:* Standardized all reflection header controls (`ReflectionHeaderControls.tsx`, `ReflectionTemplatesDropdown.tsx`, `EditorTypographyMenu.tsx`) to an ergonomic `h-7` button height, unified rounded borders (`border-slate-700/70`), and consistent icon sizing.
+  - *Journal View Streamlining:* Integrated the journal entry title editor directly into the left side of the right-page header row (with `FileText` icon, inline hover/focus input, and instant clear trigger), completely eliminating the redundant full-width title box row.
+  - *Start of Day & Daily Summary Parity:* Replaced multi-button bespoke layouts in `StartOfDayModal.tsx` and `DailySummaryModal.tsx` with the streamlined `ReflectionHeaderControls` bar for consistent single-line headers.
 
-- **v9.3.16 (2026-09-09):** Compact Distance Between Progress/Time Statistics and Checkbox Action Column
-  - *Eliminated Stranded Action Spacing:* Removed forced wide action container wrapper when outside edit mode and tightened time typography column (`w-20 font-mono`), seamlessly bringing the progress/time statistics into comfortable proximity with the status checkbox and chevron controls.
-  - *Maintained Unified Vertical Column Baseline:* Preserved exact left and right alignment baselines across Major Goals and nested sub-dungeons.
+- **v9.3.28 (2026-09-10):** Edit Session Modal Objective Selection Parity with Agenda Expedition Tree Picker
+  - *Unified Objective Selection Box:* Replaced the native HTML `<select>` dropdown in `EditSessionModal.tsx` with a custom selector button and interactive `ExpeditionTreePicker`, matching the exact visual style, animations, and interaction patterns of Agenda (`TodayView`).
+  - *Completed Dungeon & Free Study Support:* Enhanced `ExpeditionTreePicker` to support selecting `Free Study` as well as browsing and selecting completed dungeons with an `All` / `Active` filter toggle and completed status badges, ensuring historical study sessions can be accurately reassigned.
+  - *Outside Click & Keyboard Accessibility:* Integrated touch/mouse outside-click closing listeners and smooth dropdown positioning with highlighted current selections.

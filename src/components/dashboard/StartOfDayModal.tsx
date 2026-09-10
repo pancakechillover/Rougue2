@@ -47,6 +47,7 @@ import { ConfirmModal } from '../modals/ConfirmModal';
 import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
 import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
+import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 
 interface StartOfDayModalProps {
   state: AppState;
@@ -558,29 +559,6 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
   }, [state.history, state.patchedDays, state.timezone, state.timeSettings]);
 
   const availableMedals = state.deathDefyingMedals || 0;
-
-  const renderTemplateControls = () => (
-    <ReflectionTemplatesDropdown
-      templates={state.reflectionTemplates}
-      onSelectTemplate={setReflection}
-      currentReflection={reflection}
-      onUpdateTemplates={(templates) => {
-        if (onUpdateState) {
-          onUpdateState({ reflectionTemplates: templates });
-        }
-      }}
-      autoLoadTemplateId={state.autoLoadTemplateId}
-      autoLoadTemplateMode={state.autoLoadTemplateMode}
-      onSetAutoLoadTemplate={(templateId, mode) => {
-        if (onUpdateState) {
-          onUpdateState({
-            autoLoadTemplateId: templateId,
-            autoLoadTemplateMode: mode || 'empty'
-          });
-        }
-      }}
-    />
-  );
 
   const handleSave = () => {
     onSave(todayStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood);
@@ -1142,73 +1120,44 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
              <div className="space-y-6 flex flex-col min-h-[500px] h-full">
              {/* Morning Reflection / Intentions */}
              <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-6 border border-slate-700/30 space-y-4 flex flex-col flex-1">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                  <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                    <MessageSquare size={16} className="text-sky-400" /> Daily Reflection
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
+                    <MessageSquare size={15} className="text-sky-400" /> Daily Reflection
                   </h3>
                   
-                  <div className="flex flex-wrap items-center gap-2">
-
-                    
-                    {renderTemplateControls()}
-
-                    <button
-                      onClick={() => setIsImmersiveMode(true)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all bg-sky-500/10 text-sky-400 border border-sky-500/30 hover:bg-sky-500/20"
-                    >
-                      <Maximize2 size={12} />
-                      <span>Immersive</span>
-                    </button>
-
-                    <div className="flex items-center gap-0.5 border-l border-slate-700 pl-2 ml-1">
-                      <button
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = '.txt,.md';
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (re) => setReflection(re.target?.result as string);
-                              reader.readAsText(file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                        title="Import Reflection"
-                      >
-                        <Upload size={14} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const blob = new Blob([reflection], { type: 'text/markdown' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `reflection-${today.dateString}.md`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                        title="Export Reflection"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  </div>
+                  <ReflectionHeaderControls
+                    reflection={reflection}
+                    onSelectTemplate={setReflection}
+                    templates={state.reflectionTemplates}
+                    onUpdateTemplates={(templates) => {
+                      if (onUpdateState) {
+                        onUpdateState({ reflectionTemplates: templates });
+                      }
+                    }}
+                    autoLoadTemplateId={state.autoLoadTemplateId}
+                    autoLoadTemplateMode={state.autoLoadTemplateMode}
+                    onSetAutoLoadTemplate={(templateId, mode) => {
+                      if (onUpdateState) {
+                        onUpdateState({
+                          autoLoadTemplateId: templateId,
+                          autoLoadTemplateMode: mode || 'empty'
+                        });
+                      }
+                    }}
+                    onOpenImmersive={() => setIsImmersiveMode(true)}
+                    showCopy={true}
+                    showImportExport={true}
+                    onImportReflection={setReflection}
+                    exportFileName={`reflection-${today.dateString}.md`}
+                  />
                 </div>
                 
-                <div className="flex flex-col flex-1 h-full min-h-[300px] bg-slate-950 border border-slate-800 rounded-3xl p-4 focus-within:border-indigo-500 transition-all overflow-hidden">
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                    <MarkdownEditor 
-                      value={reflection}
-                      onChange={setReflection}
-                      placeholder="What are your main focuses today? How are you feeling? (Markdown shortcuts supported)"
-                    />
-                  </div>
-                </div>
+                <MarkdownEditor 
+                  value={reflection}
+                  onChange={setReflection}
+                  placeholder="What are your main focuses today? How are you feeling? (Markdown shortcuts supported)"
+                  className="flex-1 h-full min-h-[300px]"
+                />
              </div>
 
              {!isTimeValid && (
@@ -1274,6 +1223,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
         setIsMarkdownEnabled={setIsMarkdownEnabled}
         templates={state.reflectionTemplates}
         onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
+        efficiencyRatingConfig={state.efficiencyRatingConfig}
       />
       {createPortal(
         modalContent, 

@@ -844,6 +844,28 @@ svg:focus {
   margin-top: 0.35rem;
   margin-bottom: 0.35rem;
 }
+.markdown-content ul {
+  list-style-type: disc;
+}
+.markdown-content ul ul {
+  list-style-type: circle;
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+.markdown-content ul ul ul {
+  list-style-type: square;
+}
+.markdown-content ol {
+  list-style-type: decimal;
+}
+.markdown-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+.markdown-content ol ol ol {
+  list-style-type: lower-roman;
+}
 .markdown-content li {
   margin-top: 0.15rem;
   margin-bottom: 0.15rem;

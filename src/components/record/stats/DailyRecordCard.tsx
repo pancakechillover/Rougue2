@@ -24,7 +24,7 @@ export interface DailyRecordCardProps {
   currentLog?: DailyLog;
   state: AppState;
   showReflection?: boolean;
-  onSaveDailyLog: (dateStr: string, rating: number, reflection: string, mood?: string) => void;
+  onSaveDailyLog: (dateStr: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateTemplates?: (templates: ReflectionTemplate[]) => void;
   onOpenJournal?: () => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
@@ -44,6 +44,7 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
   const [editRating, setEditRating] = useState(0);
   const [editReflection, setEditReflection] = useState('');
   const [editMood, setEditMood] = useState<string | undefined>(undefined);
+  const [editTitle, setEditTitle] = useState<string>('');
   const [isFullscreenEdit, setIsFullscreenEdit] = useState(false);
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -135,11 +136,12 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
     setEditRating(currentLog?.rating || 0);
     setEditReflection(initialReflection);
     setEditMood(currentLog?.mood);
+    setEditTitle(currentLog?.title || '');
     setIsEditingLog(true);
   };
 
   const saveLog = () => {
-    onSaveDailyLog(dateStr, editRating, editReflection, editMood);
+    onSaveDailyLog(dateStr, editRating, editReflection, editMood, editTitle);
     setIsEditingLog(false);
   };
 
@@ -316,15 +318,12 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
               </button>
             </div>
 
-            <div className="relative min-h-[140px] max-h-[260px] bg-slate-900/90 border border-slate-700/80 rounded-2xl p-3 focus-within:border-indigo-500 transition-all flex flex-col">
-              <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[100px] text-sm">
-                <MarkdownEditor
-                  value={editReflection}
-                  onChange={setEditReflection}
-                  placeholder="Reflect on your day... (Markdown supported)"
-                />
-              </div>
-            </div>
+            <MarkdownEditor
+              value={editReflection}
+              onChange={setEditReflection}
+              placeholder="Reflect on your day... (Markdown supported)"
+              className="min-h-[140px] max-h-[260px]"
+            />
           </div>
         </div>
       ) : (
@@ -396,12 +395,18 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
       {/* Fullscreen / Immersive Modal */}
       <ImmersiveReflectionModal
         isOpen={isFullscreenEdit}
-        onClose={() => setIsFullscreenEdit(false)}
+        onClose={() => {
+          setIsFullscreenEdit(false);
+          onSaveDailyLog(dateStr, editRating, editReflection, editMood, editTitle);
+        }}
         dateString={format(date, 'MMM d, yyyy')}
         reflection={editReflection}
         setReflection={setEditReflection}
+        title={editTitle}
+        onTitleChange={setEditTitle}
         templates={state.reflectionTemplates}
         onUpdateTemplates={onUpdateTemplates}
+        efficiencyRatingConfig={state.efficiencyRatingConfig}
         autoLoadTemplateId={state.autoLoadTemplateId}
         autoLoadTemplateMode={state.autoLoadTemplateMode}
         onSetAutoLoadTemplate={(templateId, mode) => {

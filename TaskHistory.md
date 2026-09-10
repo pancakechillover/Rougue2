@@ -1,5 +1,56 @@
 # Task History Archive
 
+- **v9.3.30 (2026-09-10):** Journal Reflection Top Header & Editor Footer Simplification
+  - *Strict Minimalist Top Header:* Simplified the journal right-page top header to strictly feature the date-defaulted editable Title input on the left and only the Quick Edit (`Edit3`) and Fullscreen Immersive (`Maximize2`) action buttons on the right.
+  - *Removal of Unwanted Metric Footers:* Removed the word count and character count bar (`39 words · 209 characters`) from the bottom-left of the inline editor view, keeping a clean right-aligned Save button.
+
+- **v9.3.29 (2026-09-10):** Streamlined Reflection Header Controls Across Journal, Start of Day, and Daily Summary
+  - *Unified Header Layout & Dimension Standard:* Standardized all reflection header controls (`ReflectionHeaderControls.tsx`, `ReflectionTemplatesDropdown.tsx`, `EditorTypographyMenu.tsx`) to an ergonomic `h-7` button height, unified rounded borders (`border-slate-700/70`), and consistent icon sizing.
+  - *Journal View Streamlining:* Integrated the journal entry title editor directly into the left side of the right-page header row (with `FileText` icon, inline hover/focus input, and instant clear trigger), completely eliminating the redundant full-width title box row.
+  - *Start of Day & Daily Summary Parity:* Replaced multi-button bespoke layouts in `StartOfDayModal.tsx` and `DailySummaryModal.tsx` with the streamlined `ReflectionHeaderControls` bar for consistent single-line headers.
+
+- **v9.3.28 (2026-09-10):** Edit Session Modal Objective Selection Parity with Agenda Expedition Tree Picker
+  - *Unified Objective Selection Box:* Replaced the native HTML `<select>` dropdown in `EditSessionModal.tsx` with a custom selector button and interactive `ExpeditionTreePicker`, matching the exact visual style, animations, and interaction patterns of Agenda (`TodayView`).
+  - *Completed Dungeon & Free Study Support:* Enhanced `ExpeditionTreePicker` to support selecting `Free Study` as well as browsing and selecting completed dungeons with an `All` / `Active` filter toggle and completed status badges, ensuring historical study sessions can be accurately reassigned.
+  - *Outside Click & Keyboard Accessibility:* Integrated touch/mouse outside-click closing listeners and smooth dropdown positioning with highlighted current selections.
+
+- **v9.3.27 (2026-09-10):** Expedition Tree Picker Decimal Stripping & Session Metric Integer Formatting
+  - *Expedition Tree Picker Decimal Artifact Removal:* Eliminated raw IEEE-754 floating-point numbers (e.g. `3.8666666666666667/10` and `33.16666666666667/24`) in `ExpeditionTreePicker.tsx` by applying strict `Math.round` integer formatting to both completed and total sessions.
+  - *Hierarchy Minutes & Open-Ended Metric Sanitization:* Rounded `completedMinutes` and `totalFocusTime` across `getDungeonHierarchyStats`, `DungeonManager.tsx`, and `DashboardView.tsx` to completely remove fractional minutes in open-ended tier metrics and dashboard session counters.
+
+- **v9.3.26 (2026-09-10):** Dev Server Robustness, EADDRINUSE Auto-Recovery & Top-Level Module Import Optimization
+  - *Dev Server EADDRINUSE Auto-Recovery:* Added error listener on Express HTTP `server` to handle `EADDRINUSE` gracefully with automated retry instead of unhandled fatal exception crashes when dev server reboots or previous sockets are closing.
+  - *Vite Development Middleware Configuration:* Passed explicit `hmr: process.env.DISABLE_HMR === 'true' ? false : undefined` to `createViteServer` to avoid port collisions on WebSocket ports (24678) in headless preview containers.
+  - *Module Imports Refactoring:* Cleaned up dynamic/in-line proxy handlers in `server.ts` to strictly adhere to top-level import standards and ensure clean startup.
+
+- **v9.3.25 (2026-09-09):** Reflection Markdown Editor History Stack & Undo / Redo (Ctrl+Z & Ctrl+Y)
+  - *Comprehensive Undo / Redo Engine:* Implemented a full-document history stack (`undoStackRef` & `redoStackRef`) inside `MarkdownEditor.tsx` supporting up to 80 operations, with discrete action snapshotting (line splits, merges, indentation, formatting wrappers, list toggles, heading outline levels, checkbox toggles) and debounced typing burst snapshots (650ms).
+  - *Full Keyboard Shortcuts Support:* Handled standard `Ctrl+Z` / `Cmd+Z` for Undo, and both `Ctrl+Y` / `Cmd+Y` and `Ctrl+Shift+Z` / `Cmd+Shift+Z` for Redo across all line textareas as well as editor-level wrapper keydown events.
+  - *Toolbar Controls & Interactive Cheatsheet:* Added responsive Undo and Redo icon buttons (`Undo2`, `Redo2`) to the editor toolbar with live enabled/disabled feedback, cursor focus restoration, and documented the new history shortcuts in the shortcuts cheatsheet guide modal.
+
+- **v9.3.24 (2026-09-09):** Immersive Journal Sidebar Left Relocation, Decimal Stripping & Efficiency Preference Sync
+  - *Sidebar Left Relocation:* Replaced right-side drawer placement with an ergonomic left-hand entries navigation drawer (`border-r border-slate-800`), pairing with a left-aligned header drawer toggle button (`PanelLeftClose` / `PanelLeftOpen`) directly adjacent to the reflection title.
+  - *Integer-Only Metrics (Decimal Stripping):* Eliminated all raw floating-point numbers and decimal artifacts across the sidebar. Both stars and percentage modes now strictly round to clean integers via `Math.round`. Fixed a JSX truthiness bug that previously rendered stray `0` text when rating was zero.
+  - *Preference-Aligned Efficiency Display:* Synchronized sidebar entry rating badges with the user's global efficiency preference (`state.efficiencyRatingConfig.ratingDisplayPreference`), seamlessly toggling between integer percentage badges (`%`) and star ratings (`★`).
+
+- **v9.3.23 (2026-09-09):** Markdown Secondary List Indentation (Tab) & Typography Synchronization
+  - *Secondary & Multi-Level Lists (Tab Indentation):* Upgraded Tab and Shift+Tab key handling to seamlessly indent and outdent bullet lists, ordered lists, task checklists, and quotes. Rendered nested bullet lists with standard hierarchical styles (Level 1 `list-[circle]` ◦, Level 2+ `list-[square]` ▪) and ordered lists with alphabetic/roman styling, backed by enhanced Backspace outdenting.
+  - *Unified Typography (Writing & Rendering Parity):* Replaced textarea `font-mono` with the exact same `font-sans` family (`Inter`), font size, line height, font weight, and letter spacing used in live preview rendering, ensuring a true WYSIWYG writing experience without visual jumps.
+
+- **v9.3.22 (2026-09-09):** Immersive Reflection Sidebar & Journal Title System
+  - *Immersive Journal Sidebar:* Added an expandable right-hand entries drawer in full-screen immersive reflection mode to quickly navigate and browse other days' journals, with search by title/date/content, bookmarks filter, and word count preview.
+  - *Journal Entry Title Setting:* Added title customization for journal entries defaulting to the date, integrated with quick reset, persistent storage in `DailyLog`, single/batch markdown exports, and unified support across Journal, Daily Record, and Daily Summary modals.
+
+- **v9.3.21 (2026-09-09):** Markdown Writing Experience Upgrade: Outline Shortcuts, Continuous Numbering & Bullet Notes
+  - *Outline & Heading Shortcuts:* Implemented `Alt+1`~`Alt+6` (and `Ctrl+1`~`6`) outline shortcuts to quickly set or toggle Headings 1–6, `Alt+0` for standard text, and `Tab` / `Shift+Tab` to demote/promote headings.
+  - *Smart Continuous Lists & Auto-Numbering:* Implemented automatic list continuation for bullet points (`- `), ordered numbering (`1. `, `2. ` auto-incrementing), checklists (`- [ ] `), and blockquotes (`> `). Pressing Enter on an empty list item cleanly exits the list.
+  - *Indentation & Keyboard Shortcuts:* Added `Tab` / `Shift+Tab` 2-space indentation and outdenting for lists, list shortcuts (`Alt+U` bullets, `Alt+O` numbered, `Alt+C` checklist, `Alt+Q` quotes), formatting shortcuts (`Ctrl+B`, `Ctrl+I`, `Alt+S`, `Alt+E`, `Ctrl+K`), an empty item placeholder in preview mode, and an in-editor shortcuts cheatsheet modal.
+
+- **v9.3.20 (2026-09-09):** Reflection Auto-Save, Ctrl+S Shortcut, Journal Word Count Cleanup, and Double Container Removal
+  - *Reflection Auto-Save & Ctrl+S:* Implemented debounced auto-saving while typing (0.8s) and global `Ctrl+S` / `Cmd+S` keyboard shortcut handler to immediately save reflections with success feedback and sound.
+  - *Removed Duplicated Word Count:* Cleaned up journal right page footer to omit duplicate word count readings when quick editing is active.
+  - *Eliminated Nested Card Containers:* Removed redundant outer card wrapper containers across Journal, Daily Summary, Start of Day, Daily Record Card, and Immersive modals so that `MarkdownEditor` acts as a clean, single-layer card container.
+
 - **v9.3.18 (2026-09-09):** Harmonize Dungeon Colors with Record Interface Palette (Vibrant Amber & Emerald)
   - *Unified Record Color Standards:* Replaced washed-out pale amber and dull greens with the clean, vibrant, high-contrast amber (`text-amber-400`, `bg-amber-500`) and emerald (`text-emerald-400`, `bg-emerald-500`) palette used throughout the Record and Dashboard stats modules.
   - *Polished Progress Bars & Typography:* Upgraded progress bar tier segment colors and text styles for both Major Goals and Sub-Dungeons to match the Record interface aesthetic.

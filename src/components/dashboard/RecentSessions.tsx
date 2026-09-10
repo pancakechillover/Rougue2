@@ -802,6 +802,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
         onClose={() => setEditingSession(null)}
         onSave={(id, updates) => updateSession(id, updates)}
         dungeons={dungeons}
+        majorDungeons={majorDungeons}
         allHashtags={allHashtags}
       />
       {/* Reward Details Modal */}

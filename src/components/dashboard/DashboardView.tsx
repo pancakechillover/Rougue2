@@ -440,7 +440,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <h4 className={cn("text-xs font-bold truncate pr-2", "text-white")}>{d.name}</h4>
                           </div>
                           <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className={"text-slate-500"}>{d.completedSessions} / {d.totalSessions} Sessions</span>
+                            <span className={"text-slate-500"}>{Math.round(d.completedSessions)} / {d.totalSessions} Sessions</span>
                             <span className={isPast ? "text-rose-500" : ("text-indigo-400")}>
                                {isPast ? "OVERDUE" : "EXPEDITION TIER"}
                             </span>

@@ -50,7 +50,7 @@ interface StatsDailySectionProps {
   state: AppState;
   currentLog?: any;
   showReflection: boolean;
-  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
+  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
   onOpenJournal?: (dateStr?: string) => void;
 }

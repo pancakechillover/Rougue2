@@ -38,7 +38,7 @@ export interface ShareConfig {
 
 interface StatsProps {
   state: AppState;
-  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
+  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
   updateSession?: (id: string, updates: Partial<StudySession>) => void;
   deleteSession?: (id: string) => void;

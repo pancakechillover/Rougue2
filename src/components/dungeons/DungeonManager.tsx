@@ -539,7 +539,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       if (stats.isOpenEnded) {
                         return (
                           <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center justify-start w-20 font-mono whitespace-nowrap overflow-hidden text-ellipsis mr-auto">
-                            {stats.completedMinutes}m focused
+                            {Math.round(stats.completedMinutes)}m focused
                           </span>
                         );
                       }
@@ -1356,7 +1356,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       if (stats.isOpenEnded) {
                         return (
                           <span className="text-[10px] font-bold text-slate-400 tabular-nums flex items-center justify-start w-20 font-mono whitespace-nowrap overflow-hidden text-ellipsis mr-auto">
-                            {stats.completedMinutes}m focused
+                            {Math.round(stats.completedMinutes)}m focused
                           </span>
                         );
                       }

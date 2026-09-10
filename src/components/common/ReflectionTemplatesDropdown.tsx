@@ -95,20 +95,20 @@ export const ReflectionTemplatesDropdown: React.FC<ReflectionTemplatesDropdownPr
   };
 
   return (
-    <div className={cn("relative flex items-center h-[26px]", className)}>
+    <div className={cn("relative flex items-center h-7", className)}>
       <button
         onClick={() => setShowTemplates(!showTemplates)}
         className={cn(
-          "flex items-center justify-center gap-1.5 h-full px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm",
+          "flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium transition-all shadow-sm",
           showTemplates
-            ? "bg-indigo-500/25 text-indigo-400 border border-indigo-500/40"
-            : "bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white",
+            ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+            : "bg-slate-800/80 text-slate-300 border border-slate-700/70 hover:bg-slate-700/80 hover:text-white",
           buttonClassName
         )}
         title="Reflection Templates"
       >
-        <LayoutTemplate size={12} />
-        <span>Templates</span>
+        <LayoutTemplate size={13} className="text-indigo-400" />
+        <span className="text-xs">Templates</span>
       </button>
 
       {/* Templates Dropdown Menu */}

@@ -224,6 +224,7 @@ export interface TodayTodo {
 }
 
 export interface DailyLog {
+  title?: string;
   rating: number;
   reflection: string;
   mood?: string;

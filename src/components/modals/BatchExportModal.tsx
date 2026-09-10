@@ -29,7 +29,11 @@ export function BatchExportModal({ isOpen, onClose, state }: BatchExportModalPro
     const log = state.dailyLogs?.[dateStr];
     if (!log) return null;
     
-    let md = `# Journal Entry: ${dateStr}\n\n`;
+    const displayTitle = log.title?.trim() ? log.title.trim() : dateStr;
+    let md = `# ${displayTitle}\n\n`;
+    if (log.title?.trim()) {
+      md += `**Date:** ${dateStr}\n`;
+    }
     md += `**Rating:** ${log.rating} Stars\n`;
     if (log.mood) {
       md += `**Mood:** ${log.mood}\n`;
@@ -69,7 +73,10 @@ export function BatchExportModal({ isOpen, onClose, state }: BatchExportModalPro
         allDates.forEach(date => {
           const md = generateMarkdownForDate(date);
           if (md) {
-            folder?.file(`journal_${date}.md`, md);
+            const entryLog = state.dailyLogs?.[date];
+            const customTitle = entryLog?.title?.trim();
+            const safeTitle = customTitle ? `_${customTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}` : '';
+            folder?.file(`journal_${date}${safeTitle}.md`, md);
           }
         });
 
