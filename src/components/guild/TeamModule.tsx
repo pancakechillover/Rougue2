@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AppState, Team, TeamMessage, TeamEvent, TeamMember, TeamSettingProposal } from '../../types';
 import { cn, getTitleForLevel } from '../../lib/utils';
+import { getTeamCycleState, calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey, getCycleBounds } from '../../lib/teamUtils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ProfileModal } from '../settings/ProfileModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -62,42 +63,7 @@ export const renderGuildIcon = (iconId: string | undefined, size: number = 24, c
   return <Landmark size={size} className={className || "text-indigo-400"} />;
 };
 
-export function getTeamCycleState(team: Team) {
-  let cycleProgress = 0;
-  let memberProgress: Record<string, number> = {};
-
-  if (team.config.targetType === 'total_time' || !team.config.targetType) {
-    cycleProgress = team.members.reduce((acc, m) => acc + (m.totalFocusTime || 0), 0);
-    team.members.forEach(m => memberProgress[m.userId] = (m.totalFocusTime || 0));
-  } else {
-    const now = new Date();
-    const resetHour = parseInt(team.config.resetTime?.split(':')[0] || '0');
-    let start = new Date(now);
-    start.setHours(resetHour, 0, 0, 0);
-    if (now.getHours() < resetHour) start.setDate(start.getDate() - 1);
-    
-    if (team.config.targetType === 'weekly_time') {
-      const day = start.getDay();
-      start.setDate(start.getDate() - day + (day === 0 ? -6 : 1));
-    } else if (team.config.targetType === 'monthly_time') {
-      start.setDate(1);
-    } else if (team.config.targetType === 'yearly_time') {
-      start.setMonth(0, 1);
-    }
-    const currentCycleStart = start.getTime();
-
-    cycleProgress = team.members.reduce((acc, m) => {
-      let mProg = 0;
-      if (m.cycleTargetType === team.config.targetType && m.cycleStart === currentCycleStart && m.cycleFocusTime) {
-        mProg = m.cycleFocusTime;
-      }
-      memberProgress[m.userId] = mProg;
-      return acc + mProg;
-    }, 0);
-  }
-
-  return { cycleProgress, memberProgress };
-}
+export { getTeamCycleState };
 
 export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
   const [view, setView] = useState<'lobby' | 'team'>(state.teamId ? 'team' : 'lobby');
@@ -197,6 +163,12 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
   const fetchTeam = async () => {
     if (!state.teamId) return;
     try {
+      const targetType = team?.config?.targetType || state.lastTeamData?.team?.config?.targetType || 'total_time';
+      const resetTime = team?.config?.resetTime || state.lastTeamData?.team?.config?.resetTime || '00:00';
+      const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
+      const userCycleFocus = calculateUserCycleFocus(state.history, targetType, resetTime, state.includeRestTimeInTasks);
+      const userCycleKey = getCycleKey(targetType, resetTime);
+
       const res = await fetch(`/api/teams?id=${state.teamId}`, {
         headers: {
           'x-secret-code': state.secretCode || '',
@@ -205,7 +177,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
           'x-user-bio': encodeURIComponent(state.userBio || ''),
           'x-user-title': encodeURIComponent(state.userTitle || getTitleForLevel(state.level || 1)),
           'x-user-level': String(state.level || 1),
-          'x-user-unique-id': state.userUniqueId || ''
+          'x-user-unique-id': state.userUniqueId || '',
+          'x-user-total-focus': String(userTotalFocus),
+          'x-user-cycle-focus': String(userCycleFocus),
+          'x-user-cycle-key': userCycleKey,
+          'x-user-target-type': targetType
         }
       });
       if (!res.ok) return;
@@ -250,6 +226,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
 
   const joinTeam = async (id: string) => {
     const identityCode = getOrGenerateIdentity();
+    const targetType = 'total_time';
+    const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
+    const userCycleFocus = calculateUserCycleFocus(state.history, targetType, '00:00', state.includeRestTimeInTasks);
+    const userCycleKey = getCycleKey(targetType, '00:00');
+
     setLoading(true);
     try {
       const res = await fetch('/api/teams?action=join', {
@@ -263,7 +244,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
           userAvatar: state.userAvatar || 'User',
           userBio: state.userBio,
           userTitle: state.userTitle,
-          userLevel: state.level || 1
+          userLevel: state.level || 1,
+          totalFocusTime: userTotalFocus,
+          cycleFocusTime: userCycleFocus,
+          cycleKey: userCycleKey,
+          targetType: targetType
         })
       });
       const data = await res.json();
@@ -517,7 +502,14 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     );
     
     // Calc total progress
-    const { cycleProgress: totalProgress } = getTeamCycleState(team);
+    const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
+    const userCycleFocus = calculateUserCycleFocus(state.history, team.config.targetType, team.config.resetTime, state.includeRestTimeInTasks);
+    const { cycleProgress: totalProgress } = getTeamCycleState(team, {
+      cycleFocus: userCycleFocus,
+      totalFocus: userTotalFocus,
+      userId: team.myUserId,
+      uniqueId: state.userUniqueId
+    });
     const target = team.config.targetValue;
     const isCompleted = target > 0 && totalProgress >= target;
     const isCaptain = team.members.find(x => x.userId === team.myUserId)?.isCaptain;
@@ -557,7 +549,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
               onClick={() => setShowDetailedGoal(true)}
               className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center cursor-pointer group hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all overflow-hidden relative"
             >
-              <div className="absolute inset-0 bg-indigo-500/5 transition-opacity transition-opacity" />
+              <div className="absolute inset-0 bg-indigo-500/5 transition-opacity" />
               {isCompleted && <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/20 blur-2xl rounded-full pointer-events-none" />}
               
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5 relative z-10">
@@ -570,30 +562,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                   <Clock size={10} className="text-indigo-400" />
                   <span className="text-[9px] font-bold text-slate-400 font-mono tracking-widest whitespace-nowrap">
                     CYCLE: {(() => {
-                      const now = new Date();
-                      const resetHour = parseInt(team.config.resetTime?.split(':')[0] || '0');
-                      let start = new Date(now);
-                      start.setHours(resetHour, 0, 0, 0);
-                      if (now.getHours() < resetHour) start.setDate(start.getDate() - 1);
-                      let end = new Date(start);
-                      
-                      if (team.config.targetType === 'weekly_time') {
-                        const day = start.getDay();
-                        start.setDate(start.getDate() - day + (day === 0 ? -6 : 1));
-                        end = new Date(start);
-                        end.setDate(end.getDate() + 7);
-                      } else if (team.config.targetType === 'monthly_time') {
-                        start.setDate(1);
-                        end = new Date(start);
-                        end.setMonth(end.getMonth() + 1);
-                      } else if (team.config.targetType === 'yearly_time') {
-                        start.setMonth(0, 1);
-                        end = new Date(start);
-                        end.setFullYear(end.getFullYear() + 1);
-                      } else {
-                        end.setDate(end.getDate() + 1);
-                      }
-                      
+                      const { start, end } = getCycleBounds(team.config.targetType, team.config.resetTime);
                       const pad = (n: number) => n.toString().padStart(2, '0');
                       return `${pad(start.getMonth()+1)}/${pad(start.getDate())} ${pad(start.getHours())}:00 — ${pad(end.getMonth()+1)}/${pad(end.getDate())} ${pad(end.getHours())}:00`;
                     })()}
@@ -976,6 +945,12 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
            onClose={() => setShowCreate(false)}
            onCreate={async (cfg: any) => {
              const identityCode = getOrGenerateIdentity();
+             const targetType = cfg.config?.targetType || 'total_time';
+             const resetTime = cfg.config?.resetTime || '00:00';
+             const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
+             const userCycleFocus = calculateUserCycleFocus(state.history, targetType, resetTime, state.includeRestTimeInTasks);
+             const userCycleKey = getCycleKey(targetType, resetTime);
+
              const res = await fetch('/api/teams?action=create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -990,7 +965,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                    userAvatar: state.userAvatar,
                    userBio: state.userBio,
                    userTitle: state.userTitle,
-                   userLevel: state.level || 1
+                   userLevel: state.level || 1,
+                   totalFocusTime: userTotalFocus,
+                   cycleFocusTime: userCycleFocus,
+                   cycleKey: userCycleKey
                 })
              });
              const data = await res.json();
@@ -1080,7 +1058,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
       )}
       
       {showDetailedGoal && team && (
-         <DetailedGoalModal team={team} onClose={() => setShowDetailedGoal(false)} />
+         <DetailedGoalModal team={team} state={state} onClose={() => setShowDetailedGoal(false)} />
       )}
 
       {confirmDialog.isOpen && createPortal(
@@ -1419,9 +1397,16 @@ const TeamMemberProfileModal = ({ member, onClose, isCurrentUserCaptain, isTarge
   );
 };
 
-const GoalDetailsModal = ({ team, onClose }: any) => {
+const GoalDetailsModal = ({ team, state, onClose }: any) => {
   const target = team.config.targetValue;
-  const { cycleProgress: totalProgress, memberProgress } = getTeamCycleState(team);
+  const userTotalFocus = state ? calculateUserTotalFocus(state.history, state.includeRestTimeInTasks) : undefined;
+  const userCycleFocus = state ? calculateUserCycleFocus(state.history, team.config.targetType, team.config.resetTime, state.includeRestTimeInTasks) : undefined;
+  const { cycleProgress: totalProgress, memberProgress } = getTeamCycleState(team, state ? {
+    cycleFocus: userCycleFocus,
+    totalFocus: userTotalFocus,
+    userId: team.myUserId,
+    uniqueId: state.userUniqueId
+  } : undefined);
   const isCompleted = target > 0 && totalProgress >= target;
   const sortedMembers = [...team.members].sort((a,b) => (memberProgress[b.userId] || 0) - (memberProgress[a.userId] || 0));
 
@@ -1822,8 +1807,15 @@ const PlazaModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 
-const DetailedGoalModal = ({ team, onClose }: { team: Team, onClose: () => void }) => {
-  const { cycleProgress: totalProgress, memberProgress } = getTeamCycleState(team);
+const DetailedGoalModal = ({ team, state, onClose }: { team: Team, state?: AppState, onClose: () => void }) => {
+  const userTotalFocus = state ? calculateUserTotalFocus(state.history, state.includeRestTimeInTasks) : undefined;
+  const userCycleFocus = state ? calculateUserCycleFocus(state.history, team.config.targetType, team.config.resetTime, state.includeRestTimeInTasks) : undefined;
+  const { cycleProgress: totalProgress, memberProgress } = getTeamCycleState(team, state ? {
+    cycleFocus: userCycleFocus,
+    totalFocus: userTotalFocus,
+    userId: team.myUserId,
+    uniqueId: state.userUniqueId
+  } : undefined);
   const sortedMembers = [...team.members].sort((a,b) => (memberProgress[b.userId] || 0) - (memberProgress[a.userId] || 0));
   const target = team.config.targetValue;
   const isCompleted = target > 0 && totalProgress >= target;
@@ -1855,30 +1847,7 @@ const DetailedGoalModal = ({ team, onClose }: { team: Team, onClose: () => void 
                <Clock size={12} className="text-indigo-400" />
                <span className="text-[10px] sm:text-xs font-bold text-slate-400 font-mono tracking-widest whitespace-nowrap">
                  CYCLE: {(() => {
-                   const now = new Date();
-                   const resetHour = parseInt(team.config.resetTime?.split(':')[0] || '0');
-                   let start = new Date(now);
-                   start.setHours(resetHour, 0, 0, 0);
-                   if (now.getHours() < resetHour) start.setDate(start.getDate() - 1);
-                   let end = new Date(start);
-                   
-                   if (team.config.targetType === 'weekly_time') {
-                     const day = start.getDay();
-                     start.setDate(start.getDate() - day + (day === 0 ? -6 : 1));
-                     end = new Date(start);
-                     end.setDate(end.getDate() + 7);
-                   } else if (team.config.targetType === 'monthly_time') {
-                     start.setDate(1);
-                     end = new Date(start);
-                     end.setMonth(end.getMonth() + 1);
-                   } else if (team.config.targetType === 'yearly_time') {
-                     start.setMonth(0, 1);
-                     end = new Date(start);
-                     end.setFullYear(end.getFullYear() + 1);
-                   } else {
-                     end.setDate(end.getDate() + 1);
-                   }
-                   
+                   const { start, end } = getCycleBounds(team.config.targetType, team.config.resetTime);
                    const pad = (n: number) => n.toString().padStart(2, '0');
                    return `${pad(start.getMonth()+1)}/${pad(start.getDate())} ${pad(start.getHours())}:00 — ${pad(end.getMonth()+1)}/${pad(end.getDate())} ${pad(end.getHours())}:00`;
                  })()}

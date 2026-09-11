@@ -1,5 +1,10 @@
 # Task History Archive
 
+- **v9.3.38 (2026-09-11):** Guild / Fellowship Team Goal Real-Time Focus Time Aggregation & Cycle Synchronization
+  - *Centralized Cycle State Engine:* Created `/src/lib/teamUtils.ts` with standardized cycle date boundaries (`getCycleBounds`), cycle unique keys (`getCycleKey`), and user total / cycle focus accumulators (`calculateUserTotalFocus`, `calculateUserCycleFocus`, `getTeamCycleState`) with fallback calculation matching study session history and rest time preferences.
+  - *Full-Stack Member Progress Synchronization:* Synchronized user total and cycle focus time from study session completion broadcasts (`useGameState.ts`) and polling headers (`x-user-total-focus`, `x-user-cycle-focus`, `x-user-cycle-key`, `x-user-target-type` in `TeamModule.tsx`), persisting updated member stats seamlessly into Redis backend storage.
+  - *Guild Goal UI & Cycle Alignment:* Integrated real-time local statistics into `TeamModule.tsx` dashboard cards, `GoalDetailsModal.tsx`, and `DetailedGoalModal.tsx`, guaranteeing that all daily, weekly, monthly, yearly, and total goal meters reflect accurate focus minutes.
+
 - **v9.3.37 (2026-09-10):** Markdown Live Editor Multi-Line Paste, Delete Merging & Escape Preview
   - *Multi-Line Content Paste Expansion:* Added clipboard handler to automatically decompose multi-line pasted text into individual rows and position cursor at the tail of pasted block.
   - *Line-End Forward Delete Merging:* Enabled `Delete` key at the end of a line to smoothly merge subsequent rows into the active line.

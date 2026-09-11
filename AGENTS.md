@@ -40,9 +40,9 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.3.37
-- **Last Update Date:** 2026-09-10
-- **Last Update Time:** 23:33:00
+- **Current Version:** v9.3.38
+- **Last Update Date:** 2026-09-11
+- **Last Update Time:** 00:05:00
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -69,6 +69,11 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 ## Task History
 > Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
 
+- **v9.3.38 (2026-09-11):** Guild / Fellowship Team Goal Real-Time Focus Time Aggregation & Cycle Synchronization
+  - *Centralized Cycle State Engine:* Created `/src/lib/teamUtils.ts` with standardized cycle date boundaries (`getCycleBounds`), cycle unique keys (`getCycleKey`), and user total / cycle focus accumulators (`calculateUserTotalFocus`, `calculateUserCycleFocus`, `getTeamCycleState`) with fallback calculation matching study session history and rest time preferences.
+  - *Full-Stack Member Progress Synchronization:* Synchronized user total and cycle focus time from study session completion broadcasts (`useGameState.ts`) and polling headers (`x-user-total-focus`, `x-user-cycle-focus`, `x-user-cycle-key`, `x-user-target-type` in `TeamModule.tsx`), persisting updated member stats seamlessly into Redis backend storage.
+  - *Guild Goal UI & Cycle Alignment:* Integrated real-time local statistics into `TeamModule.tsx` dashboard cards, `GoalDetailsModal.tsx`, and `DetailedGoalModal.tsx`, guaranteeing that all daily, weekly, monthly, yearly, and total goal meters reflect accurate focus minutes.
+
 - **v9.3.37 (2026-09-10):** Markdown Live Editor Multi-Line Paste, Delete Merging & Escape Preview
   - *Multi-Line Content Paste Expansion:* Added clipboard handler to automatically decompose multi-line pasted text into individual rows and position cursor at the tail of pasted block.
   - *Line-End Forward Delete Merging:* Enabled `Delete` key at the end of a line to smoothly merge subsequent rows into the active line.
@@ -78,7 +83,3 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
   - *Full Second-Level Sub-List Support:* Enhanced `Tab` and `Shift + Tab` key handlers to automatically indent and outdent list items (`- `, `1. `, `- [ ] `) by 2 spaces at the beginning of the line regardless of cursor position within the line.
   - *Nested Multi-Level Markdown Live Rendering:* Non-active lines with leading indentations render as proper second-level hierarchical lists (nested hollow circle bullets, sub-alphabet numbers, and indented task checkboxes).
   - *Smart Multi-Level List Continuation & Exit:* Pressing `Enter` on a sub-list item automatically maintains indentation; pressing `Enter` on an empty sub-list item automatically outdents one level before exiting.
-
-- **v9.3.35 (2026-09-10):** Markdown Live Editor Cursor Stabilization & Flow Optimization
-  - *Elimination of Cursor Reset Glitch:* Refactored cursor positioning logic from reactive render loops to decoupled line-transition refs (`pendingCursorPosRef`), preventing unwanted reset of cursor position to the start of the line during continuous text input.
-  - *Smooth Native Input Flow:* Maintained uninterrupted native browser cursor advancement, full IME input compatibility, and seamless line jumping on Enter, Backspace, and Arrow keys.

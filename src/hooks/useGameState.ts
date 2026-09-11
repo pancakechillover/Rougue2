@@ -4,6 +4,7 @@ import { TALENTS, INITIAL_REWARD_POOL, INITIAL_GACHA, DEFAULT_QUESTS, DEFAULT_SA
 import { format, isSameDay, parseISO, differenceInDays, subDays } from 'date-fns';
 
 import { getXPForLevel, getDefaultRewardForLevel, getDeviceType, getDeviceCode, getSettlementDay, getSessionSettlementDate, getSessionEffectiveMinutes } from '../lib/utils';
+import { calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey } from '../lib/teamUtils';
 import { generateRewardChoicesForSession } from '../lib/rewardLogic';
 import { useTimerStore } from './useTimerStore';
 
@@ -1475,6 +1476,13 @@ export function useGameState() {
         identityCode = state.userUniqueId || '';
       }
 
+      const updatedHistory = [session, ...(state.history || [])];
+      const targetType = state.lastTeamData?.team?.config?.targetType || 'total_time';
+      const resetTime = state.lastTeamData?.team?.config?.resetTime || '00:00';
+      const totalFocus = calculateUserTotalFocus(updatedHistory, state.includeRestTimeInTasks);
+      const cycleFocus = calculateUserCycleFocus(updatedHistory, targetType, resetTime, state.includeRestTimeInTasks);
+      const cycleKey = getCycleKey(targetType, resetTime);
+
       fetch('/api/teams?action=event', {
         method: 'POST',
         headers: {
@@ -1483,12 +1491,20 @@ export function useGameState() {
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',
           'x-user-level': String(state.level || 1),
-          'x-user-unique-id': state.userUniqueId || ''
+          'x-user-unique-id': state.userUniqueId || '',
+          'x-user-total-focus': String(totalFocus),
+          'x-user-cycle-focus': String(cycleFocus),
+          'x-user-cycle-key': cycleKey,
+          'x-user-target-type': targetType
         },
         body: JSON.stringify({
           teamId: state.teamId,
           type: 'focus',
           duration: finalDuration,
+          totalFocusTime: totalFocus,
+          cycleFocusTime: cycleFocus,
+          cycleKey,
+          targetType,
           secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId,

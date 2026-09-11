@@ -11,6 +11,46 @@ function safeJsonParse<T>(value: any, fallback: T): T {
   }
 }
 
+function getCycleKeyServer(targetType = 'total_time', resetTimeStr = '00:00', date: Date = new Date()): string {
+  if (targetType === 'total_time' || !targetType) return 'total';
+
+  const resetHour = parseInt((resetTimeStr || '00:00').split(':')[0] || '0', 10);
+  const d = new Date(date);
+  if (d.getHours() < resetHour) {
+    d.setDate(d.getDate() - 1);
+  }
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+
+  if (targetType === 'daily_time') {
+    return `${y}-${m}-${day}`;
+  }
+
+  if (targetType === 'weekly_time') {
+    const dayOfWeek = d.getDay();
+    const diffToMonday = d.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(d);
+    monday.setDate(diffToMonday);
+    const my = monday.getFullYear();
+    const mm = pad(monday.getMonth() + 1);
+    const md = pad(monday.getDate());
+    return `W-${my}-${mm}-${md}`;
+  }
+
+  if (targetType === 'monthly_time') {
+    return `M-${y}-${m}`;
+  }
+
+  if (targetType === 'yearly_time') {
+    return `Y-${y}`;
+  }
+
+  return 'total';
+}
+
 let redisClient: any = null;
 const getRedisClient = async () => {
   if (redisClient && redisClient.isOpen) return redisClient;
@@ -210,6 +250,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        }
 
        const membersData = await client.hGetAll(`scholar_team:${teamId}:members`);
+       const userTotalFocusHeader = req.headers['x-user-total-focus'];
+       const userCycleFocusHeader = req.headers['x-user-cycle-focus'];
+       const userCycleKeyHeader = req.headers['x-user-cycle-key'] as string;
+       const userTargetTypeHeader = req.headers['x-user-target-type'] as string;
+
        if (userId && membersData[userId]) {
           try {
              const m = safeJsonParse<any>(membersData[userId], null);
@@ -221,6 +266,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (userTitle && m.title !== userTitle) { m.title = userTitle; updated = true; }
                 if (isValidLevel && m.level !== userLevelParsed) { m.level = userLevelParsed; updated = true; }
                 if (userUniqueId && m.uniqueId !== userUniqueId) { m.uniqueId = userUniqueId; updated = true; }
+
+                if (userTotalFocusHeader !== undefined) {
+                   const totalParsed = parseInt(userTotalFocusHeader as string, 10);
+                   if (!isNaN(totalParsed) && totalParsed >= 0) {
+                      if (totalParsed > (m.totalFocusTime || 0)) {
+                         m.totalFocusTime = totalParsed;
+                         updated = true;
+                      }
+                   }
+                }
+
+                if (userCycleFocusHeader !== undefined) {
+                   const cycleParsed = parseInt(userCycleFocusHeader as string, 10);
+                   if (!isNaN(cycleParsed) && cycleParsed >= 0) {
+                      if (userCycleKeyHeader) {
+                         if (m.cycleKey === userCycleKeyHeader) {
+                            if (cycleParsed > (m.cycleFocusTime || 0)) {
+                               m.cycleFocusTime = cycleParsed;
+                               updated = true;
+                            }
+                         } else {
+                            m.cycleFocusTime = cycleParsed;
+                            m.cycleKey = userCycleKeyHeader;
+                            m.cycleTargetType = userTargetTypeHeader || teamData.config_targetType;
+                            updated = true;
+                         }
+                      }
+                   }
+                }
+
                 m.lastActive = Date.now();
                 updated = true;
                 
@@ -256,6 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           joinRule: teamData.config_joinRule || 'direct',
           targetType: teamData.config_targetType,
           targetValue: parseInt(teamData.config_targetValue || '0'),
+          resetTime: teamData.config_resetTime || '00:00',
           rewardType: teamData.config_rewardType,
           rewardContent: teamData.config_rewardContent
        };
@@ -294,7 +370,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(403).json({ error: 'Capacity Full: Guild system is capped at 50 guilds in the free tier quota. Try again later when inactive guilds clear up.' });
        }
 
-       const { name, description, config, avatar } = req.body;
+       const { name, description, config, avatar, totalFocusTime, cycleFocusTime, cycleKey } = req.body;
        if (!name) return res.status(400).json({ error: 'Name required' });
        
        const teamId = crypto.randomUUID();
@@ -311,6 +387,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           config_joinRule: config?.joinRule || 'direct',
           config_targetType: config?.targetType || 'total_time',
           config_targetValue: (config?.targetValue || 0).toString(),
+          config_resetTime: config?.resetTime || '00:00',
           config_rewardType: config?.rewardType || 'text',
           config_rewardContent: config?.rewardContent || ''
        });
@@ -324,7 +401,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           level: isValidLevel ? userLevelParsed : 1,
           uniqueId: userUniqueId,
           joinedAt: now,
-          totalFocusTime: 0,
+          totalFocusTime: typeof totalFocusTime === 'number' && !isNaN(totalFocusTime) ? totalFocusTime : 0,
+          cycleFocusTime: typeof cycleFocusTime === 'number' && !isNaN(cycleFocusTime) ? cycleFocusTime : 0,
+          cycleKey: cycleKey || undefined,
+          cycleTargetType: config?.targetType || 'total_time',
           isCaptain: true
        };
        
@@ -335,7 +415,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST: Join a team
     if (method === 'POST' && action === 'join') {
-       const { teamId } = req.body;
+       const { teamId, totalFocusTime, cycleFocusTime, cycleKey, targetType } = req.body;
        const exists = await client.hExists(`scholar_team:${teamId}`, 'id');
        if (!exists) return res.status(404).json({ error: 'Team not found' });
        
@@ -378,7 +458,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           level: isValidLevel ? userLevelParsed : 1,
           uniqueId: userUniqueId,
           joinedAt: Date.now(),
-          totalFocusTime: 0,
+          totalFocusTime: typeof totalFocusTime === 'number' && !isNaN(totalFocusTime) ? totalFocusTime : 0,
+          cycleFocusTime: typeof cycleFocusTime === 'number' && !isNaN(cycleFocusTime) ? cycleFocusTime : 0,
+          cycleKey: cycleKey || undefined,
+          cycleTargetType: targetType || teamData.config_targetType || 'total_time',
           isCaptain: false
        };
        
@@ -427,52 +510,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST: Log Event / Progress
     if (method === 'POST' && action === 'event') {
-       const { teamId, type, content, duration, sessionTimestamp } = req.body;
+       const { teamId, type, content, duration, sessionTimestamp, totalFocusTime, cycleFocusTime, cycleKey, targetType } = req.body;
        
        // safely handle duration parsing
        const timeVal = duration !== undefined ? Number(duration) : 0;
        
-       if (timeVal > 0) {
-          const teamData = await client.hGetAll(`scholar_team:${teamId}`);
-          const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
-          const m = resolved?.member;
-          const targetMemberKey = resolved?.memberKey || userId;
-          if (m && teamData) {
+       const teamData = await client.hGetAll(`scholar_team:${teamId}`);
+       const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
+       const m = resolved?.member;
+       const targetMemberKey = resolved?.memberKey || userId;
+       
+       if (m && teamData) {
+          let memberUpdated = false;
+
+          if (totalFocusTime !== undefined && typeof totalFocusTime === 'number' && !isNaN(totalFocusTime)) {
+             m.totalFocusTime = Math.max(m.totalFocusTime || 0, totalFocusTime);
+             memberUpdated = true;
+          } else if (timeVal > 0) {
              m.totalFocusTime = (m.totalFocusTime || 0) + timeVal;
-             
+             memberUpdated = true;
+          }
+
+          if (cycleFocusTime !== undefined && typeof cycleFocusTime === 'number' && !isNaN(cycleFocusTime) && cycleKey) {
+             m.cycleFocusTime = cycleFocusTime;
+             m.cycleKey = cycleKey;
+             m.cycleTargetType = targetType || teamData.config_targetType || 'total_time';
+             memberUpdated = true;
+          } else if (timeVal > 0) {
              // Evaluate cycle limits
-             const targetType = teamData.config_targetType || 'total_time';
-             if (targetType === 'total_time') {
+             const cfgTargetType = teamData.config_targetType || 'total_time';
+             const ts = sessionTimestamp || Date.now();
+             const computedKey = getCycleKeyServer(cfgTargetType, teamData.config_resetTime, new Date(ts));
+             
+             if (cfgTargetType === 'total_time') {
                 m.cycleFocusTime = m.totalFocusTime;
-                m.cycleStart = 0;
+                m.cycleKey = 'total';
                 m.cycleTargetType = 'total_time';
              } else {
-                const ts = sessionTimestamp || Date.now();
-                const now = new Date(ts);
-                const resetHour = parseInt(teamData.config_resetTime?.split(':')[0] || '0');
-                let start = new Date(now);
-                start.setHours(resetHour, 0, 0, 0);
-                if (now.getHours() < resetHour) start.setDate(start.getDate() - 1);
-                
-                if (targetType === 'weekly_time') {
-                  const day = start.getDay();
-                  start.setDate(start.getDate() - day + (day === 0 ? -6 : 1));
-                } else if (targetType === 'monthly_time') {
-                  start.setDate(1);
-                } else if (targetType === 'yearly_time') {
-                  start.setMonth(0, 1);
-                }
-                
-                const cycleStart = start.getTime();
-                if (m.cycleStart === cycleStart && m.cycleTargetType === targetType) {
+                if (m.cycleKey === computedKey) {
                    m.cycleFocusTime = (m.cycleFocusTime || 0) + timeVal;
                 } else {
                    m.cycleFocusTime = timeVal;
-                   m.cycleStart = cycleStart;
-                   m.cycleTargetType = targetType;
+                   m.cycleKey = computedKey;
+                   m.cycleTargetType = cfgTargetType;
                 }
              }
+             memberUpdated = true;
+          }
 
+          if (memberUpdated) {
              await client.hSet(`scholar_team:${teamId}:members`, targetMemberKey, JSON.stringify(m));
           }
        }
@@ -492,7 +578,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST: Update Settings
     if (method === 'POST' && action === 'settings') {
-       const { teamId, name, description, targetType, targetValue, rewardType, rewardContent, permission, joinRule, avatar } = req.body;
+       const { teamId, name, description, targetType, targetValue, resetTime, rewardType, rewardContent, permission, joinRule, avatar } = req.body;
        const teamData = await client.hGetAll(`scholar_team:${teamId}`);
        if (!teamData || !teamData.id) return res.status(404).json({ error: 'Not found' });
        
@@ -529,6 +615,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await client.hSet(`scholar_team:${teamId}`, {
              config_targetType: targetType,
              config_targetValue: targetValue.toString(),
+             config_resetTime: resetTime || '00:00',
              config_rewardType: rewardType,
              config_rewardContent: rewardContent
           });
@@ -551,6 +638,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              proposerId: userId,
              targetType,
              targetValue,
+             resetTime: resetTime || '00:00',
              rewardType,
              rewardContent,
              votes: { [userId]: true },
@@ -562,6 +650,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              await client.hSet(`scholar_team:${teamId}`, {
                config_targetType: targetType,
                config_targetValue: targetValue.toString(),
+               config_resetTime: resetTime || '00:00',
                config_rewardType: rewardType,
                config_rewardContent: rewardContent
              });
@@ -602,6 +691,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await client.hSet(`scholar_team:${teamId}`, {
              config_targetType: proposal.targetType,
              config_targetValue: proposal.targetValue.toString(),
+             config_resetTime: proposal.resetTime || '00:00',
              config_rewardType: proposal.rewardType,
              config_rewardContent: proposal.rewardContent
           });

@@ -456,6 +456,7 @@ export interface TeamMember {
   cycleFocusTime?: number; // minutes contributed in the current active cycle limit
   cycleStart?: number; // timestamp representing the start of the current cycle bounds
   cycleTargetType?: string; // targetType at the time cycleFocusTime was incremented
+  cycleKey?: string; // Deterministic cycle identifier (e.g. YYYY-MM-DD or W-YYYY-MM-DD)
   isCaptain: boolean;
   lastActive?: number;
   uniqueId?: string; // Short permanent identifier
