@@ -24,76 +24,6 @@ export interface MarkdownEditorProps {
   showModeToggle?: boolean;
 }
 
-interface ListPrefixInfo {
-  type: 'task' | 'ordered' | 'bullet' | 'quote' | null;
-  indent: string;
-  prefix: string;
-  content: string;
-  orderNumber?: number;
-  isChecked?: boolean;
-}
-
-const parseListPrefix = (line: string): ListPrefixInfo => {
-  // Task: "  - [ ] ", "  * [x] ", "  + [ ] "
-  const taskMatch = line.match(/^(\s*)([-*+]\s+\[([ xX]?)\]\s*)(.*)$/);
-  if (taskMatch) {
-    return {
-      type: 'task',
-      indent: taskMatch[1],
-      prefix: taskMatch[2],
-      isChecked: taskMatch[3].toLowerCase() === 'x',
-      content: taskMatch[4],
-    };
-  }
-
-  // Ordered list: "  1. ", "  12. "
-  const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
-  if (orderedMatch) {
-    return {
-      type: 'ordered',
-      indent: orderedMatch[1],
-      prefix: `${orderedMatch[2]}. `,
-      orderNumber: parseInt(orderedMatch[2], 10),
-      content: orderedMatch[3],
-    };
-  }
-
-  // Bullet list: "  - ", "  * ", "  + "
-  const bulletMatch = line.match(/^(\s*)([-*+]\s+)(.*)$/);
-  if (bulletMatch) {
-    return {
-      type: 'bullet',
-      indent: bulletMatch[1],
-      prefix: bulletMatch[2],
-      content: bulletMatch[3],
-    };
-  }
-
-  // Blockquote: "  > "
-  const quoteMatch = line.match(/^(\s*)(>\s*)(.*)$/);
-  if (quoteMatch) {
-    return {
-      type: 'quote',
-      indent: quoteMatch[1],
-      prefix: quoteMatch[2],
-      content: quoteMatch[3],
-    };
-  }
-
-  return {
-    type: null,
-    indent: '',
-    prefix: '',
-    content: line,
-  };
-};
-
-interface HistoryEntry {
-  value: string;
-  activeLineIndex: number | null;
-  cursorPos: number | null;
-}
-
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
@@ -106,1105 +36,890 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const { fontSize, lineHeight } = useEditorTypography();
   const lineMultiplier = LINE_HEIGHT_MAP[lineHeight];
 
-  const lines = value.split('\n');
+  // Split document into lines
+  const lines = value !== undefined && value !== null ? value.split('\n') : [''];
+  
+  // Active editing line index (null when entire editor is blurred and fully rendered)
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(autoFocus ? 0 : null);
+  const pendingCursorPosRef = useRef<number | null>(null);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-  const activeTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const pendingCursorPos = useRef<number | null>(null);
 
-  // Undo / Redo history state
-  const undoStackRef = useRef<HistoryEntry[]>([]);
-  const redoStackRef = useRef<HistoryEntry[]>([]);
+  // References
+  const activeInputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Undo / Redo history stack
+  const undoStackRef = useRef<string[]>([]);
+  const redoStackRef = useRef<string[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const isPerformingHistoryActionRef = useRef(false);
-  const typingBurstStartRef = useRef<HistoryEntry | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTrackedValueRef = useRef<string>(value);
+  const isHistoryActionRef = useRef(false);
+  const lastRecordedValueRef = useRef(value);
 
-  // Sync external value changes (e.g. date switch, template load)
+  // Sync external changes
   useEffect(() => {
-    if (value !== lastTrackedValueRef.current) {
-      if (isPerformingHistoryActionRef.current) {
-        isPerformingHistoryActionRef.current = false;
-        lastTrackedValueRef.current = value;
+    if (value !== lastRecordedValueRef.current) {
+      if (isHistoryActionRef.current) {
+        isHistoryActionRef.current = false;
       } else {
-        // External value change: clean slate for new day/template
-        undoStackRef.current = [];
-        redoStackRef.current = [];
-        typingBurstStartRef.current = null;
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = null;
+        if (undoStackRef.current.length === 0 || undoStackRef.current[undoStackRef.current.length - 1] !== lastRecordedValueRef.current) {
+          undoStackRef.current.push(lastRecordedValueRef.current);
+          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+          setCanUndo(true);
         }
-        setCanUndo(false);
-        setCanRedo(false);
-        lastTrackedValueRef.current = value;
       }
+      lastRecordedValueRef.current = value;
     }
   }, [value]);
 
-  // Clean up typing timer on unmount
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
+  const saveHistorySnapshot = useCallback((val: string) => {
+    undoStackRef.current.push(val);
+    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    redoStackRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
   }, []);
 
-  // Record an immediate snapshot before discrete changes (Enter, Backspace merge, format, heading, prefix)
-  const recordImmediateSnapshot = useCallback((customLineIndex?: number, customCursorPos?: number) => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-    typingBurstStartRef.current = null;
-
-    const currentActiveIndex = customLineIndex !== undefined ? customLineIndex : activeLineIndex;
-    const currentCursor = customCursorPos !== undefined 
-      ? customCursorPos 
-      : (activeTextareaRef.current ? activeTextareaRef.current.selectionStart : null);
-
-    const currentEntry: HistoryEntry = {
-      value,
-      activeLineIndex: currentActiveIndex,
-      cursorPos: currentCursor,
-    };
-
-    const stack = undoStackRef.current;
-    const lastEntry = stack[stack.length - 1];
-
-    if (!lastEntry || lastEntry.value !== value) {
-      stack.push(currentEntry);
-      if (stack.length > 80) stack.shift();
-      setCanUndo(true);
-    }
-
-    if (redoStackRef.current.length > 0) {
-      redoStackRef.current = [];
-      setCanRedo(false);
-    }
-  }, [value, activeLineIndex]);
-
-  // Update a single line
-  const handleLineChange = useCallback((index: number, newLineText: string, isDiscreteAction?: boolean) => {
-    if (!isDiscreteAction) {
-      const currentCursor = activeTextareaRef.current ? activeTextareaRef.current.selectionStart : null;
-      
-      // If start of a continuous typing burst, capture the state BEFORE this typing sequence begins
-      if (!typingBurstStartRef.current) {
-        typingBurstStartRef.current = {
-          value,
-          activeLineIndex: index,
-          cursorPos: currentCursor,
-        };
-        setCanUndo(true);
-      }
-
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      // Debounce committing the typing burst snapshot to history stack
-      typingTimeoutRef.current = setTimeout(() => {
-        if (typingBurstStartRef.current) {
-          const stack = undoStackRef.current;
-          const lastEntry = stack[stack.length - 1];
-          if (!lastEntry || lastEntry.value !== typingBurstStartRef.current.value) {
-            stack.push(typingBurstStartRef.current);
-            if (stack.length > 80) stack.shift();
-            setCanUndo(true);
-          }
-          typingBurstStartRef.current = null;
-        }
-      }, 650);
-
-      if (redoStackRef.current.length > 0) {
-        redoStackRef.current = [];
-        setCanRedo(false);
-      }
-    }
-
-    const newLines = [...lines];
-    newLines[index] = newLineText;
-    const newValue = newLines.join('\n');
-    lastTrackedValueRef.current = newValue;
-    onChange(newValue);
-  }, [lines, value, onChange]);
-
-  // Undo implementation
-  const undo = useCallback(() => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-
-    const currentCursor = activeTextareaRef.current ? activeTextareaRef.current.selectionStart : null;
-    const currentSnapshot: HistoryEntry = {
-      value,
-      activeLineIndex,
-      cursorPos: currentCursor,
-    };
-
-    let targetEntry: HistoryEntry | null = null;
-
-    if (typingBurstStartRef.current && typingBurstStartRef.current.value !== value) {
-      targetEntry = typingBurstStartRef.current;
-      typingBurstStartRef.current = null;
-    } else if (undoStackRef.current.length > 0) {
-      targetEntry = undoStackRef.current.pop() || null;
-    }
-
-    if (!targetEntry) return;
-
-    redoStackRef.current.push(currentSnapshot);
-    if (redoStackRef.current.length > 80) {
-      redoStackRef.current.shift();
-    }
-
-    isPerformingHistoryActionRef.current = true;
-    lastTrackedValueRef.current = targetEntry.value;
-    onChange(targetEntry.value);
-
-    if (targetEntry.activeLineIndex !== null) {
-      setActiveLineIndex(targetEntry.activeLineIndex);
-      pendingCursorPos.current = targetEntry.cursorPos;
-      if (activeTextareaRef.current && targetEntry.cursorPos !== null) {
-        setTimeout(() => {
-          if (activeTextareaRef.current && targetEntry.cursorPos !== null) {
-            const pos = Math.min(targetEntry.cursorPos, activeTextareaRef.current.value.length);
-            activeTextareaRef.current.setSelectionRange(pos, pos);
-          }
-        }, 0);
-      }
-    }
-
-    setCanUndo(undoStackRef.current.length > 0 || !!typingBurstStartRef.current);
+  const handleUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    const previous = undoStackRef.current.pop()!;
+    redoStackRef.current.push(value);
+    setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
-  }, [value, activeLineIndex, onChange]);
+    isHistoryActionRef.current = true;
+    lastRecordedValueRef.current = previous;
+    onChange(previous);
+  }, [value, onChange]);
 
-  // Redo implementation
-  const redo = useCallback(() => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-    typingBurstStartRef.current = null;
-
+  const handleRedo = useCallback(() => {
     if (redoStackRef.current.length === 0) return;
-
-    const targetEntry = redoStackRef.current.pop();
-    if (!targetEntry) return;
-
-    const currentCursor = activeTextareaRef.current ? activeTextareaRef.current.selectionStart : null;
-    const currentSnapshot: HistoryEntry = {
-      value,
-      activeLineIndex,
-      cursorPos: currentCursor,
-    };
-
-    undoStackRef.current.push(currentSnapshot);
-    if (undoStackRef.current.length > 80) {
-      undoStackRef.current.shift();
-    }
-
-    isPerformingHistoryActionRef.current = true;
-    lastTrackedValueRef.current = targetEntry.value;
-    onChange(targetEntry.value);
-
-    if (targetEntry.activeLineIndex !== null) {
-      setActiveLineIndex(targetEntry.activeLineIndex);
-      pendingCursorPos.current = targetEntry.cursorPos;
-      if (activeTextareaRef.current && targetEntry.cursorPos !== null) {
-        setTimeout(() => {
-          if (activeTextareaRef.current && targetEntry.cursorPos !== null) {
-            const pos = Math.min(targetEntry.cursorPos, activeTextareaRef.current.value.length);
-            activeTextareaRef.current.setSelectionRange(pos, pos);
-          }
-        }, 0);
-      }
-    }
-
+    const next = redoStackRef.current.pop()!;
+    undoStackRef.current.push(value);
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
-  }, [value, activeLineIndex, onChange]);
+    isHistoryActionRef.current = true;
+    lastRecordedValueRef.current = next;
+    onChange(next);
+  }, [value, onChange]);
 
-  // Auto focus active line textarea and set cursor position
+  // Handle active line focus and cursor placement without interfering with typing
   useEffect(() => {
-    if (activeLineIndex !== null && activeTextareaRef.current) {
-      activeTextareaRef.current.focus();
-      if (pendingCursorPos.current !== null) {
-        const pos = Math.min(pendingCursorPos.current, activeTextareaRef.current.value.length);
-        activeTextareaRef.current.setSelectionRange(pos, pos);
-        pendingCursorPos.current = null;
+    if (activeLineIndex !== null && activeInputRef.current) {
+      activeInputRef.current.style.height = 'auto';
+      activeInputRef.current.style.height = `${activeInputRef.current.scrollHeight}px`;
+      activeInputRef.current.focus();
+      if (pendingCursorPosRef.current !== null) {
+        const pos = pendingCursorPosRef.current;
+        pendingCursorPosRef.current = null;
+        try {
+          activeInputRef.current.setSelectionRange(pos, pos);
+        } catch {
+          // Ignore range error if unmounted
+        }
       }
     }
   }, [activeLineIndex]);
 
-  // Format selection with wrappers (e.g. bold, italic, code)
-  const formatSelection = useCallback((index: number, prefix: string, suffix: string, defaultText: string = '') => {
-    recordImmediateSnapshot(index);
-    const textarea = activeTextareaRef.current;
-    const currentLine = lines[index] ?? '';
-    if (!textarea) {
-      const newLine = currentLine + prefix + defaultText + suffix;
-      handleLineChange(index, newLine, true);
-      pendingCursorPos.current = newLine.length;
-      return;
+  // Handle single-line text update without disturbing native browser cursor
+  const handleLineChange = (index: number, newText: string, textareaEl: HTMLTextAreaElement) => {
+    const updated = [...lines];
+    updated[index] = newText;
+    const newValue = updated.join('\n');
+    onChange(newValue);
+    textareaEl.style.height = 'auto';
+    textareaEl.style.height = `${textareaEl.scrollHeight}px`;
+  };
+
+  // Toggle checklist checkbox item without needing raw text mode
+  const toggleCheckbox = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const line = lines[index] || '';
+    saveHistorySnapshot(value);
+    let updatedLine = line;
+    if (line.match(/^(\s*[-*+]\s+\[\s*\])/)) {
+      updatedLine = line.replace(/^(\s*[-*+]\s+)\[\s*\]/, '$1[x]');
+    } else if (line.match(/^(\s*[-*+]\s+\[[xX]\])/)) {
+      updatedLine = line.replace(/^(\s*[-*+]\s+)\[[xX]\]/, '$1[ ]');
     }
+    const updated = [...lines];
+    updated[index] = updatedLine;
+    onChange(updated.join('\n'));
+  };
+
+  // Keyboard navigation & smart list typing in active line
+  const handleLineKeyDown = (index: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = activeInputRef.current;
+    if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const currentLine = lines[index] || '';
 
-    if (start !== end) {
-      const selected = currentLine.substring(start, end);
-      const before = currentLine.substring(0, start);
-      const after = currentLine.substring(end);
-      const newLine = before + prefix + selected + suffix + after;
-      handleLineChange(index, newLine, true);
-      pendingCursorPos.current = start + prefix.length + selected.length + suffix.length;
-    } else {
-      const before = currentLine.substring(0, start);
-      const after = currentLine.substring(start);
-      const newLine = before + prefix + defaultText + suffix + after;
-      handleLineChange(index, newLine, true);
-      pendingCursorPos.current = start + prefix.length + defaultText.length;
-    }
-  }, [lines, handleLineChange, recordImmediateSnapshot]);
-
-  // Set or toggle heading outline level (0 = paragraph, 1 = H1, 2 = H2, ...)
-  const setHeadingLevel = useCallback((index: number, level: number) => {
-    recordImmediateSnapshot(index);
-    const currentLine = lines[index] ?? '';
-    const headingMatch = currentLine.match(/^(\s*)(#{1,6})\s+(.*)$/);
-    const listMatch = currentLine.match(/^(\s*)([-*+]\s+\[[ xX]?\]\s+|[-*+]\s+|\d+\.\s+)(.*)$/);
-
-    let indent = '';
-    let content = currentLine;
-    if (headingMatch) {
-      indent = headingMatch[1];
-      content = headingMatch[3];
-    } else if (listMatch) {
-      indent = listMatch[1];
-      content = listMatch[3];
-    }
-
-    let newLine = '';
-    if (level === 0) {
-      newLine = indent + content;
-    } else {
-      // Toggle off if pressing the same heading level
-      if (headingMatch && headingMatch[2].length === level) {
-        newLine = indent + content;
+    // Undo / Redo
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      if (e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
       } else {
-        newLine = `${indent}${'#'.repeat(level)} ${content}`;
+        e.preventDefault();
+        handleUndo();
+      }
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      handleRedo();
+      return;
+    }
+
+    // Markdown shortcut formatting
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === 'b') {
+        e.preventDefault();
+        applyWrapToActiveLine('**', '**', 'bold text');
+        return;
+      }
+      if (key === 'i') {
+        e.preventDefault();
+        applyWrapToActiveLine('*', '*', 'italic text');
+        return;
+      }
+      if (key === 'k') {
+        e.preventDefault();
+        applyWrapToActiveLine('[', '](https://)', 'link title');
+        return;
+      }
+      if (e.shiftKey && key === 'x') {
+        e.preventDefault();
+        applyWrapToActiveLine('~~', '~~', 'strikethrough text');
+        return;
+      }
+      if (key === '`') {
+        e.preventDefault();
+        applyWrapToActiveLine('`', '`', 'code');
+        return;
       }
     }
 
-    handleLineChange(index, newLine, true);
-    pendingCursorPos.current = newLine.length;
-  }, [lines, handleLineChange, recordImmediateSnapshot]);
-
-  // Toggle line prefixes (toolbar or shortcuts)
-  const toggleLinePrefix = useCallback((prefix: string) => {
-    const targetIndex = activeLineIndex !== null ? activeLineIndex : 0;
-    recordImmediateSnapshot(targetIndex);
-    const currentLine = lines[targetIndex] ?? '';
-    const indentMatch = currentLine.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1] : '';
-    const withoutIndent = currentLine.slice(indent.length);
-
-    let newLineText = '';
-    if (withoutIndent.startsWith(prefix)) {
-      // Toggle off
-      newLineText = indent + withoutIndent.substring(prefix.length);
-    } else {
-      // Clean any other prefix, preserving existing indentation
-      const cleanedContent = withoutIndent.replace(/^(#{1,6}\s+|-\s*\[[ xX]?\]\s+|[-*+]\s+|\d+\.\s+|>\s+)/, '');
-      newLineText = indent + prefix + cleanedContent;
-    }
-    handleLineChange(targetIndex, newLineText, true);
-    pendingCursorPos.current = newLineText.length;
-    setActiveLineIndex(targetIndex);
-  }, [activeLineIndex, lines, handleLineChange, recordImmediateSnapshot]);
-
-  // Keyboard navigation, shortcuts, outline levels, auto-lists, and splitting
-  const handleLineKeyDown = (index: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = activeTextareaRef.current;
-    if (!textarea) return;
-    const cursor = textarea.selectionStart;
-    const currentLine = lines[index] ?? '';
-
-    // 0. History (Undo & Redo): Ctrl+Z / Cmd+Z, Ctrl+Y / Cmd+Y, Ctrl+Shift+Z / Cmd+Shift+Z
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      undo();
+    // Up Arrow at top of line -> Move to previous line
+    if (e.key === 'ArrowUp') {
+      if (start === 0 || textarea.scrollTop === 0) {
+        if (index > 0) {
+          e.preventDefault();
+          pendingCursorPosRef.current = Math.min(start, (lines[index - 1] || '').length);
+          setActiveLineIndex(index - 1);
+        }
+      }
       return;
     }
 
-    if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')) {
-      e.preventDefault();
-      redo();
+    // Down Arrow at bottom of line -> Move to next line
+    if (e.key === 'ArrowDown') {
+      if (end === currentLine.length) {
+        if (index < lines.length - 1) {
+          e.preventDefault();
+          pendingCursorPosRef.current = Math.min(start, (lines[index + 1] || '').length);
+          setActiveLineIndex(index + 1);
+        }
+      }
       return;
     }
 
-    // 1. Heading Outline Levels: Alt+1..6 / Alt+0 or Ctrl+1..6 / Ctrl+0
-    const isAltNumber = e.altKey && ['0', '1', '2', '3', '4', '5', '6'].includes(e.key);
-    const isCtrlNumber = (e.ctrlKey || e.metaKey) && ['0', '1', '2', '3', '4', '5', '6'].includes(e.key);
-    if (isAltNumber || isCtrlNumber) {
+    // Tab / Shift+Tab for Indent & Sub-lists (二级/多级列表)
+    if (e.key === 'Tab') {
       e.preventDefault();
-      setHeadingLevel(index, parseInt(e.key, 10));
+      saveHistorySnapshot(value);
+
+      const isListItem = /^\s*([-*+]\s+(\[[ xX]?\]\s*)?|\d+\.\s+|> )/.test(currentLine);
+
+      if (e.shiftKey) {
+        // Outdent / Unindent (Shift + Tab) -> Reduces indent at line start
+        if (currentLine.startsWith('  ')) {
+          const updated = currentLine.substring(2);
+          handleLineChange(index, updated, textarea);
+          const newStart = Math.max(0, start - 2);
+          const newEnd = Math.max(0, end - 2);
+          setTimeout(() => textarea.setSelectionRange(newStart, newEnd), 0);
+        } else if (currentLine.startsWith(' ') || currentLine.startsWith('\t')) {
+          const updated = currentLine.substring(1);
+          handleLineChange(index, updated, textarea);
+          const newStart = Math.max(0, start - 1);
+          const newEnd = Math.max(0, end - 1);
+          setTimeout(() => textarea.setSelectionRange(newStart, newEnd), 0);
+        }
+      } else {
+        // Indent / Make Sub-list (Tab)
+        if (isListItem || start === 0) {
+          // Indent entire list item line at the beginning by 2 spaces
+          const updated = '  ' + currentLine;
+          handleLineChange(index, updated, textarea);
+          const newStart = start + 2;
+          const newEnd = end + 2;
+          setTimeout(() => textarea.setSelectionRange(newStart, newEnd), 0);
+        } else {
+          // Regular text indent at cursor position
+          const updated = currentLine.substring(0, start) + '  ' + currentLine.substring(end);
+          handleLineChange(index, updated, textarea);
+          const newPos = start + 2;
+          setTimeout(() => textarea.setSelectionRange(newPos, newPos), 0);
+        }
+      }
       return;
     }
 
-    // 2. Text Formatting Shortcuts
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-      e.preventDefault();
-      formatSelection(index, '**', '**', 'bold');
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
-      e.preventDefault();
-      formatSelection(index, '*', '*', 'italic');
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      formatSelection(index, '[', '](url)', 'link');
-      return;
-    }
-
-    if ((e.altKey && e.key.toLowerCase() === 's') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'x')) {
-      e.preventDefault();
-      formatSelection(index, '~~', '~~', 'strikethrough');
-      return;
-    }
-
-    if ((e.altKey && e.key.toLowerCase() === 'e') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e')) {
-      e.preventDefault();
-      formatSelection(index, '`', '`', 'code');
-      return;
-    }
-
-    // 3. List Item Shortcuts
-    // Bullet: Alt+U or Ctrl+Shift+U or Ctrl+L
-    if ((e.altKey && e.key.toLowerCase() === 'u') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'u') || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l')) {
-      e.preventDefault();
-      toggleLinePrefix('- ');
-      return;
-    }
-
-    // Numbered List: Alt+O or Ctrl+Shift+O
-    if ((e.altKey && e.key.toLowerCase() === 'o') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'o')) {
-      e.preventDefault();
-      toggleLinePrefix('1. ');
-      return;
-    }
-
-    // Task Checklist: Alt+C or Ctrl+Shift+C
-    if ((e.altKey && e.key.toLowerCase() === 'c') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c')) {
-      e.preventDefault();
-      toggleLinePrefix('- [ ] ');
-      return;
-    }
-
-    // Quote: Alt+Q or Ctrl+Shift+Q
-    if ((e.altKey && e.key.toLowerCase() === 'q') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'q')) {
-      e.preventDefault();
-      toggleLinePrefix('> ');
-      return;
-    }
-
-    // 4. Enter: Auto-continue or exit list items / split lines
+    // Enter Key -> Split line or smart continue list
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      recordImmediateSnapshot(index, cursor);
-      const listInfo = parseListPrefix(currentLine);
+      saveHistorySnapshot(value);
 
-      if (listInfo.type) {
-        // If the list item has NO content (empty list item like "- " or "1. ")
-        if (!listInfo.content.trim()) {
-          if (listInfo.indent.length >= 2) {
-            // Outdent by 2 spaces
-            const outdented = listInfo.indent.slice(2) + listInfo.prefix;
-            handleLineChange(index, outdented, true);
-            pendingCursorPos.current = outdented.length;
-            return;
-          } else {
-            // Clear prefix completely! (Exit list cleanly)
-            handleLineChange(index, '', true);
-            pendingCursorPos.current = 0;
+      const beforeCursor = currentLine.substring(0, start);
+      const afterCursor = currentLine.substring(end);
+
+      // Check for smart list continuation
+      // 1. Task checklist "- [ ] " or "- [x] "
+      const taskMatch = beforeCursor.match(/^(\s*)([-*+]\s+\[([ xX]?)\]\s*)(.*)$/);
+      if (taskMatch) {
+        const indent = taskMatch[1];
+        const content = taskMatch[4];
+        if (content.trim().length === 0 && afterCursor.trim().length === 0) {
+          // Empty item -> if indented, outdent first, else exit list
+          if (indent.length >= 2) {
+            const outdented = indent.substring(2) + '- [ ] ';
+            const updated = [...lines];
+            updated[index] = outdented;
+            onChange(updated.join('\n'));
+            pendingCursorPosRef.current = outdented.length;
             return;
           }
+          const updated = [...lines];
+          updated[index] = '';
+          onChange(updated.join('\n'));
+          pendingCursorPosRef.current = 0;
+          return;
         }
-
-        // If it HAS content: split line and continue list on next line
-        const before = currentLine.substring(0, cursor);
-        const after = currentLine.substring(cursor);
-
-        let nextPrefix = `${listInfo.indent}- `;
-        if (listInfo.type === 'ordered' && typeof listInfo.orderNumber === 'number') {
-          nextPrefix = `${listInfo.indent}${listInfo.orderNumber + 1}. `;
-        } else if (listInfo.type === 'task') {
-          nextPrefix = `${listInfo.indent}- [ ] `;
-        } else if (listInfo.type === 'quote') {
-          nextPrefix = `${listInfo.indent}> `;
-        } else if (listInfo.type === 'bullet') {
-          nextPrefix = `${listInfo.indent}${listInfo.prefix}`;
-        }
-
-        const newLines = [...lines];
-        newLines[index] = before;
-        newLines.splice(index + 1, 0, nextPrefix + after);
-        const newDoc = newLines.join('\n');
-        lastTrackedValueRef.current = newDoc;
-        onChange(newDoc);
-        pendingCursorPos.current = nextPrefix.length;
+        const newLineContent = `${indent}- [ ] ${afterCursor}`;
+        const updated = [...lines];
+        updated[index] = beforeCursor;
+        updated.splice(index + 1, 0, newLineContent);
+        onChange(updated.join('\n'));
+        pendingCursorPosRef.current = indent.length + 6;
         setActiveLineIndex(index + 1);
         return;
       }
 
-      // Normal line split
-      const before = currentLine.substring(0, cursor);
-      const after = currentLine.substring(cursor);
-      const newLines = [...lines];
-      newLines[index] = before;
-      newLines.splice(index + 1, 0, after);
-      const newDoc = newLines.join('\n');
-      lastTrackedValueRef.current = newDoc;
-      onChange(newDoc);
-      pendingCursorPos.current = 0;
+      // 2. Numbered list "1. "
+      const numMatch = beforeCursor.match(/^(\s*)(\d+)\.\s+(.*)$/);
+      if (numMatch) {
+        const indent = numMatch[1];
+        const num = parseInt(numMatch[2], 10);
+        const content = numMatch[3];
+        if (content.trim().length === 0 && afterCursor.trim().length === 0) {
+          if (indent.length >= 2) {
+            const outdented = indent.substring(2) + '1. ';
+            const updated = [...lines];
+            updated[index] = outdented;
+            onChange(updated.join('\n'));
+            pendingCursorPosRef.current = outdented.length;
+            return;
+          }
+          const updated = [...lines];
+          updated[index] = '';
+          onChange(updated.join('\n'));
+          pendingCursorPosRef.current = 0;
+          return;
+        }
+        const prefix = `${indent}${num + 1}. `;
+        const newLineContent = `${prefix}${afterCursor}`;
+        const updated = [...lines];
+        updated[index] = beforeCursor;
+        updated.splice(index + 1, 0, newLineContent);
+        onChange(updated.join('\n'));
+        pendingCursorPosRef.current = prefix.length;
+        setActiveLineIndex(index + 1);
+        return;
+      }
+
+      // 3. Bullet list "- ", "* ", "+ "
+      const bulletMatch = beforeCursor.match(/^(\s*)([-*+]\s+)(.*)$/);
+      if (bulletMatch) {
+        const indent = bulletMatch[1];
+        const bullet = bulletMatch[2];
+        const content = bulletMatch[3];
+        if (content.trim().length === 0 && afterCursor.trim().length === 0) {
+          if (indent.length >= 2) {
+            const outdented = indent.substring(2) + bullet;
+            const updated = [...lines];
+            updated[index] = outdented;
+            onChange(updated.join('\n'));
+            pendingCursorPosRef.current = outdented.length;
+            return;
+          }
+          const updated = [...lines];
+          updated[index] = '';
+          onChange(updated.join('\n'));
+          pendingCursorPosRef.current = 0;
+          return;
+        }
+        const prefix = `${indent}${bullet}`;
+        const newLineContent = `${prefix}${afterCursor}`;
+        const updated = [...lines];
+        updated[index] = beforeCursor;
+        updated.splice(index + 1, 0, newLineContent);
+        onChange(updated.join('\n'));
+        pendingCursorPosRef.current = prefix.length;
+        setActiveLineIndex(index + 1);
+        return;
+      }
+
+      // 4. Blockquote "> "
+      const quoteMatch = beforeCursor.match(/^(\s*)(>\s*)(.*)$/);
+      if (quoteMatch) {
+        const indent = quoteMatch[1];
+        const content = quoteMatch[3];
+        if (content.trim().length === 0 && afterCursor.trim().length === 0) {
+          const updated = [...lines];
+          updated[index] = '';
+          onChange(updated.join('\n'));
+          pendingCursorPosRef.current = 0;
+          return;
+        }
+        const prefix = `${indent}> `;
+        const newLineContent = `${prefix}${afterCursor}`;
+        const updated = [...lines];
+        updated[index] = beforeCursor;
+        updated.splice(index + 1, 0, newLineContent);
+        onChange(updated.join('\n'));
+        pendingCursorPosRef.current = prefix.length;
+        setActiveLineIndex(index + 1);
+        return;
+      }
+
+      // Standard new line
+      const updated = [...lines];
+      updated[index] = beforeCursor;
+      updated.splice(index + 1, 0, afterCursor);
+      onChange(updated.join('\n'));
+      pendingCursorPosRef.current = 0;
       setActiveLineIndex(index + 1);
       return;
     }
 
-    // 5. Tab / Shift+Tab: Indentation and outline promotion/demotion
-    if (e.key === 'Tab') {
+    // Delete at end of line -> merge with next line
+    if (e.key === 'Delete' && start === currentLine.length && end === currentLine.length && index < lines.length - 1) {
       e.preventDefault();
-      recordImmediateSnapshot(index, cursor);
-      if (e.shiftKey) {
-        // Shift+Tab: Promote heading or outdent
-        const headingMatch = currentLine.match(/^(\s*)(#{1,6})\s+(.*)$/);
-        if (headingMatch) {
-          const hashes = headingMatch[2];
-          const rest = headingMatch[3];
-          const newHeading = hashes.length > 1 ? `${headingMatch[1]}${hashes.slice(1)} ${rest}` : `${headingMatch[1]}${rest}`;
-          handleLineChange(index, newHeading, true);
-          pendingCursorPos.current = Math.max(0, cursor - 1);
-          return;
-        }
-
-        // Outdent leading 2 spaces or tab
-        if (currentLine.startsWith('  ')) {
-          const newText = currentLine.slice(2);
-          handleLineChange(index, newText, true);
-          pendingCursorPos.current = Math.max(0, cursor - 2);
-          return;
-        } else if (currentLine.startsWith('\t') || currentLine.startsWith(' ')) {
-          const newText = currentLine.slice(1);
-          handleLineChange(index, newText, true);
-          pendingCursorPos.current = Math.max(0, cursor - 1);
-          return;
-        }
-      } else {
-        // Tab: Demote heading or indent list item or insert 2 spaces
-        const headingMatch = currentLine.match(/^(\s*)(#{1,5})\s+(.*)$/);
-        if (headingMatch) {
-          const newHeading = `${headingMatch[1]}#${headingMatch[2]} ${headingMatch[3]}`;
-          handleLineChange(index, newHeading, true);
-          pendingCursorPos.current = cursor + 1;
-          return;
-        }
-
-        const listInfo = parseListPrefix(currentLine);
-        if (listInfo.type) {
-          const newText = '  ' + currentLine;
-          handleLineChange(index, newText, true);
-          pendingCursorPos.current = cursor + 2;
-          return;
-        }
-
-        // Normal text: insert 2 spaces
-        const before = currentLine.substring(0, cursor);
-        const after = currentLine.substring(cursor);
-        handleLineChange(index, before + '  ' + after, true);
-        pendingCursorPos.current = cursor + 2;
-        return;
-      }
-    }
-
-    // 6. Backspace: Clear empty list prefix or outdent secondary list, or merge with previous line
-    if (e.key === 'Backspace') {
-      const listInfo = parseListPrefix(currentLine);
-      // If cursor is at or before end of empty prefix (e.g. "  - |" or "- |")
-      if (listInfo.type && cursor <= (listInfo.indent.length + listInfo.prefix.length) && !listInfo.content.trim()) {
-        e.preventDefault();
-        recordImmediateSnapshot(index, cursor);
-        if (listInfo.indent.length >= 2) {
-          // Outdent secondary list back to primary list
-          const outdented = listInfo.indent.slice(2) + listInfo.prefix;
-          handleLineChange(index, outdented, true);
-          pendingCursorPos.current = outdented.length;
-          return;
-        }
-        handleLineChange(index, '', true);
-        pendingCursorPos.current = 0;
-        return;
-      }
-
-      // Merge with previous line if at start
-      if (cursor === 0 && textarea.selectionEnd === 0 && index > 0) {
-        e.preventDefault();
-        recordImmediateSnapshot(index, cursor);
-        const prevLine = lines[index - 1] ?? '';
-        const newLines = [...lines];
-        newLines[index - 1] = prevLine + currentLine;
-        newLines.splice(index, 1);
-        const newDoc = newLines.join('\n');
-        lastTrackedValueRef.current = newDoc;
-        onChange(newDoc);
-        pendingCursorPos.current = prevLine.length;
-        setActiveLineIndex(index - 1);
-        return;
-      }
-    }
-
-    // 7. Arrow Up / Down navigation between lines
-    if (e.key === 'ArrowUp' && index > 0 && cursor === 0) {
-      e.preventDefault();
-      pendingCursorPos.current = lines[index - 1].length;
-      setActiveLineIndex(index - 1);
+      saveHistorySnapshot(value);
+      const nextLine = lines[index + 1] || '';
+      const mergedLine = currentLine + nextLine;
+      const updated = [...lines];
+      updated[index] = mergedLine;
+      updated.splice(index + 1, 1);
+      onChange(updated.join('\n'));
+      pendingCursorPosRef.current = start;
       return;
     }
 
-    if (e.key === 'ArrowDown' && index < lines.length - 1 && cursor === currentLine.length) {
+    // Escape -> exit active editing, render all lines
+    if (e.key === 'Escape') {
       e.preventDefault();
-      pendingCursorPos.current = lines[index + 1].length;
-      setActiveLineIndex(index + 1);
+      setActiveLineIndex(null);
       return;
     }
   };
 
+  // Handle multi-line paste directly into active line
+  const handleLinePaste = (index: number, e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText && pastedText.includes('\n')) {
+      e.preventDefault();
+      saveHistorySnapshot(value);
+      const textarea = activeInputRef.current;
+      const start = textarea?.selectionStart || 0;
+      const end = textarea?.selectionEnd || 0;
+      const currentLine = lines[index] || '';
+
+      const before = currentLine.substring(0, start);
+      const after = currentLine.substring(end);
+      const pastedLines = pastedText.replace(/\r\n/g, '\n').split('\n');
+
+      const firstLineMerged = before + pastedLines[0];
+      const lastLineMerged = pastedLines[pastedLines.length - 1] + after;
+      const middleLines = pastedLines.slice(1, -1);
+
+      const replacement = [firstLineMerged, ...middleLines, lastLineMerged];
+      const updated = [...lines];
+      updated.splice(index, 1, ...replacement);
+      
+      onChange(updated.join('\n'));
+      const targetIndex = index + pastedLines.length - 1;
+      const targetPos = (pastedLines[pastedLines.length - 1] || '').length + (pastedLines.length === 1 ? before.length : 0);
+      pendingCursorPosRef.current = targetPos;
+      setActiveLineIndex(targetIndex);
+    }
+  };
+
+  // Helper for inline wrap formatting
+  const applyWrapToActiveLine = (prefix: string, suffix: string, defaultText: string = 'text') => {
+    if (activeLineIndex === null) {
+      const idx = lines.length ? lines.length - 1 : 0;
+      const line = lines[idx] || '';
+      const newLine = `${line}${prefix}${defaultText}${suffix}`;
+      const updated = [...lines];
+      updated[idx] = newLine;
+      onChange(updated.join('\n'));
+      pendingCursorPosRef.current = newLine.length;
+      setActiveLineIndex(idx);
+      return;
+    }
+    const textarea = activeInputRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const line = lines[activeLineIndex] || '';
+    const selected = line.substring(start, end);
+    const replacement = selected ? `${prefix}${selected}${suffix}` : `${prefix}${defaultText}${suffix}`;
+
+    saveHistorySnapshot(value);
+    const newLine = line.substring(0, start) + replacement + line.substring(end);
+    const updated = [...lines];
+    updated[activeLineIndex] = newLine;
+    onChange(updated.join('\n'));
+
+    setTimeout(() => {
+      textarea.focus();
+      if (selected) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length);
+      }
+    }, 0);
+  };
+
+  // Helper for prefixing active line
+  const applyLinePrefixToActiveLine = (prefix: string, isListToggle: boolean = false) => {
+    const idx = activeLineIndex !== null ? activeLineIndex : (lines.length ? lines.length - 1 : 0);
+    const line = lines[idx] || '';
+    saveHistorySnapshot(value);
+
+    let newLine = '';
+    if (isListToggle) {
+      if (line.startsWith(prefix)) {
+        newLine = line.substring(prefix.length);
+      } else {
+        const cleaned = line.replace(/^(\s*)([-*+]\s+\[([ xX]?)\]\s*|[-*+]\s+|\d+\.\s+|> )/, '');
+        newLine = `${prefix}${cleaned}`;
+      }
+    } else {
+      const cleaned = line.replace(/^(#{1,6}\s*)/, '');
+      newLine = `${prefix}${cleaned}`;
+    }
+
+    const updated = [...lines];
+    updated[idx] = newLine;
+    onChange(updated.join('\n'));
+    pendingCursorPosRef.current = newLine.length;
+    setActiveLineIndex(idx);
+  };
+
+  // Click on empty space below lines
+  const handleContainerClick = (e: React.MouseEvent) => {
+    if (e.target === containerRef.current) {
+      const lastIndex = Math.max(0, lines.length - 1);
+      pendingCursorPosRef.current = (lines[lastIndex] || '').length;
+      setActiveLineIndex(lastIndex);
+    }
+  };
+
   return (
-    <div 
-      className={cn("flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 shadow-inner overflow-hidden focus:outline-none", className)}
-      onKeyDown={(e) => {
-        // Catch Undo/Redo even if focus is on editor wrapper
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-          e.preventDefault();
-          undo();
-          return;
-        }
-        if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
-            ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')) {
-          e.preventDefault();
-          redo();
-          return;
-        }
-      }}
-      tabIndex={-1}
-    >
-      {/* Toolbar */}
+    <div className={cn("flex flex-col bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden focus-within:border-indigo-500/50 transition-all", className)}>
+      {/* Top Toolbar */}
       {!hideToolbar && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex-wrap gap-2">
-          <div className="flex items-center gap-1 flex-wrap">
-            {/* Undo & Redo buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-1 px-2.5 py-1.5 bg-slate-950/70 border-b border-slate-800/80 select-none text-slate-400 shrink-0">
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {/* History actions */}
             <button
               type="button"
-              onClick={undo}
+              onClick={handleUndo}
               disabled={!canUndo}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                canUndo 
-                  ? "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white" 
-                  : "text-slate-600 opacity-40 cursor-not-allowed"
-              )}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 size={13} />
             </button>
             <button
               type="button"
-              onClick={redo}
+              onClick={handleRedo}
               disabled={!canRedo}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                canRedo 
-                  ? "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white" 
-                  : "text-slate-600 opacity-40 cursor-not-allowed"
-              )}
-              title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+              title="Redo (Ctrl+Y)"
             >
               <Redo2 size={13} />
             </button>
 
-            <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+            <div className="w-[1px] h-3.5 bg-slate-800 mx-1" />
 
+            {/* Basic Text Formatting */}
             <button
               type="button"
-              onClick={() => formatSelection(activeLineIndex ?? 0, '**', '**', 'bold')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              onClick={() => applyWrapToActiveLine('**', '**', 'bold text')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors font-bold"
               title="Bold (Ctrl+B)"
             >
               <Bold size={13} />
             </button>
             <button
               type="button"
-              onClick={() => formatSelection(activeLineIndex ?? 0, '*', '*', 'italic')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              onClick={() => applyWrapToActiveLine('*', '*', 'italic text')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors italic px-0.5"
               title="Italic (Ctrl+I)"
             >
               <Italic size={13} />
             </button>
             <button
               type="button"
-              onClick={() => formatSelection(activeLineIndex ?? 0, '~~', '~~', 'strikethrough')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Strikethrough (Alt+S)"
+              onClick={() => applyWrapToActiveLine('~~', '~~', 'strikethrough text')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Strikethrough (Ctrl+Shift+X)"
             >
               <Strikethrough size={13} />
             </button>
 
-            <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+            <div className="w-[1px] h-3.5 bg-slate-800 mx-1" />
 
+            {/* Headings */}
             <button
               type="button"
-              onClick={() => setHeadingLevel(activeLineIndex ?? 0, 1)}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Heading 1 (Alt+1 / Ctrl+1)"
+              onClick={() => applyLinePrefixToActiveLine('# ')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Heading 1 (# )"
             >
               <Heading1 size={13} />
             </button>
             <button
               type="button"
-              onClick={() => setHeadingLevel(activeLineIndex ?? 0, 2)}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Heading 2 (Alt+2 / Ctrl+2)"
+              onClick={() => applyLinePrefixToActiveLine('## ')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Heading 2 (## )"
             >
               <Heading2 size={13} />
             </button>
             <button
               type="button"
-              onClick={() => setHeadingLevel(activeLineIndex ?? 0, 3)}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Heading 3 (Alt+3 / Ctrl+3)"
+              onClick={() => applyLinePrefixToActiveLine('### ')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Heading 3 (### )"
             >
               <Heading3 size={13} />
             </button>
 
-            <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+            <div className="w-[1px] h-3.5 bg-slate-800 mx-1" />
 
+            {/* Lists & Quotes */}
             <button
               type="button"
-              onClick={() => toggleLinePrefix('- ')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Bullet List (Alt+U)"
+              onClick={() => applyLinePrefixToActiveLine('- ', true)}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Bullet List (- )"
             >
               <List size={13} />
             </button>
             <button
               type="button"
-              onClick={() => toggleLinePrefix('1. ')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Numbered List (Alt+O)"
+              onClick={() => applyLinePrefixToActiveLine('1. ', true)}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Numbered List (1. )"
             >
               <ListOrdered size={13} />
             </button>
             <button
               type="button"
-              onClick={() => toggleLinePrefix('- [ ] ')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Checkbox Task (Alt+C)"
+              onClick={() => applyLinePrefixToActiveLine('- [ ] ', true)}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Task Checklist (- [ ] )"
             >
               <CheckSquare size={13} />
             </button>
             <button
               type="button"
-              onClick={() => toggleLinePrefix('> ')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Quote (Alt+Q)"
+              onClick={() => applyLinePrefixToActiveLine('> ', true)}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Quote (> )"
             >
               <Quote size={13} />
             </button>
             <button
               type="button"
-              onClick={() => formatSelection(activeLineIndex ?? 0, '`', '`', 'code')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Inline Code (Alt+E)"
+              onClick={() => applyWrapToActiveLine('`', '`', 'code')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors font-mono"
+              title="Inline Code (`code`)"
             >
               <Code size={13} />
             </button>
             <button
               type="button"
-              onClick={() => formatSelection(activeLineIndex ?? 0, '[', '](url)', 'link')}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Link (Ctrl+K)"
+              onClick={() => applyWrapToActiveLine('[', '](https://)', 'link title')}
+              className="p-1 hover:text-slate-100 hover:bg-slate-800/80 rounded transition-colors"
+              title="Insert Link (Ctrl+K)"
             >
               <LinkIcon size={13} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right Controls: Cheatsheet, Typography */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setShowShortcutsModal(true)}
-              className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-mono"
+              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 rounded transition-colors"
               title="Markdown Shortcuts Guide"
             >
-              <Keyboard size={13} />
-              <span className="hidden sm:inline text-[11px]">Shortcuts</span>
+              <Keyboard size={11} />
+              <span className="hidden sm:inline">Shortcuts</span>
             </button>
+
             <EditorTypographyMenu />
           </div>
         </div>
       )}
 
-      {/* Obsidian-Style Live Preview Editor Area */}
+      {/* Main Document Content Area with In-Place Markdown Rendering */}
       <div 
-        className="flex-1 w-full overflow-y-auto custom-scrollbar p-4 space-y-1 font-sans font-normal"
-        style={{ 
+        ref={containerRef}
+        onClick={handleContainerClick}
+        className="flex-1 p-3 sm:p-4 overflow-y-auto custom-scrollbar flex flex-col cursor-text min-h-0 relative select-text"
+        style={{
           minHeight,
-          fontFamily: 'var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif)',
-        }}
-        onClick={(e) => {
-          // If clicked directly on the empty background below lines
-          if (e.target === e.currentTarget) {
-            if (lines.length === 0) {
-              recordImmediateSnapshot();
-              lastTrackedValueRef.current = '';
-              onChange('');
-              setActiveLineIndex(0);
-            } else {
-              const lastIdx = lines.length - 1;
-              if (lines[lastIdx].trim() !== '') {
-                recordImmediateSnapshot();
-                const newVal = value + '\n';
-                lastTrackedValueRef.current = newVal;
-                onChange(newVal);
-                setActiveLineIndex(lines.length);
-                pendingCursorPos.current = 0;
-              } else {
-                setActiveLineIndex(lastIdx);
-                pendingCursorPos.current = lines[lastIdx].length;
-              }
-            }
-          }
+          fontSize: `${fontSize}px`,
+          lineHeight: lineMultiplier,
         }}
       >
-        {lines.length === 0 || (lines.length === 1 && lines[0] === '') ? (
-          <div 
-            onClick={() => setActiveLineIndex(0)}
-            className="text-slate-600 italic cursor-text py-1 font-sans font-normal"
-            style={{ 
-              fontSize: `${fontSize}px`, 
-              lineHeight: lineMultiplier,
-              fontFamily: 'var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif)',
-            }}
-          >
-            {placeholder}
-          </div>
-        ) : (
-          lines.map((line, index) => {
-            const isActive = activeLineIndex === index;
-            const listInfo = parseListPrefix(line);
-            const rawIndent = listInfo.indent || (line.match(/^(\s*)/)?.[1] ?? '');
-            const indentSpaces = rawIndent.replace(/\t/g, '  ').length;
-            const indentLevel = Math.floor(indentSpaces / 2);
-            const isBlankListItem = /^(\s*)([-*+]|\d+\.|-\s*\[[ xX]?\]|>)\s*$/.test(line);
-            const lineToRender = listInfo.type ? line.trimStart() : line;
+        {lines.map((line, index) => {
+          const isActive = activeLineIndex === index;
 
+          if (isActive) {
             return (
               <div 
                 key={index}
-                className={cn(
-                  "group relative rounded-lg transition-all px-1.5 py-0.5 font-sans font-normal",
-                  isActive ? "bg-slate-800/40 ring-1 ring-indigo-500/30" : "hover:bg-slate-800/20 cursor-pointer"
-                )}
-                onClick={() => {
-                  if (!isActive) {
-                    setActiveLineIndex(index);
-                    pendingCursorPos.current = line.length;
-                  }
-                }}
+                className="relative w-full py-0.5 font-sans"
               >
-                {isActive ? (
-                  <textarea
-                    ref={activeTextareaRef}
-                    value={line}
-                    onChange={(e) => handleLineChange(index, e.target.value)}
-                    onKeyDown={(e) => handleLineKeyDown(index, e)}
-                    rows={1}
-                    className="w-full bg-transparent text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none font-sans font-normal tracking-normal overflow-hidden"
-                    style={{
-                      fontSize: line.startsWith('# ') 
-                        ? `${Math.round(fontSize * 1.55)}px` 
-                        : line.startsWith('## ') 
-                          ? `${Math.round(fontSize * 1.3)}px` 
-                          : line.startsWith('### ') 
-                            ? `${Math.round(fontSize * 1.15)}px` 
-                            : `${fontSize}px`,
-                      fontWeight: line.startsWith('# ') 
-                        ? 900 
-                        : line.startsWith('## ') || line.startsWith('### ') 
-                          ? 700 
-                          : 400,
-                      lineHeight: lineMultiplier,
-                      fontFamily: 'var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif)',
-                      height: 'auto',
-                      tabSize: 2,
-                    }}
-                    autoFocus
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = `${target.scrollHeight}px`;
-                    }}
-                    spellCheck={false}
-                  />
-                ) : isBlankListItem ? (
-                  // Elegant placeholder for blank list items rather than a lonely dot
-                  <div 
-                    className="markdown-content text-slate-200 select-text min-h-[1.5em] flex items-center gap-2 font-sans font-normal tracking-normal"
-                    style={{
-                      fontSize: `${fontSize}px`,
-                      lineHeight: lineMultiplier,
-                      fontFamily: 'var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif)',
-                      paddingLeft: indentLevel > 0 ? `${indentLevel * 24}px` : undefined,
-                    }}
-                  >
-                    <span className="text-indigo-400/80 font-sans select-none pl-5">
-                      {line.includes('[') 
-                        ? '☐' 
-                        : /^\s*\d+\./.test(line) 
-                          ? (indentLevel === 1 ? 'a.' : indentLevel >= 2 ? 'i.' : '1.') 
-                          : indentLevel === 1 
-                            ? '◦' 
-                            : indentLevel >= 2 
-                              ? '▪' 
-                              : '•'}
-                    </span>
-                    <span className="text-slate-500/50 italic text-[0.88em] select-none">List item...</span>
-                  </div>
-                ) : (
-                  <div 
-                    className="markdown-content text-slate-200 select-text min-h-[1.5em] font-sans font-normal tracking-normal"
-                    style={{
-                      fontSize: `${fontSize}px`,
-                      lineHeight: lineMultiplier,
-                      fontFamily: 'var(--font-sans, "Inter", ui-sans-serif, system-ui, sans-serif)',
-                      paddingLeft: indentLevel > 0 ? `${indentLevel * 24}px` : undefined,
-                    }}
-                  >
-                    {line.trim() ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm, remarkBreaks]}
-                        components={{
-                          h1: ({ node, ...props }) => <h1 className="font-black text-slate-100 mt-2 mb-1" style={{ fontSize: `${Math.round(fontSize * 1.55)}px` }} {...props} />,
-                          h2: ({ node, ...props }) => <h2 className="font-bold text-slate-100 mt-2 mb-1" style={{ fontSize: `${Math.round(fontSize * 1.3)}px` }} {...props} />,
-                          h3: ({ node, ...props }) => <h3 className="font-bold text-indigo-300 mt-1.5 mb-0.5" style={{ fontSize: `${Math.round(fontSize * 1.15)}px` }} {...props} />,
-                          p: ({ node, ...props }) => <p className="my-0.5 text-slate-200" {...props} />,
-                          ul: ({ node, ...props }) => {
-                            const bulletClass = indentLevel === 1 
-                              ? "list-[circle]" 
-                              : indentLevel >= 2 
-                                ? "list-[square]" 
-                                : "list-disc";
-                            return (
-                              <ul 
-                                className={cn(bulletClass, "pl-5 my-0.5 marker:text-indigo-400")} 
-                                {...props} 
-                              />
-                            );
-                          },
-                          ol: ({ node, ...props }) => {
-                            const numClass = indentLevel === 1 
-                              ? "list-[lower-alpha]" 
-                              : indentLevel >= 2 
-                                ? "list-[lower-roman]" 
-                                : "list-decimal";
-                            return (
-                              <ol 
-                                className={cn(numClass, "pl-5 my-0.5 marker:text-indigo-400 font-medium")} 
-                                {...props} 
-                              />
-                            );
-                          },
-                          li: ({ node, ...props }) => <li className="text-slate-200" {...props} />,
-                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500/70 bg-indigo-500/5 pl-3 py-0.5 my-1 italic text-slate-300 rounded-r" {...props} />,
-                          input: ({ node, ...props }) => {
-                            if (props.type === 'checkbox') {
-                              return (
-                                <input
-                                  type="checkbox"
-                                  checked={props.checked}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    recordImmediateSnapshot(index);
-                                    const newLine = props.checked
-                                      ? line.replace(/\[[xX]\]/, '[ ]')
-                                      : line.replace(/\[\s?\]/, '[x]');
-                                    handleLineChange(index, newLine, true);
-                                  }}
-                                  className="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-0 mr-1.5 cursor-pointer align-middle"
-                                />
-                              );
-                            }
-                            return <input {...props} />;
-                          },
-                          code: ({ node, className, children, ...props }: any) => {
-                            const isInline = !className?.includes('language-');
-                            return isInline ? (
-                              <code className="px-1 py-0.5 bg-slate-900 border border-slate-800 text-indigo-300 rounded text-[0.9em] font-mono" {...props}>{children}</code>
-                            ) : (
-                              <pre className="p-2 my-1 bg-slate-950 border border-slate-800 rounded-lg overflow-x-auto text-[0.9em] font-mono text-slate-200"><code {...props}>{children}</code></pre>
-                            );
-                          },
-                          a: ({ node, ...props }) => <a className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank" rel="noreferrer" {...props} />,
-                        }}
-                      >
-                        {lineToRender}
-                      </ReactMarkdown>
-                    ) : (
-                      <span className="opacity-0">.</span>
-                    )}
-                  </div>
-                )}
+                <textarea
+                  ref={activeInputRef}
+                  value={line}
+                  onChange={(e) => handleLineChange(index, e.target.value, e.target)}
+                  onKeyDown={(e) => handleLineKeyDown(index, e)}
+                  onPaste={(e) => handleLinePaste(index, e)}
+                  rows={1}
+                  placeholder={index === 0 && lines.length === 1 ? placeholder : ''}
+                  style={{
+                    fontSize: `${fontSize}px`,
+                    lineHeight: lineMultiplier,
+                  }}
+                  className="w-full block bg-transparent border-0 outline-none ring-0 shadow-none p-0 m-0 text-slate-100 placeholder:text-slate-500 resize-none font-sans font-normal overflow-hidden focus:ring-0 focus:outline-none focus:border-0"
+                  spellCheck="false"
+                  autoFocus
+                />
               </div>
             );
-          })
-        )}
+          }
+
+          // Non-active line: Render Markdown in-place
+          const isBlank = line.trim().length === 0;
+
+          return (
+            <div
+              key={index}
+              onClick={() => {
+                pendingCursorPosRef.current = line.length;
+                setActiveLineIndex(index);
+              }}
+              className="relative w-full py-0.5 cursor-text text-slate-200 hover:text-slate-100 transition-colors select-text"
+            >
+              {isBlank ? (
+                // Blank line spacer
+                <div 
+                  className="w-full text-transparent select-none"
+                  style={{ minHeight: `${Math.round(fontSize * lineMultiplier)}px` }}
+                >
+                  &nbsp;
+                </div>
+              ) : (
+                <div className="markdown-inline-content select-text">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                      p: ({ node, ...props }) => (
+                        <p className="m-0 leading-normal" {...props} />
+                      ),
+                      h1: ({ node, ...props }) => (
+                        <h1 
+                          className="font-black text-slate-100 border-b border-slate-800/80 pb-0.5 tracking-tight my-1" 
+                          style={{ fontSize: `${Math.round(fontSize * 1.5)}px`, lineHeight: 1.3 }}
+                          {...props} 
+                        />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2 
+                          className="font-bold text-slate-100 tracking-tight my-0.5" 
+                          style={{ fontSize: `${Math.round(fontSize * 1.28)}px`, lineHeight: 1.35 }}
+                          {...props} 
+                        />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3 
+                          className="font-bold text-indigo-300 tracking-tight my-0.5" 
+                          style={{ fontSize: `${Math.round(fontSize * 1.15)}px`, lineHeight: 1.4 }}
+                          {...props} 
+                        />
+                      ),
+                      ul: ({ node, ...props }) => {
+                        const leadingSpaces = line.match(/^(\s*)/)?.[1].length || 0;
+                        const isSub = leadingSpaces >= 2;
+                        return (
+                          <ul 
+                            className={cn(
+                              "space-y-0 my-0 list-inside",
+                              isSub ? "list-[circle] pl-5 text-slate-300" : "list-disc pl-1 text-slate-200"
+                            )} 
+                            {...props} 
+                          />
+                        );
+                      },
+                      ol: ({ node, ...props }) => {
+                        const leadingSpaces = line.match(/^(\s*)/)?.[1].length || 0;
+                        const isSub = leadingSpaces >= 2;
+                        return (
+                          <ol 
+                            className={cn(
+                              "space-y-0 my-0 list-inside",
+                              isSub ? "list-[lower-alpha] pl-5 text-slate-300" : "list-decimal pl-1 text-slate-200"
+                            )} 
+                            {...props} 
+                          />
+                        );
+                      },
+                      li: ({ node, ...props }: any) => {
+                        const checked = props.checked;
+                        if (checked !== null && checked !== undefined) {
+                          // Checklist item
+                          const leadingSpaces = line.match(/^(\s*)/)?.[1].length || 0;
+                          const isSub = leadingSpaces >= 2;
+                          return (
+                            <li className={cn("list-none flex items-center gap-2 my-0 leading-normal", isSub && "pl-5")} {...props}>
+                              <button
+                                type="button"
+                                onClick={(e) => toggleCheckbox(index, e)}
+                                className={cn(
+                                  "w-4 h-4 rounded flex items-center justify-center border transition-all text-xs shrink-0 cursor-pointer",
+                                  checked 
+                                    ? "bg-indigo-600 border-indigo-500 text-white" 
+                                    : "border-slate-600 bg-slate-800/50 hover:border-slate-400"
+                                )}
+                              >
+                                {checked && '✓'}
+                              </button>
+                              <span className={cn(checked ? "line-through text-slate-400" : "text-slate-200")}>
+                                {props.children}
+                              </span>
+                            </li>
+                          );
+                        }
+                        return <li className="my-0 leading-normal" {...props}>{props.children}</li>;
+                      },
+                      strong: ({ node, ...props }) => (
+                        <strong className="font-bold text-slate-100" {...props} />
+                      ),
+                      em: ({ node, ...props }) => (
+                        <em className="italic text-slate-300 pr-0.5" {...props} />
+                      ),
+                      del: ({ node, ...props }) => (
+                        <del className="line-through text-slate-400" {...props} />
+                      ),
+                      blockquote: ({ node, ...props }) => (
+                        <blockquote className="border-l-2 border-indigo-500/60 pl-2.5 my-0.5 text-slate-400 italic font-serif" {...props} />
+                      ),
+                      code: ({ node, className, children, ...props }) => (
+                        <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300 font-mono text-[0.9em]" {...props}>
+                          {children}
+                        </code>
+                      ),
+                      hr: ({ node, ...props }) => (
+                        <hr className="my-2 border-slate-800" {...props} />
+                      ),
+                      a: ({ node, ...props }) => (
+                        <a 
+                          className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          onClick={(e) => e.stopPropagation()}
+                          {...props} 
+                        />
+                      )
+                    }}
+                  >
+                    {line}
+                  </ReactMarkdown>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Shortcuts Cheatsheet Modal */}
+      {/* Shortcuts Modal (rendered on document.body via Portal) */}
       {showShortcutsModal && typeof document !== 'undefined' && createPortal(
-        <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
-          onClick={() => setShowShortcutsModal(false)}
-        >
-          <div 
-            className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl text-slate-200">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Keyboard size={18} className="text-indigo-400" />
-                <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider font-mono">Markdown Shortcuts</h3>
+                <h3 className="text-sm font-bold uppercase tracking-wider">Markdown Live Shortcuts</h3>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => setShowShortcutsModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-1.5">History & Undo / Redo</div>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-slate-300">
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Undo</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Ctrl+Z</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Redo</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Ctrl+Y / Ctrl+Shift+Z</kbd>
-                  </div>
+            <div className="space-y-3 text-xs font-mono">
+              <div className="grid grid-cols-2 gap-2 text-slate-300">
+                <div className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1">
+                  <div className="font-bold text-indigo-400">Inline Formatting</div>
+                  <div><span className="text-amber-400">Ctrl + B</span> : **Bold**</div>
+                  <div><span className="text-amber-400">Ctrl + I</span> : *Italic*</div>
+                  <div><span className="text-amber-400">Ctrl + Shift + X</span> : ~~Strike~~</div>
+                  <div><span className="text-amber-400">Ctrl + K</span> : [Link](url)</div>
+                  <div><span className="text-amber-400">Ctrl + `</span> : `code`</div>
+                  <div><span className="text-amber-400">Esc</span> : Exit to Full Preview</div>
+                </div>
+
+                <div className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1">
+                  <div className="font-bold text-indigo-400">Lists & Navigation</div>
+                  <div><span className="text-amber-400">Tab</span> : Indent to 2nd Level</div>
+                  <div><span className="text-amber-400">Shift + Tab</span> : Outdent to 1st Level</div>
+                  <div><span className="text-amber-400">Enter</span> : Continue list / Sub-list</div>
+                  <div><span className="text-amber-400">Enter on empty</span> : Outdent / Exit</div>
+                  <div><span className="text-amber-400">Delete at end</span> : Merge next line</div>
+                  <div><span className="text-amber-400">↑ / ↓</span> : Prev / Next line</div>
                 </div>
               </div>
 
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-1.5">Outlines & Headings</div>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-slate-300">
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Heading 1-6</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+1~6</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Paragraph</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+0</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Demote Heading</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Tab</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Promote Heading</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Shift+Tab</kbd>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-1.5">Lists & Notes</div>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-slate-300">
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Bullet List</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+U</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Numbered List</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+O</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Task Checklist</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+C</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Quote Block</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+Q</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Auto-Continue</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Enter</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Exit List / Cancel</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Enter (Empty)</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Indent List</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Tab</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Outdent List</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Shift+Tab</kbd>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-1.5">Inline Formatting</div>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-slate-300">
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Bold</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Ctrl+B</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Italic</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Ctrl+I</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Strikethrough</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+S</kbd>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-800/50 px-2 py-1 rounded">
-                    <span>Inline Code</span>
-                    <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-indigo-300 text-[10px]">Alt+E</kbd>
-                  </div>
+              <div className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1.5">
+                <div className="font-bold text-indigo-400">Live Markdown Rendering & Multi-line Paste</div>
+                <div className="text-slate-400 leading-relaxed font-sans">
+                  Lines automatically render as rich headings, bold/italic text, sub-level lists, and interactive checklists. Pasting multi-line content expands seamlessly across lines.
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={() => setShowShortcutsModal(false)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-colors"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors"
               >
                 Got it
               </button>

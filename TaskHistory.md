@@ -1,5 +1,19 @@
 # Task History Archive
 
+- **v9.3.37 (2026-09-10):** Markdown Live Editor Multi-Line Paste, Delete Merging & Escape Preview
+  - *Multi-Line Content Paste Expansion:* Added clipboard handler to automatically decompose multi-line pasted text into individual rows and position cursor at the tail of pasted block.
+  - *Line-End Forward Delete Merging:* Enabled `Delete` key at the end of a line to smoothly merge subsequent rows into the active line.
+  - *Escape Quick Preview & Typography Polish:* Enabled `Esc` to instantly blur active line and preview complete rendered markdown; optimized rich rendering of bold (`**`), italic (`*`), and strikethrough (`~~`).
+
+- **v9.3.36 (2026-09-10):** Markdown Sub-List Indentation & Tab Navigation Hierarchy
+  - *Full Second-Level Sub-List Support:* Enhanced `Tab` and `Shift + Tab` key handlers to automatically indent and outdent list items (`- `, `1. `, `- [ ] `) by 2 spaces at the beginning of the line regardless of cursor position within the line.
+  - *Nested Multi-Level Markdown Live Rendering:* Non-active lines with leading indentations render as proper second-level hierarchical lists (nested hollow circle bullets, sub-alphabet numbers, and indented task checkboxes).
+  - *Smart Multi-Level List Continuation & Exit:* Pressing `Enter` on a sub-list item automatically maintains indentation; pressing `Enter` on an empty sub-list item automatically outdents one level before exiting.
+
+- **v9.3.35 (2026-09-10):** Markdown Live Editor Cursor Stabilization & Flow Optimization
+  - *Elimination of Cursor Reset Glitch:* Refactored cursor positioning logic from reactive render loops to decoupled line-transition refs (`pendingCursorPosRef`), preventing unwanted reset of cursor position to the start of the line during continuous text input.
+  - *Smooth Native Input Flow:* Maintained uninterrupted native browser cursor advancement, full IME input compatibility, and seamless line jumping on Enter, Backspace, and Arrow keys.
+
 - **v9.3.30 (2026-09-10):** Journal Reflection Top Header & Editor Footer Simplification
   - *Strict Minimalist Top Header:* Simplified the journal right-page top header to strictly feature the date-defaulted editable Title input on the left and only the Quick Edit (`Edit3`) and Fullscreen Immersive (`Maximize2`) action buttons on the right.
   - *Removal of Unwanted Metric Footers:* Removed the word count and character count bar (`39 words · 209 characters`) from the bottom-left of the inline editor view, keeping a clean right-aligned Save button.

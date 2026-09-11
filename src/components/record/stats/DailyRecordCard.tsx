@@ -12,7 +12,6 @@ import { cn, getSessionEffectiveMinutes, getSettlementDay } from '../../../lib/u
 import { getEffectiveTargetFocusMinutes } from '../../../lib/workstationUtils';
 import { playSound } from '../../../lib/sound';
 import { MoodSelector } from '../../common/MoodSelector';
-import { ReflectionHeaderControls } from '../../common/ReflectionHeaderControls';
 import { StarRating } from '../../common/StarRating';
 import { MarkdownEditor } from '../../common/MarkdownEditor';
 import { EfficiencyDetailsModal } from '../EfficiencyDetailsModal';
@@ -182,38 +181,19 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
               <Edit2 size={14} />
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <ReflectionHeaderControls
-                reflection={editReflection}
-                onSelectTemplate={setEditReflection}
-                templates={state.reflectionTemplates}
-                onUpdateTemplates={onUpdateTemplates}
-                autoLoadTemplateId={state.autoLoadTemplateId}
-                autoLoadTemplateMode={state.autoLoadTemplateMode}
-                onSetAutoLoadTemplate={(templateId, mode) => {
-                  onUpdateState?.({
-                    autoLoadTemplateId: templateId,
-                    autoLoadTemplateMode: mode || 'empty'
-                  });
-                }}
-                onOpenImmersive={() => setIsFullscreenEdit(true)}
-                showCopy={true}
-                showMetrics={true}
-                showImportExport={true}
-                onImportReflection={setEditReflection}
-                exportFileName={`reflection-${dateStr}.md`}
-              />
+            <div className="flex items-center gap-1.5">
               <button 
                 onClick={saveLog}
-                className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                title="Save"
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="Save Record"
               >
-                <Save size={14} />
+                <Save size={13} />
+                <span>Save</span>
               </button>
               <button 
                 onClick={saveLog}
-                className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                title="Finish and Auto-save"
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+                title="Close and Save"
               >
                 <X size={14} />
               </button>
