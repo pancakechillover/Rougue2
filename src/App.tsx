@@ -29,6 +29,7 @@ import { StartOfDayModal } from './components/dashboard/StartOfDayModal';
 import { CoinRain } from './components/dashboard/CoinRain';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { ExploreView } from './components/expedition/ExploreView';
+import { WorkstationStatusChip } from './components/workstation/WorkstationStatusChip';
 import { DungeonsView } from './components/dungeons/DungeonsView';
 import { VaultView } from './components/vault/VaultView';
 import { TalentsView } from './components/talents/TalentsView';
@@ -44,6 +45,7 @@ import { GachaResultModal } from './components/shop/GachaResultModal';
 import { BulkClaimModal } from './components/modals/BulkClaimModal';
 import { useGameState } from './hooks/useGameState';
 import { useCloudSync } from './hooks/useCloudSync';
+import { useWorkstation } from './hooks/useWorkstation';
 import { triggerSimpleConfetti } from './lib/effects';
 import { cn, getXPForLevel, getSettlementDay, getTitleForLevel } from './lib/utils';
 import { playSound } from './lib/sound';
@@ -52,6 +54,7 @@ import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
 import { UpdateChecker } from './components/common/UpdateChecker';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useTimerStore } from './hooks/useTimerStore';
 import { renderAvatar } from './components/guild/TeamModule';
 import { WorkstationTimeoutModal, WorkstationTimeoutInfo } from './components/modals/WorkstationTimeoutModal';
@@ -438,6 +441,12 @@ function App() {
   const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);
   const isHandlingWorkstationTimeoutRef = useRef(false);
 
+  const { closeTimedOutSession } = useWorkstation({
+    state,
+    setState,
+    syncToCloud,
+  });
+
   useEffect(() => {
     const active = state.activeWorkstationSession;
     if (!active || !active.startTime) return;
@@ -450,45 +459,22 @@ function App() {
       const elapsedMs = Date.now() - start.getTime();
       if (elapsedMs >= MAX_WORKSTATION_SESSION_MS) {
         isHandlingWorkstationTimeoutRef.current = true;
-        const end = new Date(start.getTime() + MAX_WORKSTATION_SESSION_MS);
-        const sessionDate = getSettlementDay(start, state.timeSettings);
 
-        const completedInterval: WorkstationInterval = {
-          id: active.id,
-          date: sessionDate,
-          startTime: active.startTime,
-          endTime: end.toISOString(),
-          durationMinutes: MAX_WORKSTATION_SESSION_MINUTES,
-          location: active.location || 'Home',
-          note: active.note
-        };
+        const completed = closeTimedOutSession('Home');
 
-        const timeoutDetails: WorkstationTimeoutInfo = {
-          id: active.id,
-          location: active.location || 'Home',
-          startTime: active.startTime,
-          endTime: end.toISOString(),
-          durationMinutes: MAX_WORKSTATION_SESSION_MINUTES,
-          note: active.note
-        };
+        if (!completed) {
+          isHandlingWorkstationTimeoutRef.current = false;
+          return;
+        }
 
-        setState(prev => {
-          const existing = prev.workstationLogs?.[sessionDate] || [];
-          const updatedLogs = {
-            ...(prev.workstationLogs || {}),
-            [sessionDate]: [...existing, completedInterval]
-          };
-          const next: AppState = {
-            ...prev,
-            workstationLogs: updatedLogs,
-            activeWorkstationSession: null
-          };
-          if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
-          return next;
+        setWorkstationTimeoutInfo({
+          id: completed.id,
+          location: completed.location || 'Home',
+          startTime: completed.startTime,
+          endTime: completed.endTime,
+          durationMinutes: completed.durationMinutes,
+          note: completed.note,
         });
-
-        setWorkstationTimeoutInfo(timeoutDetails);
-        playSound('reward');
 
         setTimeout(() => {
           isHandlingWorkstationTimeoutRef.current = false;
@@ -499,7 +485,7 @@ function App() {
     checkWorkstationTimeout();
     const interval = setInterval(checkWorkstationTimeout, 1000);
     return () => clearInterval(interval);
-  }, [state.activeWorkstationSession, state.timeSettings, syncToCloud, setState]);
+  }, [state.activeWorkstationSession, state.timeSettings, closeTimedOutSession]);
 
   const handleContinueWorkstationSession = (location: string, note?: string) => {
     const startISO = new Date().toISOString();
@@ -1407,18 +1393,13 @@ function App() {
       )}>
         {!isFullscreenExplore && (
           <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-3 sm:px-8 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] flex items-center justify-between gap-2">
-          {/* Top Bar Left Content */}
-          <div className="hidden lg:flex items-center">
-            {/* Title removed for cleaner UI */}
-          </div>
-
           {/* Persistent Active Dungeon Widget - Simplified */}
           {currentDungeon ? (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setActiveTab('explore')}
-              className="flex items-center gap-2 sm:gap-3 group cursor-pointer transition-all max-w-[140px] xs:max-w-[180px] sm:max-w-none px-2"
+              className="flex items-center gap-2 sm:gap-3 group cursor-pointer transition-all max-w-[140px] xs:max-w-[180px] sm:max-w-none"
             >
               <div className="flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Sword size={14} className="text-indigo-400" />
@@ -1428,11 +1409,19 @@ function App() {
                   <span className="text-[10px] sm:text-xs font-bold text-white truncate max-w-[45px] xs:max-w-[80px] sm:max-w-[180px] leading-tight">
                     {currentDungeon.name}
                   </span>
-                  <span className="text-[9px] font-black text-slate-600 tabular-nums shrink-0">
-                    {Math.floor(currentDungeon.completedSessions * (state.standardSessionMinutes || 25))}m / {currentDungeon.totalSessions * (state.standardSessionMinutes || 25)}m
+                  <span className="text-[9px] text-slate-600 tabular-nums shrink-0 inline-flex items-center">
+                    <span className="font-bold">
+                      {Math.floor(currentDungeon.completedSessions * (state.standardSessionMinutes || 25))}
+                    </span>
+                    <span className="font-medium">m</span>
+                    <span className="mx-0.5 opacity-60">/</span>
+                    <span className="font-bold">
+                      {currentDungeon.totalSessions * (state.standardSessionMinutes || 25)}
+                    </span>
+                    <span className="font-medium">m</span>
                   </span>
                 </div>
-                <div className="w-16 sm:w-24 h-0.5 sm:h-1 bg-slate-800 rounded-full overflow-hidden mt-0.5">
+                <div className="w-16 sm:w-24 h-0.5 sm:h-1 shrink-0 bg-slate-800 rounded-full overflow-hidden mt-0.5">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${(currentDungeon.completedSessions / currentDungeon.totalSessions) * 100}%` }}
@@ -1446,7 +1435,7 @@ function App() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => setActiveTab('dungeons')}
-              className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer transition-all px-2"
+              className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer transition-all"
             >
               <div className="flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Sword size={14} className="text-slate-500 group-hover:text-indigo-400" />
@@ -1456,39 +1445,20 @@ function App() {
               </span>
             </motion.div>
           )}
-          
-          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4 md:gap-6">
 
-            {/* Cloud Status */}
-            {(state.secretCode || state.syncProvider) && (
-              <button 
-                onClick={() => checkCloudSync(true)}
-                disabled={isSyncing || isVerifying}
-                className={cn(
-                  "hidden md:flex items-center justify-center transition-all group relative shrink-0",
-                  hasUnsyncedChanges 
-                    ? "text-amber-500 hover:text-amber-400" 
-                    : (isSyncing || isVerifying)
-                      ? "text-indigo-400"
-                      : "text-slate-400 hover:text-indigo-400"
-                )}
-                title={hasUnsyncedChanges ? "Unsynced Changes - Click to Verify" : "Verify & Compare Archives"}
-              >
-                <div className={cn("transition-transform group-hover:rotate-180 duration-500 flex items-center")}>
-                  <RefreshCw size={14} className={isSyncing || isVerifying ? "animate-spin" : ""} />
-                </div>
-                {hasUnsyncedChanges && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 border border-slate-900"></span>
-                  </span>
-                )}
-              </button>
-            )}
+          <div className="shrink-0">
+            <WorkstationStatusChip
+              state={state}
+              setState={setState}
+              syncToCloud={syncToCloud}
+            />
+          </div>
+
+          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4 md:gap-6">
 
             {/* XP Bar */}
             <div 
-              className="flex items-center gap-1 sm:gap-2 mr-auto sm:mr-0 relative cursor-pointer" 
+              className="flex items-center gap-1 sm:gap-2 relative cursor-pointer shrink-0" 
               onClick={() => setShowXpTooltip(!showXpTooltip)}
               title="Experience"
             >
@@ -1535,6 +1505,34 @@ function App() {
                 </div>
               </div>
             </div>
+
+            {/* Cloud Status */}
+            {(state.secretCode || state.syncProvider) && (
+              <button 
+                onClick={() => checkCloudSync(true)}
+                disabled={isSyncing || isVerifying}
+                className={cn(
+                  "hidden md:flex items-center justify-center transition-all group relative shrink-0",
+                  hasUnsyncedChanges 
+                    ? "text-amber-500 hover:text-amber-400" 
+                    : (isSyncing || isVerifying)
+                      ? "text-indigo-400"
+                      : "text-slate-400 hover:text-indigo-400"
+                )}
+                title={hasUnsyncedChanges ? "Unsynced Changes - Click to Verify" : "Verify & Compare Archives"}
+              >
+                <div className={cn("transition-transform group-hover:rotate-180 duration-500 flex items-center")}>
+                  <RefreshCw size={14} className={isSyncing || isVerifying ? "animate-spin" : ""} />
+                </div>
+                {hasUnsyncedChanges && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 border border-slate-900"></span>
+                  </span>
+                )}
+              </button>
+            )}
+
 
             {/* Talent Shards and Scrolls */}
             <div className="relative flex items-center shrink-0">
@@ -1653,6 +1651,7 @@ function App() {
         )}
 
         <div className={cn("relative max-w-[1600px] mx-auto w-full flex-grow flex flex-col min-h-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]", isFullscreenExplore ? "h-[100dvh] justify-center" : "pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-8")}>
+          <ErrorBoundary key={activeTab} label="This page" onReset={() => setActiveTab('dashboard')}>
           <AnimatePresence mode="popLayout" initial={false}>
             {activeTab === 'dashboard' && (
               <DashboardView 
@@ -1911,6 +1910,7 @@ function App() {
               />
             )}
           </AnimatePresence>
+          </ErrorBoundary>
         </div>
       </main>
 

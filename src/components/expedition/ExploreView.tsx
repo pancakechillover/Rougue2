@@ -34,7 +34,6 @@ import { TalentIcon } from '../talents/TalentIcon';
 import { RewardChestModal } from '../modals/RewardChestModal';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { PopoverPortal } from '../common/PopoverPortal';
-import { WorkstationHeaderControls } from './WorkstationHeaderControls';
 import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
 import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../../lib/utils';
@@ -575,14 +574,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
             title="Explore"
             description="Venture into the unknown and sharpen your mind"
             icon={TimerIcon}
-            action={
-              <WorkstationHeaderControls
-                state={state}
-                setState={setState}
-                syncToCloud={syncToCloud}
-                onOpenWorkstationView={() => setShowWorkstationLogView(true)}
-              />
-            }
           />
 
         <div className="w-full flex-1 min-h-0 flex flex-col">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { History, X, Download, AlertTriangle, Cloud, HardDrive, Database, Server, RefreshCw } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn } from '../../lib/utils';

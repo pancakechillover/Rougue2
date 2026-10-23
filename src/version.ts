@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.3.39';
-export const LAST_UPDATE_DATE = '2026-09-11';
-export const LAST_UPDATE_TIME = '01:20:00';
+export const APP_VERSION = 'v9.4.0';
+export const LAST_UPDATE_DATE = '2026-10-23';
+export const LAST_UPDATE_TIME = '17:01:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,22 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.0',
+    date: '2026-10-23',
+    time: '17:01:00',
+    title: 'Version 9.4: Workstation Session Architecture Consolidation',
+    items: [
+      { category: 'Workstation Refactor', description: 'Consolidated four duplicated punch-in / punch-out implementations (header controls, workstation modal, workstation view and the 4-hour timeout effect) into a single useWorkstation hook. Session start, settle, timeout and cloud sync now share one code path.' },
+      { category: 'Dependency Fix', description: 'Replaced the unresolved framer-motion import with motion/react, which previously crashed the app under strict package managers.' },
+      { category: 'Versioning', description: 'Unified the package.json version with the runtime APP_VERSION so the in-app update checker can no longer drift.' },
+      { category: 'Performance', description: 'Stabilized the workstation hook callbacks with a state ref, so the 4-hour timeout interval is no longer torn down and rebuilt on every render.' },
+      { category: 'Workstation Status Chip', description: 'Added a top-bar status chip using the user\'s own location icon: grey when idle, coloured while on duty, click to check in or out. Shows the day total on wide screens. The duplicated Check In / Desk Log controls were removed from the Explore header.' },
+      { category: 'Location Management', description: 'The check-in popover now exposes a Manage entry that opens the location editor. Extracted it into a shared ManageLocationsModal, and added a confirmation step with explicit data-loss warning before resetting to the three defaults.' },
+      { category: 'Duration Typography', description: 'Durations now render with a bold number and a lighter, smaller unit (e.g. 1h30m) via a shared DurationText component. Applied to the Sanctum today card, Record overview cards, weekly heatmap totals and Journal day summary.' },
+      { category: 'Error Boundary', description: 'Added a render-error boundary around the whole app and around the active page. A crashing view now shows a recoverable panel (try again / reload / export data) instead of a blank screen, and the sidebar keeps working.' }
+    ]
+  },
   {
     version: 'v9.3.0',
     date: '2026-09-08',

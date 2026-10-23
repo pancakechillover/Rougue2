@@ -23,16 +23,16 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { format, parseISO, isValid, addDays, subDays, differenceInMinutes } from 'date-fns';
-import { AppState, WorkstationInterval, ActiveWorkstationSession } from '../../types';
+import { AppState, WorkstationInterval } from '../../types';
 import { cn, formatDuration, getSessionEffectiveMinutes, getSettlementDay } from '../../lib/utils';
 import { 
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
   getEffectiveTargetFocusMinutes, 
-  getActiveSessionDurationFormatted,
-  MAX_WORKSTATION_SESSION_MINUTES
+  getActiveSessionDurationFormatted
 } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
+import { useWorkstation } from '../../hooks/useWorkstation';
 import { LocationIcon } from '../workstation/LocationIcon';
 
 interface WorkstationModalProps {
@@ -85,6 +85,13 @@ export const WorkstationModal: React.FC<WorkstationModalProps> = ({
   const [quickCheckInLocation, setQuickCheckInLocation] = useState(defaultLoc);
   const [quickCheckInNote, setQuickCheckInNote] = useState('');
 
+  const { punchIn, punchOut } = useWorkstation({
+    state,
+    setState,
+    syncToCloud,
+    defaultLocation: defaultLoc,
+  });
+
   if (!isOpen) return null;
 
   const intervals: WorkstationInterval[] = state.workstationLogs?.[selectedDate] || [];
@@ -109,62 +116,15 @@ export const WorkstationModal: React.FC<WorkstationModalProps> = ({
     : 0;
 
   const handleStartSession = (locationToUse?: string, noteToUse?: string) => {
-    const startISO = new Date().toISOString();
     const loc = locationToUse || quickCheckInLocation || defaultLoc;
-    const note = noteToUse || quickCheckInNote;
-    const newSession: ActiveWorkstationSession = {
-      id: `ws_${Date.now()}`,
-      startTime: startISO,
-      location: loc,
-      note: note.trim() || undefined
-    };
+    const note = noteToUse ?? quickCheckInNote;
 
-    setState(prev => {
-      const next: AppState = {
-        ...prev,
-        activeWorkstationSession: newSession
-      };
-      if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
-      return next;
-    });
-
+    punchIn({ location: loc, note });
     setQuickCheckInNote('');
-    playSound('click');
   };
 
   const handleEndSession = () => {
-    if (!activeSession) return;
-    const end = new Date();
-    const start = parseISO(activeSession.startTime);
-    const durMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(1, differenceInMinutes(end, start)));
-    const sessionDate = getSettlementDay(start, state.timeSettings);
-
-    const completedInterval: WorkstationInterval = {
-      id: activeSession.id,
-      date: sessionDate,
-      startTime: activeSession.startTime,
-      endTime: end.toISOString(),
-      durationMinutes: durMins,
-      location: activeSession.location || defaultLoc,
-      note: activeSession.note
-    };
-
-    setState(prev => {
-      const existing = prev.workstationLogs?.[sessionDate] || [];
-      const updatedLogs = {
-        ...(prev.workstationLogs || {}),
-        [sessionDate]: [...existing, completedInterval]
-      };
-      const next: AppState = {
-        ...prev,
-        workstationLogs: updatedLogs,
-        activeWorkstationSession: null
-      };
-      if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
-      return next;
-    });
-
-    playSound('reward');
+    punchOut({ fallbackLocation: defaultLoc });
   };
 
   const handleDeleteInterval = (id: string) => {

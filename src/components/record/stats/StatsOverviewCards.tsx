@@ -1,5 +1,6 @@
 import React from 'react';
 import { Coins, Zap, Sword } from 'lucide-react';
+import { DurationText } from '../../common/DurationText';
 
 interface StatsOverviewCardsProps {
   gold: number;
@@ -66,8 +67,8 @@ export const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({
         </span>
         <div className="flex items-center gap-1 sm:gap-1.5 text-emerald-400 min-w-0">
           <Sword size={12} className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 hidden sm:block" />
-          <span className="text-[10px] sm:text-lg font-black font-mono truncate">
-            {formatDuration(timeMinutes)}
+          <span className="text-[10px] sm:text-lg font-mono truncate">
+            <DurationText minutes={timeMinutes} />
           </span>
         </div>
       </div>

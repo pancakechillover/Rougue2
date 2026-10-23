@@ -1,6 +1,7 @@
 import React, { useRef, useLayoutEffect } from 'react';
 import { LayoutTemplate, Brain, Wind, Zap, Coins, Clock, Star } from 'lucide-react';
 import { MOOD_OPTIONS } from '../../../constants';
+import { DurationText } from '../../common/DurationText';
 
 interface SharedPopoverContentProps {
   label: string;
@@ -92,15 +93,6 @@ export const SharedPopoverContent: React.FC<SharedPopoverContentProps> = ({
     ? (Math.round((distractions / (totalSessions / 60)) * 10) / 10).toFixed(1) 
     : distractions;
 
-  const formatDuration = (mins: number) => {
-    if (mins <= 0) return '0m';
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    if (h > 0 && m > 0) return `${h}h ${m}m`;
-    if (h > 0) return `${h}h`;
-    return `${m}m`;
-  };
-
   return (
     <div 
       ref={containerRef}
@@ -131,32 +123,32 @@ export const SharedPopoverContent: React.FC<SharedPopoverContentProps> = ({
               <Clock size={12} className="text-indigo-400" />
               Total Time
             </span>
-            <span className="text-indigo-400 font-bold">{formatDuration(totalSessions)}</span>
+            <span className="text-indigo-400 font-bold"><DurationText minutes={totalSessions} /></span>
           </div>
 
           <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1 text-[11px] text-slate-400">
             {morning > 0 && (
               <div className="flex justify-between">
                 <span>Morning:</span>
-                <span className="text-amber-400 font-medium">{formatDuration(morning)}</span>
+                <span className="text-amber-400 font-medium"><DurationText minutes={morning} /></span>
               </div>
             )}
             {afternoon > 0 && (
               <div className="flex justify-between">
                 <span>Afternoon:</span>
-                <span className="text-orange-400 font-medium">{formatDuration(afternoon)}</span>
+                <span className="text-orange-400 font-medium"><DurationText minutes={afternoon} /></span>
               </div>
             )}
             {night > 0 && (
               <div className="flex justify-between">
                 <span>Night:</span>
-                <span className="text-indigo-400 font-medium">{formatDuration(night)}</span>
+                <span className="text-indigo-400 font-medium"><DurationText minutes={night} /></span>
               </div>
             )}
             {other > 0 && (
               <div className="flex justify-between">
                 <span>Other:</span>
-                <span className="text-slate-400 font-medium">{formatDuration(other)}</span>
+                <span className="text-slate-400 font-medium"><DurationText minutes={other} /></span>
               </div>
             )}
           </div>

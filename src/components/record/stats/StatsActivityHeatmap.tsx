@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { DurationText } from '../../common/DurationText';
 import { 
   format, 
   subDays, 
@@ -476,13 +477,13 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Total</span>
                     <span className="text-base font-black font-mono text-sky-400">
-                      {heatmapMetric === 'time' ? formatDuration(heatmapSummary.totalTimeOrTasks) : heatmapSummary.totalTimeOrTasks}
+                      {heatmapMetric === 'time' ? <DurationText minutes={heatmapSummary.totalTimeOrTasks} /> : heatmapSummary.totalTimeOrTasks}
                     </span>
                   </div>
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Avg/Day</span>
                     <span className="text-base font-black font-mono text-sky-400/80">
-                      {heatmapMetric === 'time' ? formatDuration(heatmapSummary.avgTimeOrTasks) : Math.round(heatmapSummary.avgTimeOrTasks * 10) / 10}
+                      {heatmapMetric === 'time' ? <DurationText minutes={heatmapSummary.avgTimeOrTasks} /> : Math.round(heatmapSummary.avgTimeOrTasks * 10) / 10}
                     </span>
                   </div>
                 </div>

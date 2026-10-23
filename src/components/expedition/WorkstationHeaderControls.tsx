@@ -14,17 +14,15 @@ import {
   BookOpen,
   Coffee
 } from 'lucide-react';
-import { parseISO, differenceInMinutes } from 'date-fns';
-import { AppState, WorkstationInterval, ActiveWorkstationSession } from '../../types';
+import { AppState } from '../../types';
 import { cn, formatDuration, getSettlementDay } from '../../lib/utils';
 import { 
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
-  getActiveSessionDurationFormatted,
-  MAX_WORKSTATION_SESSION_MINUTES
+  getActiveSessionDurationFormatted
 } from '../../lib/workstationUtils';
 import { WorkstationModal } from './WorkstationModal';
-import { playSound } from '../../lib/sound';
+import { useWorkstation } from '../../hooks/useWorkstation';
 import { LocationIcon } from '../workstation/LocationIcon';
 
 interface WorkstationHeaderControlsProps {
@@ -94,65 +92,25 @@ export const WorkstationHeaderControls: React.FC<WorkstationHeaderControlsProps>
 
   const totalDeskMinutesToday = getWorkstationTotalMinutes(todayStr, state, now);
 
+  const { punchIn, punchOut } = useWorkstation({
+    state,
+    setState,
+    syncToCloud,
+    defaultLocation: defaultLoc,
+  });
+
   const handleStartSession = (location: string = preferredLocation || defaultLoc) => {
     try {
       localStorage.setItem('scholars_last_ws_location', location);
     } catch {}
     setPreferredLocation(location);
 
-    const startISO = new Date().toISOString();
-    const newSession: ActiveWorkstationSession = {
-      id: `ws_${Date.now()}`,
-      startTime: startISO,
-      location: location
-    };
-
-    setState(prev => {
-      const next: AppState = {
-        ...prev,
-        activeWorkstationSession: newSession
-      };
-      if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
-      return next;
-    });
-
+    punchIn({ location });
     setIsLocationMenuOpen(false);
-    playSound('click');
   };
 
   const handleEndSession = () => {
-    if (!activeSession) return;
-    const end = new Date();
-    const start = parseISO(activeSession.startTime);
-    const durMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(1, differenceInMinutes(end, start)));
-    const sessionDate = getSettlementDay(start, state.timeSettings);
-
-    const completedInterval: WorkstationInterval = {
-      id: activeSession.id,
-      date: sessionDate,
-      startTime: activeSession.startTime,
-      endTime: end.toISOString(),
-      durationMinutes: durMins,
-      location: activeSession.location || preferredLocation || defaultLoc,
-      note: activeSession.note
-    };
-
-    setState(prev => {
-      const existing = prev.workstationLogs?.[sessionDate] || [];
-      const updatedLogs = {
-        ...(prev.workstationLogs || {}),
-        [sessionDate]: [...existing, completedInterval]
-      };
-      const next: AppState = {
-        ...prev,
-        workstationLogs: updatedLogs,
-        activeWorkstationSession: null
-      };
-      if (syncToCloud) setTimeout(() => syncToCloud(false, next, 'Immediate'), 50);
-      return next;
-    });
-
-    playSound('reward');
+    punchOut({ fallbackLocation: preferredLocation || defaultLoc });
   };
 
   const formattedActive = activeSession?.startTime

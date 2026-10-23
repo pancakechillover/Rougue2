@@ -59,19 +59,8 @@ export const Shop = React.memo<ShopProps>(({
         title="Merchant's Outpost"
         description="Exchange your hard-earned gold"
         icon={ShoppingBag}
-        action={
-          onOpenSettings ? (
-            <button
-              onClick={onOpenSettings}
-              className="p-2 sm:p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
-              title="Merchant Settings"
-            >
-              <Settings size={20} />
-            </button>
-          ) : undefined
-        }
       >
-        <div className="flex items-center gap-4 mt-4">
+        <div className="flex items-center gap-2.5 mt-4">
           <button 
             onClick={onShowCoinGuide}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-400 hover:text-indigo-400 transition-colors text-sm font-bold uppercase tracking-widest"
@@ -79,6 +68,16 @@ export const Shop = React.memo<ShopProps>(({
             <HelpCircle size={18} />
             How to get coins
           </button>
+
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="flex items-center justify-center px-3 py-2 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+              title="Merchant Settings"
+            >
+              <Settings size={18} />
+            </button>
+          )}
         </div>
       </PageHeader>
 

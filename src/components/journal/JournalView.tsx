@@ -17,7 +17,8 @@ import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
-import { cn, formatDuration, getSessionEffectiveMinutes } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
+import { DurationText } from '../common/DurationText';
 import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { DatePicker } from '../common/DatePicker';
 import { ImmersiveReflectionModal } from './ImmersiveReflectionModal';
@@ -647,8 +648,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
                           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-center gap-1 mb-0.5">
                             <Clock size={10} className="text-indigo-400" /> Focus
                           </div>
-                          <div className="text-xs sm:text-sm font-extrabold text-slate-200 font-mono">
-                            {formatDuration(selectedDayStats.effectiveMinutes)}
+                          <div className="text-xs sm:text-sm text-slate-200 font-mono">
+                            <DurationText minutes={selectedDayStats.effectiveMinutes} />
                           </div>
                           <div className="text-[9px] text-slate-500 font-medium mt-0.5">
                             {selectedDayStats.completionPercent}% of {selectedDayStats.targetSource === 'workstation' ? 'Desk' : 'Goal'}

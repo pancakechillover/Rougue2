@@ -2,7 +2,7 @@
   "name": "scholars-dungeon",
   "description": "A Roguelike-themed study system with Pomodoro timers, talent trees, and meta-progression rewards.",
   "private": true,
-  "version": "8.7.26",
+  "version": "9.4.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

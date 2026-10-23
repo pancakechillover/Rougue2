@@ -43,7 +43,8 @@ import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 import { playSound } from '../../lib/sound';
 import { getSageAdvice } from '../../services/sageService';
-import { cn, getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate, formatDuration } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate } from '../../lib/utils';
+import { DurationText } from '../common/DurationText';
 import { ExpeditionPlanPreview } from '../expedition/ExpeditionPlanPreview';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { PopoverPortal } from '../common/PopoverPortal';
@@ -79,6 +80,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   dungeons,
   majorDungeons = []
 }) => {
+
   const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const [showTodayView, setShowTodayView] = React.useState<boolean>(() => {
     try {
@@ -518,8 +520,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-slate-50">
-                {formatDuration(todayEffectiveMinutes)}
+              <span className="text-2xl text-slate-50">
+                <DurationText minutes={todayEffectiveMinutes} />
               </span>
               {(() => {
                 const timezone = state.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -544,7 +546,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                 return (
                   <span className="text-slate-500 text-xs text-right">
-                    <span className="opacity-50 mx-1">/</span> {formatDuration(dailyGoalInMinutes)}
+                    <span className="opacity-50 mx-1">/</span> <DurationText minutes={dailyGoalInMinutes} />
                   </span>
                 );
               })()}
