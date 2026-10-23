@@ -219,7 +219,12 @@ Rougue2 缺三项，后续顺手补齐：
 - [ ] **做法**：`.github/workflows/ci.yml`，PR 与 push 到非默认分支时触发：装依赖（pnpm，带缓存）→ `typecheck` → `test` → `build`。失败即阻断。
 - [ ] **验收**：故意提交一个类型错误，PR 上 CI 变红。
 - [ ] **预估**：0.5 天
-- [ ] 完成
+- [x] **完成（2026-10-23）**
+  - `.github/workflows/ci.yml`：push 到非 main 分支 + PR 触发
+  - `pnpm/action-setup@v4` 从 packageManager 字段读版本，setup-node 带依赖缓存
+  - 步骤：`pnpm install --frozen-lockfile` → typecheck → lint → test（占位，P1-5 补）→ build
+  - 构建失败时上传 dist 产物供排查
+  - 本地验证：typecheck / lint / test / build 四步全部跑通（build 产物含 PWA service worker）
 
 ### P1-4 · hash 路由 + 页面注册表
 

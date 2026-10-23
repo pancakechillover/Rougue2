@@ -50,8 +50,12 @@
       {
         "category": "Lint Setup",
         "description": "Added ESLint 9 flat config (typescript-eslint + react-hooks) and Prettier. The first audit caught a duplicate interface, dead code and a misleading hook-like callback name; lint passes with 0 errors."
+      },
+      {
+        "category": "CI",
+        "description": "Every push and pull request now runs install, typecheck, lint, tests and a full build on GitHub Actions. Failures block the PR and upload the build output for diagnosis."
       }
     ]
   },
-  "timestamp": 1792761447269
+  "timestamp": 1792762871897
 }
