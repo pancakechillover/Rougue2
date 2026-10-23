@@ -445,12 +445,10 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       }
     });
 
-    if (true) {
-      counts.Morning = Math.floor(counts.Morning);
-      counts.Afternoon = Math.floor(counts.Afternoon);
-      counts.Night = Math.floor(counts.Night);
-      counts.Other = Math.floor(counts.Other);
-    }
+    counts.Morning = Math.floor(counts.Morning);
+    counts.Afternoon = Math.floor(counts.Afternoon);
+    counts.Night = Math.floor(counts.Night);
+    counts.Other = Math.floor(counts.Other);
     
     const totalCount = counts.Morning + counts.Afternoon + counts.Night + counts.Other;
 

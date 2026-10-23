@@ -1850,7 +1850,7 @@ export function useGameState() {
     }));
   }, []);
 
-  const useInventoryItem = useCallback((itemId: string) => {
+  const consumeInventoryItem = useCallback((itemId: string) => {
     setState(prev => {
       let newState = { ...prev };
       let itemName = '';
@@ -2758,7 +2758,7 @@ export function useGameState() {
     setActivePool,
     addRewardToHistory,
     toggleRewardRedeemed,
-    useInventoryItem,
+    consumeInventoryItem,
     resetLootPool,
     completeSession,
     selectReward,

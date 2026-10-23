@@ -319,7 +319,7 @@ function App() {
     addCoins,
     addRewardToHistory,
     toggleRewardRedeemed,
-    useInventoryItem,
+    consumeInventoryItem,
     completeSession, 
     drawGacha,
     resetIchibanPool,
@@ -1800,7 +1800,7 @@ function App() {
               <VaultView 
                 state={state}
                 toggleRewardRedeemed={toggleRewardRedeemed}
-                useInventoryItem={useInventoryItem}
+                consumeInventoryItem={consumeInventoryItem}
               />
             )}
 

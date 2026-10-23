@@ -46,8 +46,12 @@
       {
         "category": "Cloud Sync Hardening",
         "description": "Secret codes are now format-validated before any backend work, and cloud sync endpoints apply a per-IP rate limit (60s / 20 requests) on top of the existing 300-user quota."
+      },
+      {
+        "category": "Lint Setup",
+        "description": "Added ESLint 9 flat config (typescript-eslint + react-hooks) and Prettier. The first audit caught a duplicate interface, dead code and a misleading hook-like callback name; lint passes with 0 errors."
       }
     ]
   },
-  "timestamp": 1792759976713
+  "timestamp": 1792761447269
 }

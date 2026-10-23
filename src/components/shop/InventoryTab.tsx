@@ -8,10 +8,10 @@ import { format } from 'date-fns';
 interface InventoryTabProps {
   appState: AppState;
   history: RewardHistoryItem[];
-  useInventoryItem: (id: string) => void;
+  consumeInventoryItem: (id: string) => void;
 }
 
-export const InventoryTab: React.FC<InventoryTabProps> = ({ appState, history, useInventoryItem }) => {
+export const InventoryTab: React.FC<InventoryTabProps> = ({ appState, history, consumeInventoryItem }) => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   const inventoryItems = [
@@ -200,7 +200,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({ appState, history, u
                     e.stopPropagation();
                     const isActive = item.id === 'doubleXpCards' ? appState.doubleXpActive : appState.doubleGoldActive;
                     if (!isActive) {
-                      useInventoryItem(item.id);
+                      consumeInventoryItem(item.id);
                     }
                   }}
                   disabled={item.id === 'doubleXpCards' ? appState.doubleXpActive : appState.doubleGoldActive}

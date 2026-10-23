@@ -31,7 +31,7 @@ interface RewardHistoryProps {
   transactionHistory?: Transaction[];
   appState: AppState;
   onToggleRedeemed: (id: string) => void;
-  useInventoryItem: (id: string) => void;
+  consumeInventoryItem: (id: string) => void;
 }
 
 type FilterTab = 'all' | 'treasures' | 'custom' | 'economy' | 'inventory';
@@ -40,7 +40,7 @@ type SourceFilter = 'all' | 'Explore' | 'Gacha' | 'Shop' | 'LevelUp';
 type StatusFilter = 'all' | 'redeemed' | 'pending';
 type RarityFilter = 'all' | 'COMMON' | 'RARE' | 'EPIC' | 'LASTONE';
 
-export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transactionHistory = [], appState, onToggleRedeemed, useInventoryItem }) => {
+export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transactionHistory = [], appState, onToggleRedeemed, consumeInventoryItem }) => {
   const [activeTab, setActiveTab] = useState<FilterTab | 'menu'>(() => {
     const saved = localStorage.getItem('vault_last_view');
     if (saved === 'treasures' || saved === 'custom') {
@@ -383,7 +383,7 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <InventoryTab appState={appState} history={history} useInventoryItem={useInventoryItem} />
+          <InventoryTab appState={appState} history={history} consumeInventoryItem={consumeInventoryItem} />
         </motion.div>
       ) : (
         <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden">

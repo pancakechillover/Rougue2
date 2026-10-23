@@ -7,10 +7,10 @@ import { playSound } from '../../lib/sound';
 interface VaultViewProps {
   state: AppState;
   toggleRewardRedeemed: (id: string) => void;
-  useInventoryItem: (id: string) => void;
+  consumeInventoryItem: (id: string) => void;
 }
 
-export const VaultView: React.FC<VaultViewProps> = ({ state, toggleRewardRedeemed, useInventoryItem }) => {
+export const VaultView: React.FC<VaultViewProps> = ({ state, toggleRewardRedeemed, consumeInventoryItem }) => {
   return (
     <motion.div
       key="vault"
@@ -27,8 +27,8 @@ export const VaultView: React.FC<VaultViewProps> = ({ state, toggleRewardRedeeme
           toggleRewardRedeemed(id);
           playSound('redeem', state.soundVolume, state.soundEnabled);
         }}
-        useInventoryItem={(id) => {
-          useInventoryItem(id);
+        consumeInventoryItem={(id) => {
+          consumeInventoryItem(id);
           playSound('reward', state.soundVolume, state.soundEnabled);
         }}
       />

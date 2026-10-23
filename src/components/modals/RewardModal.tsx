@@ -24,12 +24,6 @@ const rarityColors: Record<Rarity, string> = {
 import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
 
-interface RewardModalProps {
-  coins: number;
-  xp: number;
-  choices: RewardCard[];
-  onSelect: (card: RewardCard) => void;
-}
 
 export const RewardModal: React.FC<RewardModalProps> = ({ coins, xp, choices, onSelect }) => {
   useScrollLock(true);

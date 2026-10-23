@@ -179,7 +179,11 @@ Rougue2 缺三项，后续顺手补齐：
 - [ ] **做法**：每次部署前 `git tag v<version>`（版本号已在 `package.json`），推送 tag。`src/version.ts` 与 tag 保持同源。
 - [ ] **验收**：`git tag` 能列出最近 5 个线上版本，任一 tag 可单独 checkout 并构建。
 - [ ] **预估**：0.2 天
-- [ ] 完成
+- [x] **完成（2026-10-23）**
+  - 项目此前从未打过 tag，流程从本次建立
+  - 已打 `v9.4.0`（annotated tag，附 changelog），指向 `fff2965`
+  - 以后每次部署前：`git tag -a v<版本号> -F <changelog>` → `git push origin v<版本号>`
+  - tag 目前只在本地，是否推送待用户决定
 
 ---
 
@@ -191,7 +195,12 @@ Rougue2 缺三项，后续顺手补齐：
 - [ ] **做法**：ESLint flat config + `@typescript-eslint` + `react-hooks` 插件；Prettier 只负责格式。先只对 `src/` 和 `api/` 开启，**规则从宽到严**，第一版只开 `no-unused-vars`、`no-empty`、`react-hooks/rules-of-hooks`。
 - [ ] **验收**：`npm run lint` 可跑通；新增一条违反 `react-hooks` 的代码会被拦下。
 - [ ] **预估**：0.5 天
-- [ ] 完成
+- [x] **完成（2026-10-23）**
+  - ESLint 9 flat config + typescript-eslint 8 + react-hooks 5 + Prettier
+  - 第一版规则（从宽）：no-unused-vars / no-empty（允许空 catch）/ no-undef 关闭（由 TS 编译器负责）/ rules-of-hooks 为 error
+  - `npm run lint` 跑通：0 errors / 1015 warnings（warnings 是 strict 阶段的待办）
+  - 首次审计就抓到并修了 3 个真问题：`useInventoryItem` 回调命名撞 `use` 前缀（改名 `consumeInventoryItem`）、`RewardModalProps` 接口重复定义、`Stats.tsx` 的 `if (true)` 死代码
+  - 验收探针：注入 hook-inside-condition 的文件被成功标记为 error
 
 ### P1-2 · TypeScript 严格性渐进开启
 
