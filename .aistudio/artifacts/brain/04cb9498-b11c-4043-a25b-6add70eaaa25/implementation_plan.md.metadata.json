@@ -1,0 +1,6 @@
+{
+  "summary":  "Detailed implementation plan for upgrading the Fellowship Guild chat interface to modern WeChat/Discord standards, featuring smart date & time interval dividers, consecutive message clustering, scroll viewport stabilization, and a floating pill with unread count and smooth scroll-to-bottom.",
+  "updatedAt":  "2026-10-23T07:21:19.527752398Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

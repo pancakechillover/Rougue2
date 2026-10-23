@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { 
   Users, LogIn, Plus, X, MessageSquare, Activity, Crown, Clock, Target, Check, AlertCircle, RefreshCw, Send, Settings, User, UserCheck, UserX, Landmark,
-  Cat, Dog, Ghost, Bot, Skull, Lock,
+  Cat, Dog, Ghost, Bot, Skull, Lock, ArrowDown,
   BookOpen, Library, Coffee, Brain, ShieldHalf, Swords, Flame, Sparkles, Castle, Mountain
 } from 'lucide-react';
 import { AppState, Team, TeamMessage, TeamEvent, TeamMember, TeamSettingProposal } from '../../types';
@@ -65,6 +65,46 @@ export const renderGuildIcon = (iconId: string | undefined, size: number = 24, c
 
 export { getTeamCycleState };
 
+export const formatChatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  
+  const isSameDay = (d1: Date, d2: Date) => 
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (isSameDay(date, now)) {
+    return 'Today';
+  }
+  if (isSameDay(date, yesterday)) {
+    return 'Yesterday';
+  }
+  if (date.getFullYear() === now.getFullYear()) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+export const formatChatTime = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+export const isSameChatDay = (ts1: number, ts2: number): boolean => {
+  const d1 = new Date(ts1);
+  const d2 = new Date(ts2);
+  return d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+};
+
 export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
   const [view, setView] = useState<'lobby' | 'team'>(state.teamId ? 'team' : 'lobby');
   const [lobbyTeams, setLobbyTeams] = useState<any[]>([]);
@@ -74,6 +114,70 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'events'>('chat');
   const [chatInput, setChatInput] = useState('');
+  
+  // Chat scroll and unread tracking
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const isAtBottomRef = useRef(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMessagesCountRef = useRef(messages.length);
+
+  const handleChatScroll = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const atBottom = distanceFromBottom <= 40;
+    setIsAtBottom(atBottom);
+    isAtBottomRef.current = atBottom;
+    if (atBottom) {
+      setUnreadCount(0);
+    }
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+    setIsAtBottom(true);
+    isAtBottomRef.current = true;
+    setUnreadCount(0);
+  };
+
+  useEffect(() => {
+    if (messages.length > prevMessagesCountRef.current) {
+      const diff = messages.length - prevMessagesCountRef.current;
+      if (isAtBottomRef.current) {
+        requestAnimationFrame(() => {
+          if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTo({
+              top: chatScrollRef.current.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        });
+        setUnreadCount(0);
+      } else {
+        setUnreadCount(prev => prev + diff);
+      }
+    }
+    prevMessagesCountRef.current = messages.length;
+  }, [messages]);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && chatScrollRef.current) {
+      requestAnimationFrame(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+          setIsAtBottom(true);
+          isAtBottomRef.current = true;
+          setUnreadCount(0);
+        }
+      });
+    }
+  }, [activeTab]);
   
   // Create / Settings Modal
   const [showCreate, setShowCreate] = useState(false);
@@ -315,6 +419,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
       timestamp: Date.now()
     };
     setMessages(prev => [fakeMessage, ...prev]);
+    scrollToBottom(true);
 
     try {
       const res = await fetch('/api/teams?action=message', {
@@ -762,59 +867,146 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                </div>
             )}
             
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col-reverse">
-              {activeTab === 'chat' ? (
-                <div className="space-y-4 flex flex-col justify-end">
-                  {messages.slice().reverse().map(m => {
-                    const isMe = m.userId === team?.myUserId;
-                    const senderMember = team?.members?.find(member => member.userId === m.userId);
-                    const rawId = senderMember?.uniqueId || (isMe ? state.userUniqueId : null);
-                    const senderUniqueId = rawId ? (rawId.startsWith('SD-') ? rawId.replace('SD-', 'ID-') : rawId) : null;
-                    return (
-                      <div key={m.id} className={cn("flex flex-col w-full", isMe ? "items-end" : "items-start")}>
-                        <div className={cn("flex items-end gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
-                          <div className="w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 translate-y-1 flex items-center justify-center">
-                            {renderAvatar(m.avatar, 14)}
-                          </div>
-                          <div className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
-                            <div className={cn("flex items-center gap-2 mb-1", isMe ? "flex-row-reverse" : "flex-row")}>
-                              <span className="text-xs font-bold text-slate-400">
-                                {m.name} {senderUniqueId ? `(${senderUniqueId})` : ''}
+            <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div 
+                ref={chatScrollRef}
+                onScroll={handleChatScroll}
+                className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col"
+              >
+                {activeTab === 'chat' ? (
+                  <div className="flex flex-col space-y-1 pb-2">
+                    {([...messages].sort((a, b) => a.timestamp - b.timestamp)).map((m, idx, sortedArr) => {
+                      const isMe = m.userId === team?.myUserId;
+                      const senderMember = team?.members?.find(member => member.userId === m.userId);
+                      const rawId = senderMember?.uniqueId || (isMe ? state.userUniqueId : null);
+                      const senderUniqueId = rawId ? (rawId.startsWith('SD-') ? rawId.replace('SD-', 'ID-') : rawId) : null;
+                      
+                      const prevMsg = idx > 0 ? sortedArr[idx - 1] : null;
+                      const showDateDivider = !prevMsg || !isSameChatDay(m.timestamp, prevMsg.timestamp);
+                      const timeGapMs = prevMsg ? m.timestamp - prevMsg.timestamp : 0;
+                      const showTimeDivider = !showDateDivider && prevMsg && timeGapMs >= 5 * 60 * 1000;
+                      const isConsecutive = !showDateDivider && !showTimeDivider && prevMsg && prevMsg.userId === m.userId;
+
+                      return (
+                        <React.Fragment key={m.id}>
+                          {/* Centered Date Badge */}
+                          {showDateDivider && (
+                            <div className="flex items-center justify-center my-3 select-none">
+                              <div className="px-3 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/60 shadow-xs backdrop-blur-xs">
+                                {formatChatDate(m.timestamp)}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Centered Smart Time Interval Divider (> 5 min) */}
+                          {showTimeDivider && (
+                            <div className="flex items-center justify-center my-2 select-none">
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {formatChatTime(m.timestamp)}
                               </span>
-                              <span className="text-[9px] text-slate-600">{new Date(m.timestamp).toLocaleTimeString()}</span>
                             </div>
-                            <div className={cn(
-                              "text-sm p-3 rounded-2xl w-fit max-w-[280px] break-words",
-                              isMe ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-800 text-slate-300 rounded-bl-none border border-slate-700/50"
-                            )}>
-                              {m.content}
-                            </div>
+                          )}
+
+                          {/* Message Row */}
+                          <div className={cn("flex flex-col w-full", isMe ? "items-end" : "items-start", isConsecutive ? "mt-1" : "mt-3")}>
+                            {isConsecutive ? (
+                              /* Grouped consecutive message from same sender */
+                              <div className={cn(
+                                "flex items-center gap-2 group",
+                                isMe ? "flex-row-reverse mr-10" : "flex-row ml-10"
+                              )}>
+                                <div className={cn(
+                                  "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words transition-colors shadow-xs",
+                                  isMe 
+                                    ? "bg-indigo-600 text-white rounded-r-md" 
+                                    : "bg-slate-800 text-slate-300 rounded-l-md border border-slate-700/50"
+                                )}>
+                                  {m.content}
+                                </div>
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] text-slate-500 font-mono select-none shrink-0 px-1">
+                                  {formatChatTime(m.timestamp)}
+                                </span>
+                              </div>
+                            ) : (
+                              /* First message in group with avatar and header */
+                              <div className={cn("flex items-end gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
+                                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/50 overflow-hidden shrink-0 translate-y-1 flex items-center justify-center shadow-xs">
+                                  {renderAvatar(m.avatar, 14)}
+                                </div>
+                                <div className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
+                                  <div className={cn("flex items-center gap-2 mb-1", isMe ? "flex-row-reverse" : "flex-row")}>
+                                    <span className="text-xs font-bold text-slate-300">
+                                      {m.name} {senderUniqueId ? <span className="text-[10px] text-slate-500 font-mono font-normal">({senderUniqueId})</span> : ''}
+                                    </span>
+                                    <span className="text-[9px] text-slate-500 font-mono">{formatChatTime(m.timestamp)}</span>
+                                  </div>
+                                  <div className={cn(
+                                    "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words shadow-xs",
+                                    isMe 
+                                      ? "bg-indigo-600 text-white rounded-br-none" 
+                                      : "bg-slate-800 text-slate-300 rounded-bl-none border border-slate-700/50"
+                                  )}>
+                                    {m.content}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
+                        </React.Fragment>
+                      );
+                    })}
+                    {messages.length === 0 && (
+                      <div className="text-center text-slate-500 my-auto py-12 text-sm italic">
+                        No messages yet. Send a message to greet your fellowship!
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {events.map((e, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className={cn("w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5", 
+                          e.type === 'join' ? "bg-emerald-500/20 text-emerald-400" :
+                          e.type === 'focus' ? "bg-indigo-500/20 text-indigo-400" :
+                          "bg-amber-500/20 text-amber-400"
+                        )}>
+                          {e.type === 'focus' ? <Activity size={10} /> : e.type === 'join' ? <LogIn size={10} /> : <Target size={10} />}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-slate-300">{e.content}</span>
+                          <span className="text-[9px] text-slate-500 font-mono">{new Date(e.timestamp).toLocaleString()}</span>
                         </div>
                       </div>
-                    );
-                  })}
-                  {messages.length === 0 && <div className="text-center text-slate-600 mt-auto mb-auto text-sm">No messages yet.</div>}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {events.map((e, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <div className={cn("w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5", 
-                        e.type === 'join' ? "bg-emerald-500/20 text-emerald-400" :
-                        e.type === 'focus' ? "bg-indigo-500/20 text-indigo-400" :
-                        "bg-amber-500/20 text-amber-400"
-                      )}>
-                        {e.type === 'focus' ? <Activity size={10} /> : e.type === 'join' ? <LogIn size={10} /> : <Target size={10} />}
+                    ))}
+                    {events.length === 0 && (
+                      <div className="text-center text-slate-500 my-auto py-12 text-sm italic">
+                        No events recorded yet.
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium text-slate-300">{e.content}</span>
-                        <span className="text-[9px] text-slate-600">{new Date(e.timestamp).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Floating Scroll to Bottom / Unread Pill */}
+              <AnimatePresence>
+                {activeTab === 'chat' && !isAtBottom && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => scrollToBottom(true)}
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800/95 hover:bg-slate-700/95 text-indigo-400 border border-indigo-500/30 shadow-lg shadow-black/40 backdrop-blur-md transition-all active:scale-95 cursor-pointer select-none"
+                  >
+                    <ArrowDown size={13} className={cn("shrink-0", unreadCount > 0 && "animate-bounce text-indigo-300")} />
+                    <span>
+                      {unreadCount > 0 
+                        ? `${unreadCount} new ${unreadCount === 1 ? 'message' : 'messages'}`
+                        : 'Scroll to bottom'}
+                    </span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
             
             {activeTab === 'chat' && (

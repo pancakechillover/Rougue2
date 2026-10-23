@@ -1,5 +1,11 @@
 # Task History Archive
 
+- **v9.3.39 (2026-09-11):** Fellowship Guild Chat Modernization: Smart Date/Time Dividers, Message Clustering & Floating Unread/Scroll Pill
+  - *Smart Date & Interval Dividers:* Added centered date badges (`Today`, `Yesterday`, or formatted date) and subtle centered time badges when the interval between consecutive messages exceeds 5 minutes.
+  - *Consecutive Message Clustering:* Consecutive messages from the same sender within 5 minutes on the same day are grouped under a single avatar and header, featuring tight bubble margins and hover timestamps.
+  - *Forward Scroll Viewport & Bottom Pinning:* Refactored chat container from `flex-col-reverse` to top-down scrolling with automatic bottom docking and unread tracking.
+  - *Floating Unread & Quick Scroll Pill:* Implemented an animated floating bubble above the message input that dynamically displays new unread messages (`↓ X new messages`) or allows one-click smooth glide to bottom (`↓ Scroll to bottom`).
+
 - **v9.3.38 (2026-09-11):** Guild / Fellowship Team Goal Real-Time Focus Time Aggregation & Cycle Synchronization
   - *Centralized Cycle State Engine:* Created `/src/lib/teamUtils.ts` with standardized cycle date boundaries (`getCycleBounds`), cycle unique keys (`getCycleKey`), and user total / cycle focus accumulators (`calculateUserTotalFocus`, `calculateUserCycleFocus`, `getTeamCycleState`) with fallback calculation matching study session history and rest time preferences.
   - *Full-Stack Member Progress Synchronization:* Synchronized user total and cycle focus time from study session completion broadcasts (`useGameState.ts`) and polling headers (`x-user-total-focus`, `x-user-cycle-focus`, `x-user-cycle-key`, `x-user-target-type` in `TeamModule.tsx`), persisting updated member stats seamlessly into Redis backend storage.
