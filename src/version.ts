@@ -24,7 +24,9 @@ export const RELEASE_HISTORY: ReleaseLog[] = [
       { category: 'Workstation Status Chip', description: 'Added a top-bar status chip using the user\'s own location icon: grey when idle, coloured while on duty, click to check in or out. Shows the day total on wide screens. The duplicated Check In / Desk Log controls were removed from the Explore header.' },
       { category: 'Location Management', description: 'The check-in popover now exposes a Manage entry that opens the location editor. Extracted it into a shared ManageLocationsModal, and added a confirmation step with explicit data-loss warning before resetting to the three defaults.' },
       { category: 'Duration Typography', description: 'Durations now render with a bold number and a lighter, smaller unit (e.g. 1h30m) via a shared DurationText component. Applied to the Sanctum today card, Record overview cards, weekly heatmap totals and Journal day summary.' },
-      { category: 'Error Boundary', description: 'Added a render-error boundary around the whole app and around the active page. A crashing view now shows a recoverable panel (try again / reload / export data) instead of a blank screen, and the sidebar keeps working.' }
+      { category: 'Error Boundary', description: 'Added a render-error boundary around the whole app and around the active page. A crashing view now shows a recoverable panel (try again / reload / export data) instead of a blank screen, and the sidebar keeps working.' },
+      { category: 'Save Versioning', description: 'Saves now carry a schema version. Loading, cloud restore and file import all go through the same migration path, and the previous save is snapshotted before any migration or import so bad data can be recovered.' },
+      { category: 'Cloud Sync Hardening', description: 'Secret codes are now format-validated before any backend work, and cloud sync endpoints apply a per-IP rate limit (60s / 20 requests) on top of the existing 300-user quota.' }
     ]
   },
   {

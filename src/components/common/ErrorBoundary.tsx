@@ -21,20 +21,6 @@ interface ErrorBoundaryState {
  * App.tsx (keyed by active tab, so switching pages resets the error).
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  /**
-   * This repo has no @types/react installed (see ROADMAP P0-3), so React's
-   * class members resolve to `any` and TS cannot see setState/props on `this`.
-   * These declarations restore them without changing runtime behaviour.
-   */
-  declare props: ErrorBoundaryProps;
-  declare context: unknown;
-  declare forceUpdate: (callback?: () => void) => void;
-  declare setState: (
-    state:
-      | Partial<ErrorBoundaryState>
-      | ((prev: ErrorBoundaryState) => Partial<ErrorBoundaryState>)
-  ) => void;
-
   state: ErrorBoundaryState = { error: null, componentStack: null };
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {

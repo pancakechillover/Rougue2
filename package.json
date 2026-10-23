@@ -3,6 +3,7 @@
   "description": "A Roguelike-themed study system with Pomodoro timers, talent trees, and meta-progression rewards.",
   "private": true,
   "version": "9.4.0",
+  "packageManager": "pnpm@10.33.3",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -56,6 +57,8 @@
   "devDependencies": {
     "@types/express": "^4.17.25",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/web-push": "^3.6.4",
     "@vercel/node": "^5.7.4",
     "autoprefixer": "^10.4.21",

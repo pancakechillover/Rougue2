@@ -108,14 +108,44 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
+// ── Sync input validation & rate limiting ────────────────────────────────
+
+/** Accepts the legacy base36 codes (26 chars) and the new UUID codes (36 chars). */
+const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{16,64}$/;
+const isValidSecretCode = (value: unknown): value is string =>
+  typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
+
+const RATE_LIMIT_WINDOW_S = 60;
+const RATE_LIMIT_MAX = 20;
+
+/** Fixed-window counter per IP. INCR is atomic, so concurrent requests are safe. */
+async function isRateLimited(client: any, req: express.Request): Promise<boolean> {
+  try {
+    const fwd = req.headers['x-forwarded-for'];
+    const ip = (typeof fwd === 'string' && fwd.split(',')[0].trim()) || req.socket.remoteAddress || 'unknown';
+    const key = `scholar_rate_${ip}`;
+    const count = await client.incr(key);
+    if (count === 1) await client.expire(key, RATE_LIMIT_WINDOW_S);
+    return count > RATE_LIMIT_MAX;
+  } catch (err) {
+    // Fail open: never block syncs because the counter broke.
+    console.error('Rate limit check failed:', err);
+    return false;
+  }
+}
+
 // Sync API Handler
 const syncHandler = async (req: express.Request, res: express.Response) => {
   try {
     const { secretCode, localData } = req.body;
-    if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
+    if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
     
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Cloud sync is not configured." });
+
+    if (await isRateLimited(client, req)) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
 
     const key = `scholar_sync_${secretCode}`;
     
@@ -180,10 +210,14 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
 const deleteHandler = async (req: express.Request, res: express.Response) => {
   try {
     const { secretCode } = req.body;
-    if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
+    if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
     
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Cloud sync is not configured." });
+
+    if (await isRateLimited(client, req)) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
     
     const key = `scholar_sync_${secretCode}`;
     await client.del(key);

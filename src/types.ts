@@ -420,6 +420,12 @@ export interface AppState {
     averageCalculationBase?: 'active_days' | 'total_days';
     yAxisMaxMode?: 'dynamic' | 'fixed';
   };
+
+  /**
+   * Version of the persisted save format. Absent means the save predates
+   * versioning (treated as v0). See src/lib/migrations.ts.
+   */
+  schemaVersion?: number;
 }
 
 export interface StudySession {

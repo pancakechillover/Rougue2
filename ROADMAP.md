@@ -127,7 +127,13 @@ Rougue2 缺三项，后续顺手补齐：
   4. 迁移失败时保留原始数据到 `__backup_raw` key，不要覆盖。
 - [ ] **验收**：把 `schemaVersion` 改成旧值 + 删掉一个新字段，刷新后能自动补齐且不报错；故意写入损坏 JSON，能保留备份并提示。
 - [ ] **预估**：1 天
-- [ ] 完成
+- [x] **完成（2026-10-23）**
+  - `AppState.schemaVersion`（可选，缺失视为 v0）
+  - 新建 `src/lib/migrations.ts`：`CURRENT_SCHEMA_VERSION = 1`、`parseSave`（永不抛错）、`getSaveVersion`、`backupBeforeMigration`、`backupRaw`、`isFutureSave`
+  - `useGameState` 里 250 行内联迁移提取为 `applyLegacyMigrations(parsed, defaultState)`，加载改为 `parseSave → getSaveVersion → backupBeforeMigration → applyLegacyMigrations → 合并默认值 → 写 schemaVersion`
+  - 云端恢复（`CloudSettingsSection`）与文件导入（`GeneralSettings`）在覆盖前备份当前存档，并补写 `schemaVersion`
+  - 实测三种场景：正常加载写入 v1；v0 老档删字段后自动补齐 + 生成迁移前快照（快照确为旧形态）；损坏 JSON 原文留存到 `__corrupt_raw` 且页面正常
+- [x] 完成
 
 ### P0-3 · 依赖声明与包管理器统一
 
@@ -139,7 +145,12 @@ Rougue2 缺三项，后续顺手补齐：
 - [ ] **验收**：删掉 `node_modules` 后全新安装 + `npm run build` 一次通过；`git grep framer-motion src/` 无结果。
 - [ ] **预估**：0.5 天
 - [x] 修掉 import（2026-10-23，改 `motion/react`）
-- [ ] 统一 lock 文件与 `packageManager` 字段
+- [x] **完成（2026-10-23 补充）**
+  - 现状确认：`node_modules` 是 **pnpm** 装的（`.modules.yaml`），仓库却带着 **npm** 的 `package-lock.json`，两套并存
+  - 统一为 pnpm：生成 `pnpm-lock.yaml`（927 包，28s），删除 `package-lock.json`
+  - `package.json` 增加 `"packageManager": "pnpm@10.33.3"`
+  - 补齐 `@types/react@19.3.0` + `@types/react-dom@19.3.0`（项目此前从未安装 React 类型，tsc 从未真正检查过组件）
+  - 结果：`tsc --noEmit` 错误数 **19 → 0**（原 19 个错误大多是缺失类型导致的误报），ErrorBoundary 里的 declare 绕过已删除
 
 ### P0-4 · 云同步限流与口令校验
 
@@ -154,7 +165,13 @@ Rougue2 缺三项，后续顺手补齐：
   4. 配额统计改为按真实用户计数，避免同人多口令占位。
 - [ ] **验收**：脚本连发 30 次请求，超过阈值后返回 429；提交含 `*`、空格的 secretCode 返回 400。
 - [ ] **预估**：1 天
-- [ ] 完成
+- [x] **完成（2026-10-23）**
+  - `api/sync.ts`（Vercel）与 `server.ts`（本地）两套实现都加了：
+    - 格式校验 `^[A-Za-z0-9-]{16,64}$`（兼容 26 位老 base36 与 36 位 UUID），在 Redis 连接**之前**拦截，Redis 挂了校验也生效；api/sync.ts 里为双保险，各处 handler 内仍再校验一次
+    - IP 限流：60 秒 20 次，Redis `INCR` + `EXPIRE`，原子计数；计数器故障时 **fail-open**（不阻塞同步）
+  - 前端 `TeamModule.tsx` 口令生成确认已用 `crypto.randomUUID()`（带 Math.random 降级），无需改动
+  - 本地实测：坏口令/空格 → 400；合法老格式与 UUID → 通过校验
+  - 限流 429 路径**未本地实测**（无 REDIS_URL，Redis 不连接），部署后生效
 
 ### P0-5 · 发布标记与回滚点
 

@@ -8,6 +8,13 @@ import { calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey } from '.
 import { generateRewardChoicesForSession } from '../lib/rewardLogic';
 import { useTimerStore } from './useTimerStore';
 
+import {
+  CURRENT_SCHEMA_VERSION,
+  backupBeforeMigration,
+  getSaveVersion,
+  parseSave,
+} from '../lib/migrations';
+
 const STORAGE_KEY = 'scholars_dungeon_state';
 
 const getAddedProgress = (
@@ -169,6 +176,274 @@ const recalculateQuestProgressFromHistory = (state: AppState, now: Date): AppSta
   };
 };
 
+/**
+ * Upgrades a parsed save from any older version to the current shape.
+ * Steps run in order; each step only touches the fields it owns.
+ * v0 = saves written before schemaVersion existed.
+ */
+function applyLegacyMigrations(parsed: any, defaultState: AppState): any {
+  if (!parsed.userUniqueId) {
+    parsed.userUniqueId = generateUniqueId();
+  } else if (parsed.userUniqueId.startsWith('SD-')) {
+    parsed.userUniqueId = parsed.userUniqueId.replace('SD-', 'ID-');
+  }
+  
+  // Migration: gachaEffect to split animations
+  if (parsed.gachaEffect) {
+    if (!parsed.gachaAnimation) parsed.gachaAnimation = parsed.gachaEffect;
+    if (!parsed.ichibanAnimation) parsed.ichibanAnimation = parsed.gachaEffect;
+  } else {
+    if (!parsed.gachaAnimation) parsed.gachaAnimation = 'card';
+    if (!parsed.ichibanAnimation) parsed.ichibanAnimation = 'scratch';
+  }
+  
+  // Migration: Update rewardPool to new structure if needed
+  if (parsed.rewardPool) {
+    parsed.rewardPool = parsed.rewardPool.map((card: any) => {
+      // If it's an old 'functional' type or missing the new types, migrate it
+      if (card.type === 'functional' || !['coins', 'xp', 'item', 'text'].includes(card.type)) {
+        const migrated = { ...card };
+        migrated.type = 'item';
+        
+        // Map old effects to new itemTypes
+        if (card.effect) {
+          if (card.effect.type === 'xp_boost') {
+            migrated.itemType = 'xp_bonus_percent';
+            migrated.amount = card.effect.value * 100;
+          } else if (card.effect.type === 'double_xp') {
+            migrated.itemType = 'double_xp';
+          } else if (card.effect.type === 'double_coin') {
+            migrated.itemType = 'double_coin';
+          }
+        }
+        
+        // Handle specific items by name if effect is missing
+        if (card.name === 'Talent Shard') {
+          migrated.itemType = 'talent_shard';
+          migrated.amount = 1;
+        }
+        if (card.name === 'Death Defying Gold Medal') {
+          migrated.itemType = 'death_defying_medal';
+          migrated.amount = 1;
+        }
+        if (card.name === 'Small Wallet') {
+          migrated.type = 'coins';
+          migrated.amount = 5;
+        }
+        if (card.name === 'Tea Break') {
+          migrated.type = 'text';
+        }
+        
+        return migrated;
+      }
+
+      // Even if type is correct, fix missing amounts for specific items
+      if (card.type === 'item') {
+        if (card.itemType === 'talent_shard' && (card.amount === undefined || card.amount === 0)) {
+          return { ...card, amount: 1 };
+        }
+        if (card.itemType === 'death_defying_medal' && (card.amount === undefined || card.amount === 0)) {
+          return { ...card, amount: 1 };
+        }
+      }
+      if (card.name === 'Small Wallet' && card.type !== 'coins') {
+        return { ...card, type: 'coins', amount: 5 };
+      }
+      if (card.name === 'Tea Break' && card.type !== 'text') {
+        return { ...card, type: 'text' };
+      }
+
+      return card;
+    });
+  }
+
+  // Migration: Update rewardHistory
+  if (parsed.rewardHistory) {
+    parsed.rewardHistory = parsed.rewardHistory.map((item: any) => {
+      if (item.type === 'functional' || !['coins', 'xp', 'item', 'text'].includes(item.type)) {
+        return { ...item, type: 'item' };
+      }
+      return item;
+    });
+  }
+
+  // Migration: Default timeSettings if missing
+  if (!parsed.timeSettings) {
+    parsed.timeSettings = defaultState.timeSettings;
+  }
+
+  if (!parsed.reflectionTemplates) {
+    parsed.reflectionTemplates = defaultState.reflectionTemplates;
+  } else {
+    // Migration: Refresh default presets to latest system version if they have legacy content
+    const defaultTpls = defaultState.reflectionTemplates;
+    parsed.reflectionTemplates = parsed.reflectionTemplates.map((t: any) => {
+      if (t.id === 'preset-1') {
+        const def1 = defaultTpls.find(d => d.id === 'preset-1');
+        if (def1 && (!t.content || t.content.includes('### Highlights') || !t.exampleContent || t.exampleContent.includes('proposal early'))) {
+          return { ...t, name: def1.name, content: def1.content, exampleContent: def1.exampleContent };
+        }
+      }
+      if (t.id === 'preset-2') {
+        const def2 = defaultTpls.find(d => d.id === 'preset-2');
+        if (def2 && (!t.content || t.content.includes('### 3 Tasks Completed') || !t.exampleContent || t.exampleContent.includes('client tickets'))) {
+          return { ...t, name: def2.name, content: def2.content, exampleContent: def2.exampleContent };
+        }
+      }
+      if (t.id === 'preset-3') {
+        const def3 = defaultTpls.find(d => d.id === 'preset-3');
+        if (def3 && (t.name === 'Rose, Bud, Thorn' || !t.content || t.content.includes("What didn't work and should stop") || !t.exampleContent || t.exampleContent.includes('woke up early'))) {
+          return { ...t, name: def3.name, content: def3.content, exampleContent: def3.exampleContent };
+        }
+      }
+      return t;
+    });
+    
+    // Ensure all default presets exist
+    defaultTpls.forEach(defTpl => {
+      if (!parsed.reflectionTemplates.some((t: any) => t.id === defTpl.id)) {
+        parsed.reflectionTemplates.push(defTpl);
+      }
+    });
+  }
+
+  if (parsed.autoLoadTemplateId === undefined) {
+    parsed.autoLoadTemplateId = null;
+  }
+  if (parsed.autoLoadTemplateMode === undefined) {
+    parsed.autoLoadTemplateMode = 'empty';
+  }
+
+  // Migration: Default active pool IDs
+  if (parsed.gachaPools && !parsed.activeGachaPoolId) {
+    const gacha = parsed.gachaPools.find((p: any) => p.type === 'gacha');
+    if (gacha) parsed.activeGachaPoolId = gacha.id;
+  }
+  if (parsed.gachaPools && !parsed.activeIchibanPoolId) {
+    const ichiban = parsed.gachaPools.find((p: any) => p.type === 'ichiban');
+    if (ichiban) parsed.activeIchibanPoolId = ichiban.id;
+  }
+
+  // Migration: Reward Pool Mode 'fixed'
+  if (parsed.rewardPoolMode === undefined) {
+    parsed.rewardPoolMode = 'free';
+    if (parsed.rewardPool && parsed.rewardPool.length > 0) {
+      parsed.customRewardPool = parsed.rewardPool; // Preserve existing custom pool
+    }
+  }
+  
+  if (parsed.rewardPoolMode === 'fixed') {
+    // If the mode is strictly 'fixed', we override the `rewardPool` with the actual FIXED definitions,
+    // but we retain any user modifications to TEXT type rewards.
+    parsed.rewardPool = INITIAL_REWARD_POOL.map(initialItem => {
+      if (initialItem.type === 'text') {
+        const existing = (parsed.rewardPool || []).find((c: any) => c.id === initialItem.id);
+        if (existing) {
+          return { 
+            ...existing, 
+            type: 'text', 
+            weight: initialItem.weight, 
+            rarity: initialItem.rarity 
+          };
+        }
+      }
+      return initialItem;
+    });
+  }
+
+  // Migration: Theme Sync
+  if (parsed.autoTheme === undefined) {
+    parsed.autoTheme = true;
+    parsed.dayTheme = 'daylight';
+    parsed.nightTheme = 'night';
+    parsed.autoThemeDayStart = '08:00';
+    parsed.autoThemeNightStart = '20:00';
+    parsed.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // If the user was on the old default 'night', switch them to 'daylight' as the new default
+    if (parsed.theme === 'night' || !parsed.theme) {
+      parsed.theme = 'daylight';
+    }
+  } else if (parsed.autoThemeDayStart === undefined || typeof parsed.autoThemeDayStart === 'number') {
+    parsed.autoThemeDayStart = '08:00';
+    parsed.autoThemeNightStart = '20:00';
+    parsed.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  }
+
+  if (parsed.requireFocusConfirmation === undefined) parsed.requireFocusConfirmation = false;
+  if (parsed.standardSessionMinutes === undefined) parsed.standardSessionMinutes = 25;
+  if (parsed.timerBannerCompactMode === undefined) parsed.timerBannerCompactMode = false;
+  if (parsed.timerSkipVictoryMode === undefined) parsed.timerSkipVictoryMode = 'none';
+  if (parsed.timerBannerShortcuts === undefined) parsed.timerBannerShortcuts = ['pomodoro', 'short_break', 'long_break'];
+  
+  // Migration: Sage Prompts - Merge missing defaults
+  if (!parsed.sagePrompts) {
+    parsed.sagePrompts = DEFAULT_SAGE_PROMPTS;
+  } else {
+    // If they have prompts, ensure they have the new defaults added by ID
+    const existingIds = new Set(parsed.sagePrompts.map((p: any) => p.id));
+    DEFAULT_SAGE_PROMPTS.forEach(def => {
+      if (!existingIds.has(def.id)) {
+        parsed.sagePrompts.push(def);
+      }
+    });
+  }
+
+  // Migration: Fix gacha pools (weights to rarities, and color/rarityValue sync)
+  if (parsed.gachaPools) {
+    parsed.gachaPools = parsed.gachaPools.map((pool: any) => {
+      // Convert weights to rarities for old pools
+      if (pool.type === 'gacha' && !pool.rarities && pool.weights) {
+        pool.rarities = [
+          { id: 'SSR', name: 'SSR', color: 'amber', weight: pool.weights.SSR || 5, rarityValue: 5 },
+          { id: 'SR', name: 'SR', color: 'purple', weight: pool.weights.SR || 15, rarityValue: 4 },
+          { id: 'R', name: 'R', color: 'blue', weight: pool.weights.R || 80, rarityValue: 3 },
+        ];
+        // Ensure items have rarityValue
+        pool.items = (pool.items || []).map((item: any) => {
+          const r = pool.rarities.find((rt: any) => rt.id === item.rarity);
+          return { ...item, rarityValue: r ? r.rarityValue : 3 };
+        });
+      }
+
+      // Fix Ichiban colors and rarity values if they are old/missing
+      if (pool.type === 'ichiban' && pool.items && Array.isArray(pool.items)) {
+        pool.items = pool.items.map((item: any) => {
+          const r = item.rarity.toUpperCase();
+          let color = item.color;
+          let val = item.rarityValue;
+
+          if (r === 'A PRIZE' || r === 'A') { color = 'amber'; val = 5; }
+          else if (r === 'B PRIZE' || r === 'B') { color = 'purple'; val = 4; }
+          else if (r === 'C PRIZE' || r === 'C') { color = 'blue'; val = 3; }
+          else if (r === 'D PRIZE' || r === 'D') { color = 'emerald'; val = 2; }
+          else if (r === 'LASTONE') { color = 'rose'; val = 6; }
+
+          return { ...item, color, rarityValue: val };
+        });
+        
+        const mergedItems = pool.items.reduce((acc: any[], curr: any) => {
+          const existing = acc.find(i => i.rarity === curr.rarity && curr.rarity !== 'LastOne');
+          if (existing) {
+            // Merge names if they differ
+            if (!existing.name.includes(curr.name)) {
+              existing.name = `${existing.name} / ${curr.name}`;
+            }
+            existing.count += (curr.count || 0);
+            existing.initialCount += (curr.initialCount || 0);
+          } else {
+            acc.push({ ...curr });
+          }
+          return acc;
+        }, []);
+        return { ...pool, items: mergedItems };
+      }
+      return pool;
+    });
+  }
+
+  return parsed;
+}
+
 export function useGameState() {
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -309,276 +584,22 @@ export function useGameState() {
       workstationLocations: ['Home', 'Lab', 'Library']
     };
 
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
+    const { parsed } = parseSave(saved);
+    const fromVersion = getSaveVersion(parsed);
 
-        if (!parsed.userUniqueId) {
-          parsed.userUniqueId = generateUniqueId();
-        } else if (parsed.userUniqueId.startsWith('SD-')) {
-          parsed.userUniqueId = parsed.userUniqueId.replace('SD-', 'ID-');
-        }
-        
-        // Migration: gachaEffect to split animations
-        if (parsed.gachaEffect) {
-          if (!parsed.gachaAnimation) parsed.gachaAnimation = parsed.gachaEffect;
-          if (!parsed.ichibanAnimation) parsed.ichibanAnimation = parsed.gachaEffect;
-        } else {
-          if (!parsed.gachaAnimation) parsed.gachaAnimation = 'card';
-          if (!parsed.ichibanAnimation) parsed.ichibanAnimation = 'scratch';
-        }
-        
-        // Migration: Update rewardPool to new structure if needed
-        if (parsed.rewardPool) {
-          parsed.rewardPool = parsed.rewardPool.map((card: any) => {
-            // If it's an old 'functional' type or missing the new types, migrate it
-            if (card.type === 'functional' || !['coins', 'xp', 'item', 'text'].includes(card.type)) {
-              const migrated = { ...card };
-              migrated.type = 'item';
-              
-              // Map old effects to new itemTypes
-              if (card.effect) {
-                if (card.effect.type === 'xp_boost') {
-                  migrated.itemType = 'xp_bonus_percent';
-                  migrated.amount = card.effect.value * 100;
-                } else if (card.effect.type === 'double_xp') {
-                  migrated.itemType = 'double_xp';
-                } else if (card.effect.type === 'double_coin') {
-                  migrated.itemType = 'double_coin';
-                }
-              }
-              
-              // Handle specific items by name if effect is missing
-              if (card.name === 'Talent Shard') {
-                migrated.itemType = 'talent_shard';
-                migrated.amount = 1;
-              }
-              if (card.name === 'Death Defying Gold Medal') {
-                migrated.itemType = 'death_defying_medal';
-                migrated.amount = 1;
-              }
-              if (card.name === 'Small Wallet') {
-                migrated.type = 'coins';
-                migrated.amount = 5;
-              }
-              if (card.name === 'Tea Break') {
-                migrated.type = 'text';
-              }
-              
-              return migrated;
-            }
-
-            // Even if type is correct, fix missing amounts for specific items
-            if (card.type === 'item') {
-              if (card.itemType === 'talent_shard' && (card.amount === undefined || card.amount === 0)) {
-                return { ...card, amount: 1 };
-              }
-              if (card.itemType === 'death_defying_medal' && (card.amount === undefined || card.amount === 0)) {
-                return { ...card, amount: 1 };
-              }
-            }
-            if (card.name === 'Small Wallet' && card.type !== 'coins') {
-              return { ...card, type: 'coins', amount: 5 };
-            }
-            if (card.name === 'Tea Break' && card.type !== 'text') {
-              return { ...card, type: 'text' };
-            }
-
-            return card;
-          });
-        }
-
-        // Migration: Update rewardHistory
-        if (parsed.rewardHistory) {
-          parsed.rewardHistory = parsed.rewardHistory.map((item: any) => {
-            if (item.type === 'functional' || !['coins', 'xp', 'item', 'text'].includes(item.type)) {
-              return { ...item, type: 'item' };
-            }
-            return item;
-          });
-        }
-
-        // Migration: Default timeSettings if missing
-        if (!parsed.timeSettings) {
-          parsed.timeSettings = defaultState.timeSettings;
-        }
-
-        if (!parsed.reflectionTemplates) {
-          parsed.reflectionTemplates = defaultState.reflectionTemplates;
-        } else {
-          // Migration: Refresh default presets to latest system version if they have legacy content
-          const defaultTpls = defaultState.reflectionTemplates;
-          parsed.reflectionTemplates = parsed.reflectionTemplates.map((t: any) => {
-            if (t.id === 'preset-1') {
-              const def1 = defaultTpls.find(d => d.id === 'preset-1');
-              if (def1 && (!t.content || t.content.includes('### Highlights') || !t.exampleContent || t.exampleContent.includes('proposal early'))) {
-                return { ...t, name: def1.name, content: def1.content, exampleContent: def1.exampleContent };
-              }
-            }
-            if (t.id === 'preset-2') {
-              const def2 = defaultTpls.find(d => d.id === 'preset-2');
-              if (def2 && (!t.content || t.content.includes('### 3 Tasks Completed') || !t.exampleContent || t.exampleContent.includes('client tickets'))) {
-                return { ...t, name: def2.name, content: def2.content, exampleContent: def2.exampleContent };
-              }
-            }
-            if (t.id === 'preset-3') {
-              const def3 = defaultTpls.find(d => d.id === 'preset-3');
-              if (def3 && (t.name === 'Rose, Bud, Thorn' || !t.content || t.content.includes("What didn't work and should stop") || !t.exampleContent || t.exampleContent.includes('woke up early'))) {
-                return { ...t, name: def3.name, content: def3.content, exampleContent: def3.exampleContent };
-              }
-            }
-            return t;
-          });
-          
-          // Ensure all default presets exist
-          defaultTpls.forEach(defTpl => {
-            if (!parsed.reflectionTemplates.some((t: any) => t.id === defTpl.id)) {
-              parsed.reflectionTemplates.push(defTpl);
-            }
-          });
-        }
-
-        if (parsed.autoLoadTemplateId === undefined) {
-          parsed.autoLoadTemplateId = null;
-        }
-        if (parsed.autoLoadTemplateMode === undefined) {
-          parsed.autoLoadTemplateMode = 'empty';
-        }
-
-        // Migration: Default active pool IDs
-        if (parsed.gachaPools && !parsed.activeGachaPoolId) {
-          const gacha = parsed.gachaPools.find((p: any) => p.type === 'gacha');
-          if (gacha) parsed.activeGachaPoolId = gacha.id;
-        }
-        if (parsed.gachaPools && !parsed.activeIchibanPoolId) {
-          const ichiban = parsed.gachaPools.find((p: any) => p.type === 'ichiban');
-          if (ichiban) parsed.activeIchibanPoolId = ichiban.id;
-        }
-
-        // Migration: Reward Pool Mode 'fixed'
-        if (parsed.rewardPoolMode === undefined) {
-          parsed.rewardPoolMode = 'free';
-          if (parsed.rewardPool && parsed.rewardPool.length > 0) {
-            parsed.customRewardPool = parsed.rewardPool; // Preserve existing custom pool
-          }
-        }
-        
-        if (parsed.rewardPoolMode === 'fixed') {
-          // If the mode is strictly 'fixed', we override the `rewardPool` with the actual FIXED definitions,
-          // but we retain any user modifications to TEXT type rewards.
-          parsed.rewardPool = INITIAL_REWARD_POOL.map(initialItem => {
-            if (initialItem.type === 'text') {
-              const existing = (parsed.rewardPool || []).find((c: any) => c.id === initialItem.id);
-              if (existing) {
-                return { 
-                  ...existing, 
-                  type: 'text', 
-                  weight: initialItem.weight, 
-                  rarity: initialItem.rarity 
-                };
-              }
-            }
-            return initialItem;
-          });
-        }
-
-        // Migration: Theme Sync
-        if (parsed.autoTheme === undefined) {
-          parsed.autoTheme = true;
-          parsed.dayTheme = 'daylight';
-          parsed.nightTheme = 'night';
-          parsed.autoThemeDayStart = '08:00';
-          parsed.autoThemeNightStart = '20:00';
-          parsed.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          // If the user was on the old default 'night', switch them to 'daylight' as the new default
-          if (parsed.theme === 'night' || !parsed.theme) {
-            parsed.theme = 'daylight';
-          }
-        } else if (parsed.autoThemeDayStart === undefined || typeof parsed.autoThemeDayStart === 'number') {
-          parsed.autoThemeDayStart = '08:00';
-          parsed.autoThemeNightStart = '20:00';
-          parsed.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        }
-
-        if (parsed.requireFocusConfirmation === undefined) parsed.requireFocusConfirmation = false;
-        if (parsed.standardSessionMinutes === undefined) parsed.standardSessionMinutes = 25;
-        if (parsed.timerBannerCompactMode === undefined) parsed.timerBannerCompactMode = false;
-        if (parsed.timerSkipVictoryMode === undefined) parsed.timerSkipVictoryMode = 'none';
-        if (parsed.timerBannerShortcuts === undefined) parsed.timerBannerShortcuts = ['pomodoro', 'short_break', 'long_break'];
-        
-        // Migration: Sage Prompts - Merge missing defaults
-        if (!parsed.sagePrompts) {
-          parsed.sagePrompts = DEFAULT_SAGE_PROMPTS;
-        } else {
-          // If they have prompts, ensure they have the new defaults added by ID
-          const existingIds = new Set(parsed.sagePrompts.map((p: any) => p.id));
-          DEFAULT_SAGE_PROMPTS.forEach(def => {
-            if (!existingIds.has(def.id)) {
-              parsed.sagePrompts.push(def);
-            }
-          });
-        }
-
-        // Migration: Fix gacha pools (weights to rarities, and color/rarityValue sync)
-        if (parsed.gachaPools) {
-          parsed.gachaPools = parsed.gachaPools.map((pool: any) => {
-            // Convert weights to rarities for old pools
-            if (pool.type === 'gacha' && !pool.rarities && pool.weights) {
-              pool.rarities = [
-                { id: 'SSR', name: 'SSR', color: 'amber', weight: pool.weights.SSR || 5, rarityValue: 5 },
-                { id: 'SR', name: 'SR', color: 'purple', weight: pool.weights.SR || 15, rarityValue: 4 },
-                { id: 'R', name: 'R', color: 'blue', weight: pool.weights.R || 80, rarityValue: 3 },
-              ];
-              // Ensure items have rarityValue
-              pool.items = (pool.items || []).map((item: any) => {
-                const r = pool.rarities.find((rt: any) => rt.id === item.rarity);
-                return { ...item, rarityValue: r ? r.rarityValue : 3 };
-              });
-            }
-
-            // Fix Ichiban colors and rarity values if they are old/missing
-            if (pool.type === 'ichiban' && pool.items && Array.isArray(pool.items)) {
-              pool.items = pool.items.map((item: any) => {
-                const r = item.rarity.toUpperCase();
-                let color = item.color;
-                let val = item.rarityValue;
-
-                if (r === 'A PRIZE' || r === 'A') { color = 'amber'; val = 5; }
-                else if (r === 'B PRIZE' || r === 'B') { color = 'purple'; val = 4; }
-                else if (r === 'C PRIZE' || r === 'C') { color = 'blue'; val = 3; }
-                else if (r === 'D PRIZE' || r === 'D') { color = 'emerald'; val = 2; }
-                else if (r === 'LASTONE') { color = 'rose'; val = 6; }
-
-                return { ...item, color, rarityValue: val };
-              });
-              
-              const mergedItems = pool.items.reduce((acc: any[], curr: any) => {
-                const existing = acc.find(i => i.rarity === curr.rarity && curr.rarity !== 'LastOne');
-                if (existing) {
-                  // Merge names if they differ
-                  if (!existing.name.includes(curr.name)) {
-                    existing.name = `${existing.name} / ${curr.name}`;
-                  }
-                  existing.count += (curr.count || 0);
-                  existing.initialCount += (curr.initialCount || 0);
-                } else {
-                  acc.push({ ...curr });
-                }
-                return acc;
-              }, []);
-              return { ...pool, items: mergedItems };
-            }
-            return pool;
-          });
-        }
-
-        return { ...defaultState, ...parsed, deviceCode: getDeviceCode() };
-      } catch (e) {
-        console.error('Failed to parse saved state', e);
-        return defaultState;
-      }
+    if (!parsed) {
+      return { ...defaultState, schemaVersion: CURRENT_SCHEMA_VERSION };
     }
-    return defaultState;
+
+    backupBeforeMigration(saved, fromVersion);
+
+    const migrated = applyLegacyMigrations(parsed, defaultState);
+    return {
+      ...defaultState,
+      ...migrated,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      deviceCode: getDeviceCode(),
+    };
   });
 
   const [dungeons, setDungeons] = useState<Dungeon[]>(() => {

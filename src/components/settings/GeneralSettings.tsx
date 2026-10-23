@@ -6,6 +6,7 @@ import { INITIAL_GACHA, MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../consta
 import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Smile, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, Globe, ShieldCheck, CalendarCheck, Clock } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
+import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../../lib/migrations';
 import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -394,6 +395,10 @@ export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { stat
           // Extract state and dungeon data
           const { dungeons, majorDungeons, fullLocalStorage, ...importedState } = importedData;
           
+          // Keep the current save so a mistaken import can still be undone by hand
+          const currentRaw = localStorage.getItem('scholars_dungeon_state');
+          if (currentRaw) backupRaw(currentRaw, PRE_MIGRATION_BACKUP_KEY);
+
           if (fullLocalStorage) {
             Object.keys(fullLocalStorage).forEach(key => {
               if (key !== 'scholars_dungeon_device_code') {
@@ -401,7 +406,7 @@ export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { stat
               }
             });
           } else {
-            localStorage.setItem('scholars_dungeon_state', JSON.stringify(importedState));
+            localStorage.setItem('scholars_dungeon_state', JSON.stringify({ ...importedState, schemaVersion: CURRENT_SCHEMA_VERSION }));
             if (dungeons) localStorage.setItem('scholars_dungeon_state_dungeons', JSON.stringify(dungeons));
             if (majorDungeons) localStorage.setItem('scholars_dungeon_state_major_dungeons', JSON.stringify(majorDungeons));
           }

@@ -19,6 +19,39 @@ const getRedisClient = async () => {
   return null;
 };
 
+
+// ── Validation & rate limiting ────────────────────────────────────────────
+
+/** Accepts the legacy base36 codes (26 chars) and the new UUID codes (36 chars). */
+const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{16,64}$/;
+
+function isValidSecretCode(value: unknown): value is string {
+  return typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
+}
+
+const RATE_LIMIT_WINDOW_S = 60;
+const RATE_LIMIT_MAX = 20;
+
+function clientIp(req: VercelRequest): string {
+  const fwd = req.headers['x-forwarded-for'];
+  if (typeof fwd === 'string' && fwd.length > 0) return fwd.split(',')[0].trim();
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+/** Fixed-window counter per IP. INCR is atomic, so concurrent requests are safe. */
+async function isRateLimited(client: any, req: VercelRequest): Promise<boolean> {
+  try {
+    const key = `scholar_rate_${clientIp(req)}`;
+    const count = await client.incr(key);
+    if (count === 1) await client.expire(key, RATE_LIMIT_WINDOW_S);
+    return count > RATE_LIMIT_MAX;
+  } catch (err) {
+    // Fail open: never block syncs because the counter broke.
+    console.error('Rate limit check failed:', err);
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const path = req.url?.split('?')[0];
@@ -26,6 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = await getRedisClient();
     if (!client) {
       return res.status(500).json({ error: "Cloud sync is not configured (Redis connection failed)." });
+    }
+
+    if (await isRateLimited(client, req)) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
     }
 
     // Parse body if it's a string (fallback for missing Content-Type)
@@ -38,10 +75,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Reject malformed secret codes before touching Redis, so validation works
+    // even when the backend is degraded.
+    const { secretCode: submittedCode } = body || {};
+    if (submittedCode !== undefined && !isValidSecretCode(submittedCode)) {
+      return res.status(400).json({ error: "Invalid secret code format" });
+    }
+
     // Check if history is requested
     if (path?.endsWith('/history')) {
       const { secretCode } = body || {};
-      if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
+      if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
       
       const historyKey = `scholar_sync_${secretCode}_history`;
       const historyRaw = await client.get(historyKey);
@@ -52,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'POST') {
       const { secretCode, localData, forceOverwrite } = body || {};
-      if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
+      if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
 
       const key = `scholar_sync_${secretCode}`;
 
@@ -115,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     if (req.method === 'DELETE') {
       const { secretCode } = body || {};
-      if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
+      if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
       
       const key = `scholar_sync_${secretCode}`;
       await client.del(key);

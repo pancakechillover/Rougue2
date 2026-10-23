@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Cloud, Server, HardDrive, CheckCircle2, ChevronRight, Settings, Lock, X, History, ArrowDownUp, RefreshCw, LogIn, Trash2, ShieldBan, Eye, Search, UploadCloud, DownloadCloud, Download, Laptop, Monitor, Smartphone, Tablet, Copy, Key, WifiOff, Users, Database } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getDeviceCode } from '../../lib/utils';
+import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../../lib/migrations';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { CloudHistoryModal } from './CloudHistoryModal';
 
@@ -550,7 +551,15 @@ export const CloudSettingsSection: React.FC<CloudSettingsSectionProps> = ({
                 const dungs = historyData.dungeons || [];
                 const majorDungs = historyData.majorDungeons || [];
                 
-                localStorage.setItem('scholars_dungeon_state', JSON.stringify({ ...stateData, deviceCode: getDeviceCode() }));
+                // Keep the current save so a mistaken restore can still be undone by hand
+                const currentRaw = localStorage.getItem('scholars_dungeon_state');
+                if (currentRaw) backupRaw(currentRaw, PRE_MIGRATION_BACKUP_KEY);
+
+                localStorage.setItem('scholars_dungeon_state', JSON.stringify({
+                  ...stateData,
+                  schemaVersion: CURRENT_SCHEMA_VERSION,
+                  deviceCode: getDeviceCode()
+                }));
                 if (historyData.dungeons) localStorage.setItem('scholars_dungeon_state_dungeons', JSON.stringify(historyData.dungeons));
                 if (historyData.majorDungeons) localStorage.setItem('scholars_dungeon_state_major_dungeons', JSON.stringify(historyData.majorDungeons));
                 
