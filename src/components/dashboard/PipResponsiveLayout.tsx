@@ -40,7 +40,9 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
     pipWindow.document.head.appendChild(style);
 
     const measure = () => {
-      const isWide = el.clientWidth >= threshold;
+      // Both dimensions matter: a short-but-wide strip (the common shape)
+      // cannot fit a side column without crushing the timer.
+      const isWide = el.clientWidth >= threshold && el.clientHeight >= 150;
       setWide(isWide);
       el.classList.toggle('pip-wide', isWide);
     };
