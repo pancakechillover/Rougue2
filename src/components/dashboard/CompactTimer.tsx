@@ -272,7 +272,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   const isCrit = activeRewardSession?.session?.isCrit;
 
   return (
-    <div ref={containerRef} className="pip-container flex flex-col items-center justify-start h-[100dvh] w-[100dvw] bg-slate-950 text-white font-sans overflow-hidden select-none relative">
+    <div ref={containerRef} className="pip-container flex flex-col items-center justify-start h-full w-full bg-slate-950 text-white font-sans overflow-hidden select-none relative">
       <style>{PIP_STYLE}</style>
       <AnimatePresence>
         {/* Victory Screen & Reward Selection Overlay */}

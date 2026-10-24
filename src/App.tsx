@@ -224,6 +224,8 @@ function App() {
         };
 
         copyStyles();
+        pip.document.documentElement.style.height = '100%';
+        pip.document.body.style.height = '100%';
         pip.document.body.style.backgroundColor = 'var(--color-slate-950, #020617)';
         pip.document.body.style.margin = '0';
         pip.document.body.style.overflow = 'hidden';
