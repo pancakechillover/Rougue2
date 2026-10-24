@@ -111,7 +111,7 @@ app.get("/api/stats", async (_req, res) => {
 // ── Sync input validation & rate limiting ────────────────────────────────
 
 /** Accepts the legacy base36 codes (26 chars) and the new UUID codes (36 chars). */
-const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{16,64}$/;
+const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 const isValidSecretCode = (value: unknown): value is string =>
   typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
 
