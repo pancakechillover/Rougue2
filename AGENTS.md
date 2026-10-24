@@ -1,96 +1,30 @@
-# Project Tracker & Agent Instructions
+# AGENTS.md — Scholar's Dungeon
 
-## Role & Workflow
-You are an AI assistant maintaining the "Scholar's Dungeon" project. 
-At the start of every interaction, you automatically read this file (injected into your system prompt).
+Read this first. Chat with the user in **Chinese**; the app UI is **pure English**.
 
-**ACTIVE DEVELOPMENT DIRECTIVE:**
-- Follow the maintenance roadmap in `ROADMAP.md` (work only on tasks the user assigns; do not start roadmap items on your own).
-- **Multi-Agent Workflow (since 2026-10-24):** Two AI assistants maintain this repo in parallel:
-  - **CodeBuddy (小迪)** commits to `feat-workstation-checkin` and owns the final merges into `main`.
-  - **Google AI Studio (you)** commit **directly to `main`**.
-- **RULES for the Google AI agent:**
-  1. NEVER edit `src/version.ts`, `ROADMAP.md`, or this `AGENTS.md`. Version numbers and the roadmap are centrally managed by CodeBuddy — conflicts in these files block every merge.
-  2. Keep changes small and focused: one task per commit, push right after each completed task.
-  3. Every push runs CI (typecheck / lint / test / build). If your push turns the check red, fix it in a follow-up commit BEFORE starting anything new.
-  4. If production (scholars-dungeon.karakan.top) breaks after your deploy, the user can Instant-Rollback on Vercel — do NOT force-push or revert on your own.
-  5. The app UI is pure English (see CSS & UI STANDARDS below); chat replies to the user are Chinese.
+## Multi-Agent Workflow
+- **Google AI Studio (you):** commit directly to `main`. Small commits: one task, one push.
+- **CodeBuddy (小迪):** works on `feat-workstation-checkin`, owns final merges into `main`.
+- **NEVER edit** `src/version.ts`, `ROADMAP.md`, or this file — centrally managed by CodeBuddy.
+- Every push runs CI (typecheck / lint / test / build). Red check -> fix in a follow-up commit before new work.
+- Production broken after deploy? User can Instant-Rollback on Vercel. Never force-push.
 
-**CRITICAL RULE FOR EVERY UPDATE:**
-We now separate updates into **Preview Updates** (预览更新) and **Official Updates** (正式更新):
+## Version Status
+- Current: **v9.4.0** (2026-10-24) — see `docs/TaskHistory.md` (recent) and `docs/archive/` (full history).
 
-**1. Preview Updates (预览更新 - Default):**
-- Update the `APP_VERSION` in `src/version.ts`.
-- Update the `Current Version` and `Last Update Date` in this `AGENTS.md` file.
-- Log the completed task in the `Task History` section below.
-- *Do not* modify `RELEASE_HISTORY` in `src/version.ts` or `public/version.json`.
+## Roadmap
+- Work only on tasks the user assigns. Never start roadmap items unprompted. See `ROADMAP.md`.
 
-**2. Official Updates (正式更新 - Only when requested):**
-- Do all the steps for Preview Updates.
-- Aggregate all features/fixes logged in `AGENTS.md` since the last Official Update.
-- Write a comprehensive changelog summarizing these updates.
-- Update `RELEASE_HISTORY` in `src/version.ts` with this aggregated changelog.
-- Update `public/version.json` with the new version and changelog to trigger the app update popup.
+## Update Flow (per release)
+- Preview update: bump `APP_VERSION` in `src/version.ts` + log in `docs/TaskHistory.md`. Do NOT touch `RELEASE_HISTORY`.
+- Official update (user-requested): additionally update `RELEASE_HISTORY` and `public/version.json`.
 
-**VERSIONING POLICY (x.y.z):**
-- **x (Major):** Critical architectural changes or full-scale system overhauls.
-- **y (Minor):** New features, significant UI additions, or functional enhancements.
-- **z (Patch):** Bug fixes, micro-optimizations, documentation updates, and UI refinements.
+## Hard UI Rules (each one was a real bug — do not violate)
+- Full-screen modals: ALWAYS render via `createPortal(..., document.body)`. Fixed elements inside transformed ancestors break positioning.
+- Red-dot badges: bottom-right (`-bottom-0.5 -right-0.5`), never top-right.
+- Critical actions (delete etc.): never hover-only — must be visible/tappable on touch devices.
+- Italic text: add `pr-1` (or similar) to prevent right-edge clipping.
+- Colors: theme-aware (`indigo-400/500`, slate+opacity). Avoid `bg-emerald-500`-style hardcodes, `indigo-200`, and `indigo-700+` for primary elements. Dark themes: night/forest/ocean. Light: daylight/warm/candy.
 
-**COMMUNICATION RULE:**
-- You MUST ALWAYS reply to the user in Chinese (Simplified). This is an absolute requirement for every response you give.
-
-**CSS & UI STANDARDS:**
-- **Strict English UI Standard:** All UI elements across the application (labels, titles, headings, buttons, badges, tabs, tooltips, placeholders, modal dialogs, and settings descriptions) MUST strictly and exclusively be in English. NEVER use Chinese characters or bilingual slash labels (such as `English / 中文`) in the application interface or code. (Note: The assistant still replies to the user in Chinese (Simplified) during chat interactions, but the app UI itself is 100% pure English).
-- **Full-Screen Modals:** Whenever creating a "full-screen" centered modal (especially `fixed inset-0`), you MUST use `createPortal(..., document.body)` from `react-dom` to render the modal directly on the `body`. If you do not use `createPortal`, parent elements with CSS `transform`, `filter`, or `perspective` will establish unintended containing blocks that capture the `fixed` positioning, causing the modal to appear in the middle of a scrolling page container instead of the actual screen view. Never make this mistake again.
-- **Italic Clipping:** To prevent right-side clipping of italic text (especially in browsers with tight bounding boxes), always add a small right padding (e.g., `pr-1` or `px-0.5`) to the element or its immediate container.
-- **Red Dot / Notification Placement:** Unread message or notification badges (red dots) on icons and buttons MUST ALWAYS be placed in the bottom-right corner (e.g. `absolute -bottom-0.5 -right-0.5`), NEVER in the top-right corner.
-- **Touch-Friendly Controls:** Delete buttons or other critical actions MUST NOT be hover-only (e.g. `opacity-0 group-hover:opacity-100`), as this is unfriendly to touch-screen users. They should be visible or adapt properly for mobile devices.
-- **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
-
-## Current Status
-- **Current Version:** v9.4.0
-- **Last Update Date:** 2026-10-24
-- **Active branch (CodeBuddy):** `feat-workstation-checkin`
-- **Production domain:** https://scholars-dungeon.karakan.top
-
-## Dark Themes Definition
-The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
-- **Night** (`data-theme="night"`)
-- **Forest** (`data-theme="forest"`)
-- **Ocean** (`data-theme="ocean"`)
-
-## Light Themes Definition
-The following themes are considered "Light Themes" and require special CSS handling (e.g., avoiding white text on light backgrounds, using theme-aware colors for modals and charts):
-- **Daylight** (`data-theme="daylight"`)
-- **Warm Sun** (`state.theme === "warm"`)
-- **Candy** (`state.theme === "candy"`)
-
-## Push Notification Troubleshooting Protocols
-Due to inconsistencies in Web Push delivery in various environments (Iframes, PWAs), follow this hierarchy:
-1. **Execution Context:** Web Push is often blocked in cross-origin IFRAMES. Always test by opening the app in a **New Tab** or as an **Installed PWA**.
-2. **Direct Permission Check:** Verify address bar shows "Allowed". 
-3. **Service Worker Console:** Switch to `Application -> Service Workers -> Inspect` in DevTools to see SW-specific logs (`[Service Worker]`). Main console may skip these.
-4. **OS Level:** Check Windows Focus Assist or macOS Do Not Disturb.
-5. **Direct API Test:** Use the "Test Local Notification (Direct)" tool in Developer settings. If this fails, the browser/OS is blocking notifications globally.
-6. **VAPID Integrity:** If VAPID keys change, "Clear Server Sub" + "Reset Service Worker" is mandatory.
-
-
-## Task History
-> Recent history is maintained in `docs/TaskHistory.md` (3 most recent entries). The full archive lives in `docs/archive/TaskHistory-full.md`.
-
-- **v9.3.39 (2026-09-11):** Fellowship Guild Chat Modernization: Smart Date/Time Dividers, Message Clustering & Floating Unread/Scroll Pill
-  - *Smart Date & Interval Dividers:* Added centered date badges (`Today`, `Yesterday`, or formatted date) and subtle centered time badges when the interval between consecutive messages exceeds 5 minutes.
-  - *Consecutive Message Clustering:* Consecutive messages from the same sender within 5 minutes on the same day are grouped under a single avatar and header, featuring tight bubble margins and hover timestamps.
-  - *Forward Scroll Viewport & Bottom Pinning:* Refactored chat container from `flex-col-reverse` to top-down scrolling with automatic bottom docking and unread tracking.
-  - *Floating Unread & Quick Scroll Pill:* Implemented an animated floating bubble above the message input that dynamically displays new unread messages (`↓ X new messages`) or allows one-click smooth glide to bottom (`↓ Scroll to bottom`).
-
-- **v9.3.38 (2026-09-11):** Guild / Fellowship Team Goal Real-Time Focus Time Aggregation & Cycle Synchronization
-  - *Centralized Cycle State Engine:* Created `/src/lib/teamUtils.ts` with standardized cycle date boundaries (`getCycleBounds`), cycle unique keys (`getCycleKey`), and user total / cycle focus accumulators (`calculateUserTotalFocus`, `calculateUserCycleFocus`, `getTeamCycleState`) with fallback calculation matching study session history and rest time preferences.
-  - *Full-Stack Member Progress Synchronization:* Synchronized user total and cycle focus time from study session completion broadcasts (`useGameState.ts`) and polling headers (`x-user-total-focus`, `x-user-cycle-focus`, `x-user-cycle-key`, `x-user-target-type` in `TeamModule.tsx`), persisting updated member stats seamlessly into Redis backend storage.
-  - *Guild Goal UI & Cycle Alignment:* Integrated real-time local statistics into `TeamModule.tsx` dashboard cards, `GoalDetailsModal.tsx`, and `DetailedGoalModal.tsx`, guaranteeing that all daily, weekly, monthly, yearly, and total goal meters reflect accurate focus minutes.
-
-- **v9.3.37 (2026-09-10):** Markdown Live Editor Multi-Line Paste, Delete Merging & Escape Preview
-  - *Multi-Line Content Paste Expansion:* Added clipboard handler to automatically decompose multi-line pasted text into individual rows and position cursor at the tail of pasted block.
-  - *Line-End Forward Delete Merging:* Enabled `Delete` key at the end of a line to smoothly merge subsequent rows into the active line.
-  - *Escape Quick Preview & Typography Polish:* Enabled `Esc` to instantly blur active line and preview complete rendered markdown; optimized rich rendering of bold (`**`), italic (`*`), and strikethrough (`~~`).
+## Web Push Troubleshooting (in order)
+1. Test in a new tab or installed PWA (iframes block push) -> 2. permission "Allowed" -> 3. SW console `Application > Service Workers > Inspect` -> 4. OS focus-assist -> 5. Dev settings "Test Local Notification (Direct)" -> 6. VAPID keys changed? Then "Clear Server Sub" + "Reset Service Worker".
