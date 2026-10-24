@@ -401,7 +401,6 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               // 2. Identify the intended order based on newSubs (which comes from the group)
               // We only want to reorder items that ARE still in this parent
               const reorderedIds = newSubs.map(s => s.id);
-              const __itemsToReorder = currentSubsInParent.filter(d => reorderedIds.includes(d.id));
               
               // If we have items in newSubs that aren't in currentSubsInParent, it means they were 
               // just moved IN. If we have items in currentSubsInParent NOT in newSubs, they were 
@@ -674,7 +673,6 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     );
   };
 
-  const __activeDungeon = dungeons.find(d => d.id === currentDungeonId);
 
   const filteredMajors = React.useMemo(() => {
     if (activeTab === 'active') {

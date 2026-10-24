@@ -517,9 +517,6 @@ export const Timer = React.memo<TimerProps>(({
     }
   }, [cancelSkipCharge]);
 
-  const __canPip = 'documentPictureInPicture' in window && window.self === window.top;
-  const __isPWA = window.matchMedia('(display-mode: standalone)').matches;
-  const __isDesktop = !('ontouchstart' in window);
 
   const toggleTimer = () => {
     if (isActive) {
@@ -552,7 +549,6 @@ export const Timer = React.memo<TimerProps>(({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const __showDistractionControls = !isResting;
 
   return (
     <div className={cn(

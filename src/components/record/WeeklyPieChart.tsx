@@ -4,7 +4,6 @@ import { StudySession, TimeSettings } from '../../types';
 import { getDay } from 'date-fns';
 import { getSessionEffectiveMinutes } from '../../lib/utils';
 
-const __COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6'];
 
 interface Props {
   weekSessions: StudySession[];

@@ -273,13 +273,6 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
     setBatchActionType('');
   };
 
-  const __handleBatchClearDistractions = () => {
-    if (selectedIds.size === 0 || !onBulkUpdate) return;
-    onBulkUpdate(Array.from(selectedIds), {
-      distractions: undefined
-    });
-    setBatchActionType('');
-  };
 
   const handleExportSelected = () => {
     const selected = history.filter(s => selectedIds.has(s.id));

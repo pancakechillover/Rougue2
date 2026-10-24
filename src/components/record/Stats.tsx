@@ -3,11 +3,10 @@ import {
   format, subDays, 
   startOfWeek, endOfWeek,
   startOfDay, endOfDay, isWithinInterval,
-  eachDayOfInterval, isSameDay
+  eachDayOfInterval
 } from 'date-fns';
 import { StudySession, AppState, Dungeon, MajorDungeon, RewardHistoryItem, ChartLayerSelection } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
-import { MOOD_OPTIONS } from '../../constants';
 import { 
   BarChart2, Share2, LayoutTemplate
 } from 'lucide-react';
@@ -115,19 +114,6 @@ const computeTimeYAxis = (maxMinutes: number, isFixed: boolean, defaultFixedMax:
   return { domain: [0, targetMax] as [number, number], ticks };
 };
 
-const __getSessionDistractionCount = (distractions: any): number => {
-  if (!distractions) return 0;
-  if (typeof distractions === 'number') {
-    return isNaN(distractions) ? 0 : distractions;
-  }
-  if (typeof distractions === 'object') {
-    const internal = Number(distractions.internal) || 0;
-    const external = Number(distractions.external) || 0;
-    const unavoidable = Number(distractions.unavoidable) || 0;
-    return internal + external + unavoidable;
-  }
-  return 0;
-};
 
 export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], _setShowStartOfDayModal: __setShowStartOfDayModal, onOpenJournal }) => {
   const history = state.history;
@@ -480,10 +466,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
   const dailyDateStr = format(dailyDate, 'yyyy-MM-dd');
   const currentLog = dailyLogs[dailyDateStr];
 
-  const __dailyInputRef = useRef<HTMLInputElement>(null);
-  const __weeklyInputRef = useRef<HTMLInputElement>(null);
-  const __heatmapInputRef = useRef<HTMLInputElement>(null);
-
+useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;
   // --- Date Range Calculations ---
   const weekStart = weeklyMode === 'calendar' 
     ? startOfWeek(weeklyDate, { weekStartsOn: 1 })
@@ -607,10 +590,6 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     return rewardsByDateStr[format(date, 'yyyy-MM-dd')] || [];
   }, [rewardsByDateStr]);
 
-  const __isSamePeakDay = (sessionDate: Date, targetDate: Date) => {
-    const info = getPeriodInfo(sessionDate);
-    return isSameDay(info.assignedDate, targetDate);
-  };
 
   const calculateDistractionCount = (distractions: any) => {
     if (!distractions) return 0;
@@ -757,19 +736,12 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     }
   });
 
-  let maxPeriod = 'Morning';
   let maxCount = dailyCounts.Morning;
   ['Afternoon', 'Night'].forEach(p => {
     if (dailyCounts[p as keyof typeof dailyCounts] > maxCount) {
       maxCount = dailyCounts[p as keyof typeof dailyCounts];
-      maxPeriod = p;
     }
   });
-  const __highestEnergyPrompt = dailySessions.length > 0 
-    ? (maxCount > 0 
-        ? `Your highest energy period today is ${maxPeriod}!` 
-        : "No sessions recorded during main periods today.")
-    : "The archives are silent for today. Embark on a new journey to begin your record.";
 
   const weeklyDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
@@ -927,40 +899,6 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     return computeTimeYAxis(maxMins, isFixedYAxis, 480);
   }, [weeklyData, state.showOtherInActivityLog, isFixedYAxis]);
 
-  const __renderMoodIcon = (props: any) => {
-    const { x, y, width, payload, _value: __value } = props;
-    // Extract actual payload whether stacked or not
-    const actualPayload = payload?.payload || payload;
-    if (!actualPayload) return null;
-
-    const moodId = actualPayload.mood;
-    const total = actualPayload.total;
-    const moodObj = moodId ? MOOD_OPTIONS.find((m) => m.id === moodId) : null;
-    const Icon = moodObj ? moodObj.icon : null;
-
-    return (
-      <g transform={`translate(${x + width / 2}, ${y - 10})`}>
-        {/* Render total value */}
-        <text
-          x={0}
-          y={Icon ? -16 : 0}
-          fill="#94a3b8"
-          fontSize={10}
-          fontWeight="bold"
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          {total > 0 ? total : ''}
-        </text>
-        {/* Render mood icon if available */}
-        {Icon && (
-          <g transform={`translate(-7, -7)`}>
-            <Icon size={14} className={moodObj.color} />
-          </g>
-        )}
-      </g>
-    );
-  };
 
   return (
     <div ref={statsContainerRef} className="w-full space-y-6 sm:space-y-8" onClick={() => {}} style={{ cursor: 'auto' }}>
