@@ -1,8 +1,9 @@
 import { useEffect, useState, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PipResponsiveLayoutProps {
   pipWindow: Window | null;
-  /** Rendered in the left column when the PiP window is wide enough. */
+  /** Rendered as an absolutely-positioned left column when wide. */
   side?: ReactNode;
   children: ReactNode;
   /** Width threshold (px) at which the side panel appears. */
@@ -10,15 +11,17 @@ interface PipResponsiveLayoutProps {
 }
 
 /**
- * Layout wrapper for Document Picture-in-Picture windows.
+ * Zero-intrusion responsive layer for Document Picture-in-Picture.
  *
- * Watches the PiP window's own viewport width with a ResizeObserver:
- * - below `threshold` (default 340): single column, only `children`
- * - at/above `threshold`: two columns — `side` panel on the left,
- *   `children` (the timer) filling the rest
+ * Below the threshold the DOM is EXACTLY what it was before this component
+ * existed (children rendered straight into the PiP body, native 100dvw/dvh
+ * sizing) — pixel-identical to the legacy behaviour.
  *
- * Chrome clamps PiP windows to a 240px minimum width, so the single-column
- * layout must always fit ~240px.
+ * At/above the threshold:
+ * - a `pip-wide` class on the PiP documentElement activates a CSS override
+ *   that shrinks `.pip-container` to (100dvw - 118px)
+ * - the `side` panel is portalled into the PiP body as an absolute column
+ *   on the freed left space
  */
 export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
   pipWindow,
@@ -31,7 +34,16 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
   useEffect(() => {
     if (!pipWindow) return;
     const el = pipWindow.document.documentElement;
-    const measure = () => setWide(el.clientWidth >= threshold);
+    const style = pipWindow.document.createElement('style');
+    style.textContent =
+      'html.pip-wide .pip-container { width: calc(100dvw - 118px) !important; }';
+    pipWindow.document.head.appendChild(style);
+
+    const measure = () => {
+      const isWide = el.clientWidth >= threshold;
+      setWide(isWide);
+      el.classList.toggle('pip-wide', isWide);
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -39,19 +51,26 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
     return () => {
       ro.disconnect();
       pipWindow.removeEventListener('resize', measure);
+      el.classList.remove('pip-wide');
+      style.remove();
     };
   }, [pipWindow, threshold]);
 
   if (!pipWindow) return <>{children}</>;
 
   return (
-    <div className="w-full min-h-screen flex items-stretch">
-      {wide && (
-        <div className="w-[118px] shrink-0 border-r border-slate-800 bg-slate-900/60">
-          {side}
-        </div>
-      )}
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
+    <>
+      {children}
+      {wide &&
+        side &&
+        createPortal(
+          <div
+            className="absolute left-0 top-0 bottom-0 w-[118px] z-10 border-r border-slate-800 bg-slate-900/60 overflow-y-auto"
+          >
+            {side}
+          </div>,
+          pipWindow.document.body
+        )}
+    </>
   );
 };
