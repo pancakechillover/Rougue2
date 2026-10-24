@@ -123,7 +123,7 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
     });
   }, [history, activeTab, subTab, timeRange, sourceFilter, statusFilter, rarityFilter, searchQuery]);
 
-  const _stats = useMemo(() => {
+  const __stats = useMemo(() => {
     const treasures = history.filter(i => i.type !== 'text').length;
     const custom = history.filter(i => i.type === 'text').length;
     const pending = history.filter(i => i.type === 'text' && !i.redeemed).length;

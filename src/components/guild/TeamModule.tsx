@@ -1586,7 +1586,7 @@ const TeamMemberProfileModal = ({ member, onClose, isCurrentUserCaptain, isTarge
   );
 };
 
-const _GoalDetailsModal = ({ team, state, onClose }: any) => {
+const __GoalDetailsModal = ({ team, state, onClose }: any) => {
   const target = team.config.targetValue;
   const userTotalFocus = state ? calculateUserTotalFocus(state.history, state.includeRestTimeInTasks) : undefined;
   const userCycleFocus = state ? calculateUserCycleFocus(state.history, team.config.targetType, team.config.resetTime, state.includeRestTimeInTasks) : undefined;

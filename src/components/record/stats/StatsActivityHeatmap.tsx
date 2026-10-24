@@ -71,7 +71,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
   setShowHeatmapMood,
   heatmapPopoverAnchor,
   setHeatmapPopoverAnchor,
-  _formatDuration,
+  _formatDuration: __formatDuration,
   viewOpts,
 }) => {
   // Days Interval

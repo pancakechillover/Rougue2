@@ -5,7 +5,7 @@ declare let _self: ServiceWorkerGlobalScope;
 
 precacheAndRoute(_self.__WB_MANIFEST);
 
-_self.addEventListener('install', (event) => {
+_self.addEventListener('install', () => {
   _self.skipWaiting();
 });
 

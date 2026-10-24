@@ -22,7 +22,7 @@ export const ReflectionTemplatesDropdown: React.FC<ReflectionTemplatesDropdownPr
   currentReflection,
   onUpdateTemplates,
   autoLoadTemplateId,
-  _autoLoadTemplateMode = 'empty',
+  _autoLoadTemplateMode: __autoLoadTemplateMode = 'empty',
   onSetAutoLoadTemplate,
   className,
   buttonClassName,

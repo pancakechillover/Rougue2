@@ -283,7 +283,7 @@ export const Shop = React.memo<ShopProps>(({
                                'emerald': 'bg-emerald-600 border-emerald-500',
                                'slate': 'bg-slate-700 border-slate-600'
                              };
-                             const _badgeBg = rarity.color && vibrantMapping[rarity.color] ? vibrantMapping[rarity.color] : colors.bgClass;
+                             const __badgeBg = rarity.color && vibrantMapping[rarity.color] ? vibrantMapping[rarity.color] : colors.bgClass;
 
                              return (
                                <div key={rarity.id} className="bg-slate-900 rounded-xl p-3 border border-slate-800/50">
@@ -477,7 +477,7 @@ export const Shop = React.memo<ShopProps>(({
                                     }
                                   }
                                   
-                                  const { bgClass, _textClass, borderClass } = getColorClass(colorId || 'slate');
+                                  const { bgClass, _textClass: __textClass, borderClass } = getColorClass(colorId || 'slate');
                                   
                                   const vibrantMapping: Record<string, string> = {
                                     'rose': 'bg-rose-600 text-white border-rose-500',

@@ -28,7 +28,7 @@ interface TalentTreeProps {
 
 export const TalentTree = React.memo<TalentTreeProps>(({
   points,
-  _shards,
+  _shards: __shards,
   unlockedIds,
   activeIds,
   onUnlock,

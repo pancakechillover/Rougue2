@@ -329,8 +329,8 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   formatTimeTick,
   formatDuration,
   state,
-  _dungeons = [],
-  _majorDungeons = [],
+  _dungeons: __dungeons = [],
+  _majorDungeons: __majorDungeons = [],
   weeklySessions,
 }) => {
   const activeLayers: ChartLayerSelection = weeklyChartLayers || (weeklyLayerMode === 'bars'

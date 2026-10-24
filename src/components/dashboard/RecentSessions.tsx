@@ -232,7 +232,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
     return segments;
   }, [filteredSessions, getPeriod, showPeriodicSplits]);
 
-  const _stats = useMemo(() => {
+  const __stats = useMemo(() => {
     return {
       totalTime: history.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, includeRestTimeInTasks), 0),
       totalGold: history.reduce((acc, s) => acc + s.coinsEarned, 0),

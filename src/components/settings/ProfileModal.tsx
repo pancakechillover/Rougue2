@@ -63,13 +63,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   editAvatar,
   setEditAvatar,
   handleSaveProfile,
-  _setShowCloudSync,
+  _setShowCloudSync: __setShowCloudSync,
   setActiveTab,
   isSyncing,
   hasUnsyncedChanges,
   triggerSyncCheck,
-  _isTalentLevel,
-  _getNextTalentLevel,
+  _isTalentLevel: __isTalentLevel,
+  _getNextTalentLevel: __getNextTalentLevel,
   repairStreak,
   openGuideBook
 }) => {
@@ -142,7 +142,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return dates.has(todayStr);
   })();
 
-  const _streakData = showStreakModal ? (() => {
+  const __streakData = showStreakModal ? (() => {
     const dates = new Set<string>();
     state.history.forEach(session => {
       dates.add(format(parseISO(session.timestamp), 'yyyy-MM-dd'));

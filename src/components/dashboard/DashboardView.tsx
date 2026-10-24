@@ -65,12 +65,12 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   state,
   setState,
-  _currentDungeon,
+  _currentDungeon: __currentDungeon,
   setActiveTab,
   setShowDailySummary,
   setShowStartOfDayModal,
   openGuideBook,
-  _saveDailyLog,
+  _saveDailyLog: __saveDailyLog,
   applyExpeditionPlan,
   navigateToSettings,
   dungeons,
@@ -181,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return count;
   }, [calendarDays, ddlMap]);
 
-  const _settlementPeriod = useMemo(() => {
+  const __settlementPeriod = useMemo(() => {
     const ts = state.timeSettings || {
       morning: { start: 8, end: 12 },
       afternoon: { start: 14, end: 18 },
@@ -957,7 +957,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
     });
   };
 
-  const _clearHistory = () => {
+  const __clearHistory = () => {
     customConfirm("Are you sure you want to clear this entire conversation?", () => {
       setState(prev => {
         const convos = prev.sageConversations || [];
@@ -1201,7 +1201,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                       let parsedPlan = null;
                       let parsedSettings = null;
                       let textToRender = msg.content;
-                      let _hasMarkdownBlock = false;
+                      let __hasMarkdownBlock = false;
                       const canModify = !!state.sageAllowGameModifiers;
 
                       if (canModify) {
@@ -1242,8 +1242,8 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                               components={{
                                 code({node, inline, className, children, ...props}: any) {
                                   const match = /language-(\w+)/.exec(className || '');
-                                  const _isJson = match && match[1] === 'json';
-                                  const _content = String(children).replace(/\n$/, '');
+                                  const __isJson = match && match[1] === 'json';
+                                  const __content = String(children).replace(/\n$/, '');
                                   
                                   // We already extracted top-level JSON above. 
                                   // If there are other code blocks, just render them as normal.

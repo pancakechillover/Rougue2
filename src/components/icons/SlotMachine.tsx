@@ -11,7 +11,7 @@ export const SlotMachine: React.FC<SlotMachineProps> = ({
   size = 24, 
   className = "", 
   color = "currentColor",
-  _strokeWidth = 2
+  _strokeWidth: __strokeWidth = 2
 }) => {
   return (
     <svg 

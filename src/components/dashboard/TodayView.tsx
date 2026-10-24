@@ -175,7 +175,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
   }, [majorDungeons]);
 
   // Calculate sub-dungeon depth for Tier numbering in O(depth) using Map
-  const _getDungeonDepth = (subId: string): number => {
+  const __getDungeonDepth = (subId: string): number => {
     let current = dungeonMap.get(subId);
     if (!current) return 1;
     let depth = 1;
@@ -388,7 +388,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }).length;
   }, [todos, dungeonMap]);
 
-  const _pendingTodosCount = todos.length - completedTodosCount;
+  const __pendingTodosCount = todos.length - completedTodosCount;
 
   const handleAutoSortTodos = () => {
     if (todos.length <= 1) return;

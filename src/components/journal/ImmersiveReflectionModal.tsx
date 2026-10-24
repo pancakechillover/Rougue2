@@ -47,7 +47,7 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
   dailyLogs = {},
   onSelectDate,
   bookmarks = [],
-  _onToggleBookmark,
+  _onToggleBookmark: __onToggleBookmark,
   history = [],
   efficiencyRatingConfig,
   templates,

@@ -115,7 +115,7 @@ const computeTimeYAxis = (maxMinutes: number, isFixed: boolean, defaultFixedMax:
   return { domain: [0, targetMax] as [number, number], ticks };
 };
 
-const _getSessionDistractionCount = (distractions: any): number => {
+const __getSessionDistractionCount = (distractions: any): number => {
   if (!distractions) return 0;
   if (typeof distractions === 'number') {
     return isNaN(distractions) ? 0 : distractions;
@@ -129,7 +129,7 @@ const _getSessionDistractionCount = (distractions: any): number => {
   return 0;
 };
 
-export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], _setShowStartOfDayModal, onOpenJournal }) => {
+export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], _setShowStartOfDayModal: __setShowStartOfDayModal, onOpenJournal }) => {
   const history = state.history;
   const dailyLogs = state.dailyLogs || {};
   const [showDailySessionsDate, setShowDailySessionsDate] = useState<Date | null>(null);
@@ -480,9 +480,9 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
   const dailyDateStr = format(dailyDate, 'yyyy-MM-dd');
   const currentLog = dailyLogs[dailyDateStr];
 
-  const _dailyInputRef = useRef<HTMLInputElement>(null);
-  const _weeklyInputRef = useRef<HTMLInputElement>(null);
-  const _heatmapInputRef = useRef<HTMLInputElement>(null);
+  const __dailyInputRef = useRef<HTMLInputElement>(null);
+  const __weeklyInputRef = useRef<HTMLInputElement>(null);
+  const __heatmapInputRef = useRef<HTMLInputElement>(null);
 
   // --- Date Range Calculations ---
   const weekStart = weeklyMode === 'calendar' 
@@ -607,7 +607,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     return rewardsByDateStr[format(date, 'yyyy-MM-dd')] || [];
   }, [rewardsByDateStr]);
 
-  const _isSamePeakDay = (sessionDate: Date, targetDate: Date) => {
+  const __isSamePeakDay = (sessionDate: Date, targetDate: Date) => {
     const info = getPeriodInfo(sessionDate);
     return isSameDay(info.assignedDate, targetDate);
   };
@@ -765,7 +765,7 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
       maxPeriod = p;
     }
   });
-  const _highestEnergyPrompt = dailySessions.length > 0 
+  const __highestEnergyPrompt = dailySessions.length > 0 
     ? (maxCount > 0 
         ? `Your highest energy period today is ${maxPeriod}!` 
         : "No sessions recorded during main periods today.")
@@ -927,8 +927,8 @@ export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateStat
     return computeTimeYAxis(maxMins, isFixedYAxis, 480);
   }, [weeklyData, state.showOtherInActivityLog, isFixedYAxis]);
 
-  const _renderMoodIcon = (props: any) => {
-    const { x, y, width, payload, _value } = props;
+  const __renderMoodIcon = (props: any) => {
+    const { x, y, width, payload, _value: __value } = props;
     // Extract actual payload whether stacked or not
     const actualPayload = payload?.payload || payload;
     if (!actualPayload) return null;

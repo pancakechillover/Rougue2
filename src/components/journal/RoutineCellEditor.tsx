@@ -1,4 +1,4 @@
-import _React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { StudySession, Dungeon, AppState, MajorDungeon } from '../../types';
 import { getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
 import { Check, Clock, Trash2 } from 'lucide-react';

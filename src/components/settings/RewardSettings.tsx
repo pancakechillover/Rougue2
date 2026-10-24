@@ -1,4 +1,4 @@
-import _React, { useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { RewardCard, Rarity } from '../../types';
@@ -9,7 +9,7 @@ import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 // Helper to convert VAPID key
-function _urlBase64ToUint8Array(base64String: string) {
+function __urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
