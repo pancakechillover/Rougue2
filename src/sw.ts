@@ -61,6 +61,10 @@ _self.addEventListener('notificationclick', (event) => {
 });
 
 _self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    _self.skipWaiting();
+    return;
+  }
   if (event.data && event.data.type === 'TEST_NOTIFICATION_SW') {
     _self.registration.showNotification('Scholar\'s Dungeon', {
       body: 'Service Worker thread notification test successful!',

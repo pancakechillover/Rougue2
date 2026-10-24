@@ -58,7 +58,28 @@ export function UpdateChecker() {
     };
   }, []);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    // Force the PWA to actually swap to the new build instead of relying on a
+    // plain reload (which often leaves the old service worker in control).
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            await new Promise<void>((resolve) => {
+              const onClaim = () => resolve();
+              navigator.serviceWorker.addEventListener('controllerchange', onClaim, { once: true });
+              // Fallback if the controller never changes (first-time SW)
+              setTimeout(resolve, 3000);
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[UpdateChecker] forced update failed, falling back to reload', err);
+    }
     window.location.reload();
   };
 
