@@ -45,6 +45,9 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
       const container = pipWindow.document.querySelector<HTMLElement>('.pip-container');
       if (container) {
         container.style.width = isWide ? 'calc(100dvw - 118px)' : '';
+        // Move it out from under the absolutely-positioned side panel —
+        // shrinking alone left it at x=0, hidden BENEATH the panel.
+        container.style.marginLeft = isWide ? '118px' : '';
       }
     };
     measure();
@@ -55,7 +58,10 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
       ro.disconnect();
       pipWindow.removeEventListener('resize', measure);
       const container = pipWindow.document.querySelector<HTMLElement>('.pip-container');
-      if (container) container.style.width = '';
+      if (container) {
+        container.style.width = '';
+        container.style.marginLeft = '';
+      }
     };
   }, [pipWindow, threshold]);
 
