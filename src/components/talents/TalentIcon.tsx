@@ -20,7 +20,6 @@ import {
   HandCoins,
   LucideIcon
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 export const IconMap: Record<string, LucideIcon> = {
   Zap,

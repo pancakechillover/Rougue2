@@ -55,8 +55,8 @@ interface StatsWeeklySectionProps {
   formatTimeTick: (val: number) => string;
   formatDuration: (minutes: number) => string;
   state: AppState;
-  dungeons?: any[];
-  majorDungeons?: any[];
+  _dungeons?: any[];
+  _majorDungeons?: any[];
   weeklySessions: StudySession[];
 }
 
@@ -329,8 +329,8 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   formatTimeTick,
   formatDuration,
   state,
-  dungeons = [],
-  majorDungeons = [],
+  _dungeons = [],
+  _majorDungeons = [],
   weeklySessions,
 }) => {
   const activeLayers: ChartLayerSelection = weeklyChartLayers || (weeklyLayerMode === 'bars'
@@ -614,7 +614,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
             weekSessions={weeklySessions} 
             mode={viewOpts.weeklyDonutMode || 'time_of_day'} 
             includeRestTimeInTasks={!!state.includeRestTimeInTasks}
-            timeSettings={state.timeSettings}
+            _timeSettings={state.timeSettings}
           />
         )}
       </div>

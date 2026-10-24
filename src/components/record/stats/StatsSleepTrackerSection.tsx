@@ -10,7 +10,7 @@ import {
   Line 
 } from 'recharts';
 import { format, parseISO, subDays, addDays } from 'date-fns';
-import { Moon, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Edit2 } from 'lucide-react';
+import { Moon, ChevronLeft, ChevronRight, RotateCcw, Edit2 } from 'lucide-react';
 import { DatePicker } from '../../common/DatePicker';
 
 interface StatsSleepTrackerSectionProps {

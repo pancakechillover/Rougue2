@@ -29,7 +29,7 @@ export const SageSettingsSection: React.FC<SageSettingsProps> = ({ state, setSta
 };
 
 const SageConfigManager: React.FC<{ state: AppState, setState: React.Dispatch<React.SetStateAction<AppState>> }> = ({ state, setState }) => {
-  const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
+  const _isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const [activeTab, setActiveTab] = useState<'models' | 'prompts' | 'personality'>('models');
   
   const models = state.sageModels || [];
@@ -318,7 +318,7 @@ const SageConfigManager: React.FC<{ state: AppState, setState: React.Dispatch<Re
   );
 };
 
-const SageLoadingTimer = ({ startTime, isDarkTheme, onCancel }: { startTime: number, isDarkTheme: boolean, onCancel?: () => void }) => {
+const SageLoadingTimer = ({ startTime, _isDarkTheme, onCancel }: { startTime: number, _isDarkTheme: boolean, onCancel?: () => void }) => {
   const [elapsed, setElapsed] = React.useState(0);
   
   React.useEffect(() => {
@@ -881,7 +881,7 @@ const SageInterface: React.FC<SageInterfaceProps> = ({ state, setState }) => {
 
           {loading && (
             <div className="flex flex-col items-start pr-1">
-              <SageLoadingTimer startTime={loadingStartTime} isDarkTheme={isDarkTheme} onCancel={handleCancelConsult} />
+              <SageLoadingTimer startTime={loadingStartTime} _isDarkTheme={isDarkTheme} onCancel={handleCancelConsult} />
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
-import { useEditorTypography, LINE_HEIGHT_MAP } from "../../hooks/useEditorTypography";
+import { useEditorTypography } from "../../hooks/useEditorTypography";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
 
@@ -8,10 +8,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, ArrowLeft, ChevronLeft, ChevronRight, 
-  Star, StarHalf, Calculator, SlidersHorizontal, Heart, 
+  Star, Calculator, SlidersHorizontal, Heart, 
   Maximize2, Save, Download, Edit3, 
   Clock, Target, Zap, 
-  Compass, Feather, Bookmark, BookmarkCheck, Plus, Trash2, Calendar, Building2, X, FileText
+  Compass, Feather, Bookmark, BookmarkCheck, Trash2, Calendar, X, FileText
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -77,7 +77,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialPeakDate());
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const { fontSize, lineHeight, lineMultiplier } = useEditorTypography();
+  const { fontSize, _lineHeight, lineMultiplier } = useEditorTypography();
   const [pageFlipDirection, setPageFlipDirection] = useState<'left' | 'right'>('right');
 
   // Logs state
@@ -118,7 +118,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [customTargetHours, setCustomTargetHours] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
+  const [_saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
 
   // Sync editor when switching dates
   const isSwitchingDateRef = useRef(false);
@@ -1075,7 +1075,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
           targetSource={selectedDayStats.targetSource}
           workstationPresenceMinutes={selectedDayStats.workstationMinutes}
           workstationIntervalCount={selectedDayStats.workstationIntervalCount}
-          conversionRate={selectedDayStats.conversionRate}
+          _conversionRate={selectedDayStats.conversionRate}
           onUpdateConfig={(newConfig) => {
             onUpdateState?.({
               efficiencyRatingConfig: {
@@ -1121,7 +1121,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
             }
           }}
           bookmarks={bookmarks}
-          onToggleBookmark={toggleBookmark}
+          _onToggleBookmark={toggleBookmark}
           history={state.history}
           isMarkdownEnabled={true}
           setIsMarkdownEnabled={() => {}}

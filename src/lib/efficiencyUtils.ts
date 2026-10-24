@@ -1,4 +1,4 @@
-import { format, parseISO, isValid, subDays, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { AppState, DailyLog, EfficiencyRatingConfig, StudySession } from '../types';
 import { getSettlementDay, getSessionEffectiveMinutes } from './utils';
 import { getEffectiveTargetFocusMinutes } from './workstationUtils';

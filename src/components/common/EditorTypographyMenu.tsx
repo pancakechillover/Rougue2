@@ -10,7 +10,7 @@ import { cn } from '../../lib/utils';
 
 export interface EditorTypographyMenuProps {
   className?: string;
-  compact?: boolean;
+  _compact?: boolean;
 }
 
 const FONT_SIZES: EditorFontSize[] = [12, 13, 14, 15, 16, 18];
@@ -23,9 +23,9 @@ const LINE_HEIGHT_OPTIONS: { id: EditorLineHeight; label: string; ratio: string 
 
 export const EditorTypographyMenu: React.FC<EditorTypographyMenuProps> = ({
   className,
-  compact = false,
+  _compact = false,
 }) => {
-  const { fontSize, lineHeight, updateFontSize, updateLineHeight } = useEditorTypography();
+  const { fontSize, _lineHeight, updateFontSize, updateLineHeight } = useEditorTypography();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -93,7 +93,7 @@ export const EditorTypographyMenu: React.FC<EditorTypographyMenuProps> = ({
                 Typography
               </span>
               <span className="text-[10px] text-indigo-400 font-mono font-semibold">
-                {fontSize}px · {lineHeight}
+                {fontSize}px · {_lineHeight}
               </span>
             </div>
 
@@ -151,7 +151,7 @@ export const EditorTypographyMenu: React.FC<EditorTypographyMenuProps> = ({
                     onClick={() => { updateLineHeight(opt.id); }}
                     className={cn(
                       "px-2 py-1 rounded-lg text-left flex items-center justify-between border transition-all text-xs",
-                      lineHeight === opt.id
+                      _lineHeight === opt.id
                         ? "bg-indigo-600/25 text-indigo-300 border-indigo-500/50 font-semibold"
                         : "bg-slate-800/60 hover:bg-slate-750 text-slate-400 hover:text-slate-200 border-slate-700/50"
                     )}

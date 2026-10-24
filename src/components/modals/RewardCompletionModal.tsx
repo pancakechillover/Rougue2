@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Coins, Zap, Star, Gift, MessageSquare, Scroll } from 'lucide-react';
+import { Trophy, Coins, Zap, Gift, MessageSquare, Scroll } from 'lucide-react';
 import { DungeonReward } from '../../types';
 
 interface RewardCompletionModalProps {

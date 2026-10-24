@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
-import { INITIAL_GACHA } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
+import { Plus, Trash2, X, ChevronRight, Coins, Sparkles, Trophy, Scroll } from 'lucide-react';
 import { cn, getXPForLevel, getDefaultRewardForLevel, getTitleForLevel } from '../../lib/utils';
-import { playSound } from '../../lib/sound';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 // Helper to convert VAPID key
-function urlBase64ToUint8Array(base64String: string) {
+function _urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')

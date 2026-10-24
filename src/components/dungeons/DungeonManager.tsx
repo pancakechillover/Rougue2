@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
 import { Dungeon, MajorDungeon, DungeonReward } from '../../types';
-import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, FolderPlus, Folder, ChevronDown, ChevronUp, Gift, X, Edit2, Coins, Zap, Trophy, HelpCircle, Square, CheckSquare, EyeOff, Eye, Archive, Search, Filter, Calendar, GripVertical, Scroll, RefreshCcw } from 'lucide-react';
-import { PageHeader } from '../common/PageHeader';
+import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, ChevronDown, Gift, X, Edit2, Coins, Zap, Trophy, Square, CheckSquare, Archive, Search, Calendar, GripVertical, Scroll, RefreshCcw } from 'lucide-react';
 import { cn, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -10,7 +9,7 @@ import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
 import { DatePicker } from '../common/DatePicker';
 import { format } from 'date-fns';
 
-const DraggableItem = ({ item, isEditMode, children, className, handleClassName, onMove, onDragStart }: any) => {
+const DraggableItem = ({ item, isEditMode, children, className, handleClassName, _onMove, onDragStart }: any) => {
   const controls = useDragControls();
   return (
     <Reorder.Item 
@@ -71,8 +70,8 @@ interface DungeonManagerProps {
   onUpdateSub: (id: string, updates: Partial<Dungeon>) => void;
   onDeleteMajor: (id: string) => void;
   onDeleteSub: (id: string) => void;
-  onReorderMajor: (id: string, direction: 'up' | 'down') => void;
-  onReorderSub: (id: string, direction: 'up' | 'down') => void;
+  _onReorderMajor: (id: string, direction: 'up' | 'down') => void;
+  _onReorderSub: (id: string, direction: 'up' | 'down') => void;
   onMoveItem: (itemId: string, newParentId: string | null) => void;
   onDragStart?: () => void;
   onFinalizeMajor: (id: string) => void;
@@ -103,8 +102,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
   onUpdateSub,
   onDeleteMajor,
   onDeleteSub,
-  onReorderMajor,
-  onReorderSub,
+  _onReorderMajor,
+  _onReorderSub,
   onMoveItem,
   onDragStart,
   setMajorDungeons,
@@ -402,7 +401,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               // 2. Identify the intended order based on newSubs (which comes from the group)
               // We only want to reorder items that ARE still in this parent
               const reorderedIds = newSubs.map(s => s.id);
-              const itemsToReorder = currentSubsInParent.filter(d => reorderedIds.includes(d.id));
+              const _itemsToReorder = currentSubsInParent.filter(d => reorderedIds.includes(d.id));
               
               // If we have items in newSubs that aren't in currentSubsInParent, it means they were 
               // just moved IN. If we have items in currentSubsInParent NOT in newSubs, they were 
@@ -675,7 +674,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     );
   };
 
-  const activeDungeon = dungeons.find(d => d.id === currentDungeonId);
+  const _activeDungeon = dungeons.find(d => d.id === currentDungeonId);
 
   const filteredMajors = React.useMemo(() => {
     if (activeTab === 'active') {
@@ -728,7 +727,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                     <PresetControl
                       type={isAddingMajor ? 'dungeon_major' : 'dungeon_sub'}
                       currentData={isAddingMajor ? newMajor : newSub}
-                      defaultData={(isAddingMajor ? {
+                      _defaultData={(isAddingMajor ? {
                         name: '',
                         description: '',
                         rewards: [{ type: 'coins', amount: 100 }],

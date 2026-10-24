@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronLeft, ChevronRight, Bookmark, Compass, Network, LayoutDashboard, Sword, Timer as TimerIcon, ShoppingBag, Package, BarChart3, Scroll as ScrollIcon, Trophy, Sparkles, Shield, Rocket, Briefcase, BookOpen, Coins, Puzzle, Zap, Star, Scroll } from 'lucide-react';
-import { HandBook, HandCoins, HandTarget, HandZap } from '../icons/HandDrawnIcons';
+import { X, ChevronLeft, ChevronRight, Compass, Network, LayoutDashboard, Sword, Timer as TimerIcon, ShoppingBag, Package, BarChart3, Sparkles, Shield, Rocket, Briefcase, Coins, Puzzle, Scroll } from 'lucide-react';
+import { HandCoins, HandTarget } from '../icons/HandDrawnIcons';
 import { createPortal } from 'react-dom';
 import { playSound } from '../../lib/sound';
 
@@ -26,7 +26,7 @@ export const GuideBookModal: React.FC<GuideBookModalProps> = ({
 }) => {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 640 : false);
   const [pageIndex, setPageIndex] = useState(initialPage * 2);
-  const [direction, setDirection] = useState(1);
+  const [_direction, setDirection] = useState(1);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDir, setFlipDir] = useState(1);
   const [oldPages, setOldPages] = useState<number[]>([]);

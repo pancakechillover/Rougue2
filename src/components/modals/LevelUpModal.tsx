@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, HelpCircle, Zap, Star, Coins, Scroll } from 'lucide-react';
+import { Trophy, HelpCircle, Coins, Scroll } from 'lucide-react';
 import { AppState } from '../../types';
 
 import { createPortal } from 'react-dom';

@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
-import { INITIAL_GACHA, MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Smile, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, Globe, ShieldCheck, CalendarCheck, Clock } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
+import { motion } from 'motion/react';
+import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
+import { Trash2, AlertTriangle, Volume2, VolumeX, Sun, Moon, Smile, Trees, Waves, Database, Download, Upload, Target, Gift, Eye, Palette, Check, Bell, BellOff, RefreshCw, Sunrise, CloudSun, Lollipop, History, Globe, ShieldCheck, CalendarCheck, Clock } from 'lucide-react';
 import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../../lib/migrations';
-import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { SpinnerInput } from '../common/SpinnerInput';

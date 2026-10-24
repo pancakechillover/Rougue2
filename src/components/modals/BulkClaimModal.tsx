@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trophy, Target, Coins, Zap, Star, Scroll, Gift, CheckCircle2 } from 'lucide-react';
+import { X, Trophy, Target, Coins, Zap, Scroll, Gift, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { QuestReward } from '../../types';
 

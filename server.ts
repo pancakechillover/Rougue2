@@ -58,13 +58,13 @@ const getRedisClient = async () => {
 app.use(express.json({ limit: '10mb' }));
 
 // Request logging
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   if (process.env.NODE_ENV !== "production") console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
 
 // Stats API Route
-app.get("/api/stats", async (req, res) => {
+app.get("/api/stats", async (_req, res) => {
   try {
     const client = await getRedisClient();
     if (!client) return res.json({ users: 0, maxUsers: 300, teams: 0, maxTeams: 50 });
@@ -281,7 +281,7 @@ app.use("/api/push", (req, res, next) => {
   next();
 });
 
-app.get("/api/push/vapid-public-key", (req, res) => {
+app.get("/api/push/vapid-public-key", (_req, res) => {
   res.json({ publicKey: vapidPublicKey });
 });
 
@@ -451,7 +451,7 @@ const processPushQueue = async (client: any) => {
   return processed;
 };
 
-app.get("/api/push/check", async (req, res) => {
+app.get("/api/push/check", async (_req, res) => {
   try {
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Redis not configured" });
@@ -510,7 +510,7 @@ const startScheduler = async () => {
 };
 
 // Health check
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // Google OAuth Routes
 app.get('/api/auth/google/url', (req, res) => {
@@ -662,7 +662,7 @@ async function startServer() {
     } else {
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
-      app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
+      app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
     }
   } catch (err) {
     console.error("Vite/Static middleware error:", err);

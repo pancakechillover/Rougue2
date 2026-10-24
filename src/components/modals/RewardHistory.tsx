@@ -9,7 +9,6 @@ import {
   Filter, 
   Calendar, 
   Search,
-  ChevronDown,
   ChevronRight,
   ArrowLeft,
   Coins,
@@ -124,7 +123,7 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
     });
   }, [history, activeTab, subTab, timeRange, sourceFilter, statusFilter, rarityFilter, searchQuery]);
 
-  const stats = useMemo(() => {
+  const _stats = useMemo(() => {
     const treasures = history.filter(i => i.type !== 'text').length;
     const custom = history.filter(i => i.type === 'text').length;
     const pending = history.filter(i => i.type === 'text' && !i.redeemed).length;
@@ -422,8 +421,8 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
                         "w-10 h-10 rounded-lg flex items-center justify-center border shrink-0",
                         (() => {
                           if (item.color) {
-                            const { borderClass, bgClass, textClass } = getColorClass(item.color);
-                            return `${bgClass} ${borderClass} ${textClass}`;
+                            const { borderClass, bgClass, _textClass } = getColorClass(item.color);
+                            return `${bgClass} ${borderClass} ${_textClass}`;
                           }
                           const r = item.rarity.toUpperCase();
                           if (r.includes('LASTONE') || r.includes('MYTHIC')) return "bg-rose-500/10 border-rose-500/20 text-rose-500";
@@ -474,8 +473,8 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
                         "text-[9px] font-black uppercase px-2 py-0.5 rounded border border-current inline-block",
                         (() => {
                           if (item.color) {
-                            const { textClass, bgClass } = getColorClass(item.color);
-                            return `${textClass} ${bgClass}`;
+                            const { _textClass, bgClass } = getColorClass(item.color);
+                            return `${_textClass} ${bgClass}`;
                           }
                           const r = item.rarity.toUpperCase();
                           if (r.includes('LASTONE') || r.includes('MYTHIC')) return "text-rose-500 bg-rose-500/5";

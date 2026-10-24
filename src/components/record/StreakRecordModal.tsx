@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { X, Flame, Search, HelpCircle } from 'lucide-react';
 import { AppState } from '../../types';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { cn, getSettlementDay } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
 

@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { StudySession, Dungeon, MajorDungeon, TimeSettings } from '../../types';
-import { format, differenceInMinutes, parseISO, startOfDay, endOfDay, isSameDay } from 'date-fns';
-import { getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate } from '../../lib/utils';
+import { differenceInMinutes, startOfDay } from 'date-fns';
+import { getSessionEffectiveMinutes } from '../../lib/utils';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6', '#14b8a6', '#84cc16'];
 

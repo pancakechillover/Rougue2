@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
-import { INITIAL_GACHA, INITIAL_REWARD_POOL } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, PictureInPicture, Maximize, Smartphone, Monitor, MinusCircle, Play } from 'lucide-react';
+import React from 'react';
+import { RewardCard } from '../../types';
+import { INITIAL_REWARD_POOL } from '../../constants';
+import { Sparkles, Trophy, Timer as TimerIcon, Package, AlertTriangle, Target, Gift, Sword, Eye, Check, History, PictureInPicture, Maximize, Smartphone, Monitor, MinusCircle, Play } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
-import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
-import { playSound } from '../../lib/sound';
+import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 
 // Helper to convert VAPID key
-function urlBase64ToUint8Array(base64String: string) {
+function _urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
@@ -32,15 +28,15 @@ import { RewardSettings } from './RewardSettings';
 export const TimerSettingsSection = ({ 
   state, 
   setState,
-  rewardPool,
-  onUpdateRewards,
+  _rewardPool,
+  _onUpdateRewards,
   onResetRewards,
   onTabChange
 }: { 
   state: any, 
   setState: (fn: (prev: any) => any) => void,
-  rewardPool: RewardCard[],
-  onUpdateRewards: (p: RewardCard[]) => void,
+  _rewardPool: RewardCard[],
+  _onUpdateRewards: (p: RewardCard[]) => void,
   onResetRewards?: () => void,
   onTabChange?: (tab: any) => void
 }) => {

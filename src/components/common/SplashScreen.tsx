@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import _React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Sun, Sparkles } from 'lucide-react';
 import { APP_VERSION } from '../../version';

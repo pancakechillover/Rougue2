@@ -367,7 +367,7 @@ export const GachaResultModal: React.FC<GachaResultModalProps> = ({
                         }}
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={(e, { offset, velocity }) => {
+                        onDragEnd={(_e, { offset, velocity }) => {
                           if (offset.x > 70 || velocity.x > 400) handlePrev();
                           else if (offset.x < -70 || velocity.x < -400) handleNext();
                         }}

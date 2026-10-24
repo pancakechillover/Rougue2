@@ -2,27 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
-  MapPin, 
   Clock, 
   Plus, 
   Trash2, 
   Edit3, 
-  Check, 
   Calendar, 
   ChevronLeft, 
   ChevronRight, 
   Building2, 
-  Home, 
-  BookOpen, 
-  Coffee, 
-  Laptop, 
   Sparkles,
   Percent,
   Play,
-  Square,
-  AlertCircle
+  Square
 } from 'lucide-react';
-import { format, parseISO, isValid, addDays, subDays, differenceInMinutes } from 'date-fns';
+import { format, parseISO, addDays, subDays, differenceInMinutes } from 'date-fns';
 import { AppState, WorkstationInterval } from '../../types';
 import { cn, formatDuration, getSessionEffectiveMinutes, getSettlementDay } from '../../lib/utils';
 import { 
@@ -109,7 +102,7 @@ export const WorkstationModal: React.FC<WorkstationModalProps> = ({
     .reduce((acc, s) => acc + getSessionEffectiveMinutes(s, state.includeRestTimeInTasks ?? false), 0);
 
   const totalPresenceMinutes = getWorkstationTotalMinutes(selectedDate, state, now);
-  const targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
+  const _targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
 
   const conversionRate = totalPresenceMinutes > 0
     ? Math.min(100, Math.round((selectedDateFocusMinutes / totalPresenceMinutes) * 100))

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
   Calculator, 
-  Star, 
   Sparkles, 
   Percent, 
   Check, 
@@ -14,8 +13,7 @@ import {
   Minus,
   Plus,
   Table,
-  Building2,
-  History
+  Building2
 } from 'lucide-react';
 import { cn, formatDuration } from '../../lib/utils';
 import { AppState, EfficiencyRatingConfig } from '../../types';
@@ -34,7 +32,7 @@ interface EfficiencyDetailsModalProps {
   targetSource?: 'workstation' | 'goal' | 'manual' | 'custom' | 'daily_goal_fallback';
   workstationPresenceMinutes?: number;
   workstationIntervalCount?: number;
-  conversionRate?: number;
+  _conversionRate?: number;
   state?: AppState;
   onUpdateState?: (updates: Partial<AppState>) => void;
 }
@@ -52,7 +50,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   targetSource,
   workstationPresenceMinutes = 0,
   workstationIntervalCount = 0,
-  conversionRate = 0,
+  _conversionRate = 0,
   state,
   onUpdateState
 }) => {
@@ -102,7 +100,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   const rawStars = efficiency * 5;
   const calculatedStars = capMetrics ? Math.min(5, Math.max(0, rawStars)) : rawStars;
   const calculatedEfficiency = Math.round(efficiency * 1000) / 10;
-  const displayStarIcon = Math.round(calculatedStars * 2) / 2;
+  const _displayStarIcon = Math.round(calculatedStars * 2) / 2;
 
   // Rate penalty per distraction string (e.g. "10%" when max=10)
   const penaltyPerDistractionVal = maxDistractions > 0 ? (100 / maxDistractions) : 10;
@@ -803,7 +801,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
             capMetrics: capMetrics
           }}
           onUpdateState={onUpdateState}
-          onSuccess={(count) => {
+          onSuccess={(_count) => {
             if (Math.abs(localTargetHours - defaultTargetHours) < 0.01) {
               onUpdateCustomTargetHours(null);
             } else {

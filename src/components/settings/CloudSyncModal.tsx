@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Cloud, Key, X, AlertTriangle, Check, Loader2, Database, Sparkles, HelpCircle, Unlink, Info, Eye, EyeOff, Copy, RefreshCw, Trash2, History, UploadCloud, DownloadCloud, Search, CheckCircle2, XCircle, AlertCircle, WifiOff, ShieldAlert, ZapOff } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Cloud, Key, X, AlertTriangle, Check, Loader2, Database, Sparkles, HelpCircle, Unlink, Eye, EyeOff, Copy, RefreshCw, Trash2, History, Search, CheckCircle2, XCircle, AlertCircle, WifiOff, ShieldAlert, ZapOff } from 'lucide-react';
 import { getDeviceType, getDeviceCode } from '../../lib/utils';
 
 interface CloudSyncModalProps {
@@ -55,11 +55,11 @@ const SyncPhraseTyper = () => {
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
   
   useEffect(() => {
-    let currentPhraseIndex = 0;
+    let _currentPhraseIndex = 0;
     const interval = setInterval(() => {
       setPhraseIndex(prev => {
         const next = (prev + 1) % SYNC_PHRASES.length;
-        currentPhraseIndex = next;
+        _currentPhraseIndex = next;
         return next;
       });
     }, 5000);

@@ -88,20 +88,20 @@ export function useDistractionButton(
   type: 'internal' | 'external' | 'unavoidable',
   soundType: 'click' | 'pop' | 'error' = 'click'
 ) {
-  const { setDistractions } = useTimerStore();
+  const { _setDistractions } = useTimerStore();
 
   return useLongPress({
     onShortPress: () => {
       playSound(soundType, 0.5, true);
-      setDistractions((d) => ({ ...d, [type]: d[type] + 1 }));
+      _setDistractions((d) => ({ ...d, [type]: d[type] + 1 }));
     },
     onLongPress: () => {
       playSound('pop', 0.4, true);
-      setDistractions((d) => ({ ...d, [type]: Math.max(0, d[type] - 1) }));
+      _setDistractions((d) => ({ ...d, [type]: Math.max(0, d[type] - 1) }));
     },
     onContinuousPress: () => {
       playSound('pop', 0.3, true);
-      setDistractions((d) => ({ ...d, [type]: Math.max(0, d[type] - 1) }));
+      _setDistractions((d) => ({ ...d, [type]: Math.max(0, d[type] - 1) }));
     },
     delay: 800,
     interval: 300,

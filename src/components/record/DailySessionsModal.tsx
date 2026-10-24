@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
   Calendar, 
-  Sword, 
-  Clock, 
   Trophy, 
   Zap, 
   Edit2, 
@@ -20,7 +18,7 @@ import {
 } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, RewardCard, AppState } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { createPortal } from 'react-dom';
 import { ConfirmModal } from '../modals/ConfirmModal';

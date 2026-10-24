@@ -1,5 +1,5 @@
 import { parseISO, isValid, differenceInMinutes, differenceInSeconds } from 'date-fns';
-import { AppState, WorkstationInterval, ActiveWorkstationSession } from '../types';
+import { AppState } from '../types';
 import { getSettlementDay } from './utils';
 
 export const DEFAULT_WORKSTATION_LOCATIONS = [

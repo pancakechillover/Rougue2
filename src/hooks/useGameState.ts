@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, Dungeon, StudySession, Talent, RewardCard, MajorDungeon, RewardHistoryItem, DungeonReward, Quest } from '../types';
-import { TALENTS, INITIAL_REWARD_POOL, INITIAL_GACHA, DEFAULT_QUESTS, DEFAULT_SAGE_PROMPTS } from '../constants';
-import { format, isSameDay, parseISO, differenceInDays, subDays } from 'date-fns';
+import { AppState, Dungeon, StudySession, RewardCard, MajorDungeon, RewardHistoryItem, DungeonReward, Quest } from '../types';
+import { TALENTS, INITIAL_REWARD_POOL, DEFAULT_QUESTS, DEFAULT_SAGE_PROMPTS } from '../constants';
+import { format, parseISO, differenceInDays, subDays } from 'date-fns';
 
 import { getXPForLevel, getDefaultRewardForLevel, getDeviceType, getDeviceCode, getSettlementDay, getSessionSettlementDate, getSessionEffectiveMinutes } from '../lib/utils';
 import { calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey } from '../lib/teamUtils';
-import { generateRewardChoicesForSession } from '../lib/rewardLogic';
 import { useTimerStore } from './useTimerStore';
 
 import {
@@ -1009,7 +1008,7 @@ export function useGameState() {
     setState(prev => processXP(prev, amount));
   }, []);
 
-  const addShards = useCallback((amount: number) => {
+  const _addShards = useCallback((amount: number) => {
     setState(prev => processShards(prev, amount));
   }, []);
 
@@ -1643,12 +1642,12 @@ export function useGameState() {
 
   const drawGacha = useCallback((poolId: string, amount: number = 1) => {
     let pullResults: { item: string; rarity: string; poolType: 'gacha' | 'ichiban', color?: string }[] = [];
-    let success = false;
+    let _success = false;
 
     setState(prev => {
       const pool = prev.gachaPools.find(p => p.id === poolId);
       if (!pool || prev.coins < pool.cost * amount) return prev;
-      const poolType = pool.type;
+      const _poolType = pool.type;
 
       let newCoins = prev.coins;
       let newPools = [...prev.gachaPools];
@@ -1746,7 +1745,7 @@ export function useGameState() {
 
       newPools = newPools.map(p => p.id === poolId ? currentPool : p);
       pullResults = results;
-      success = true;
+      _success = true;
 
       const expectedCost = prev.coins - newCoins;
 
@@ -2461,16 +2460,16 @@ export function useGameState() {
   }, []);
 
   const moveDungeonItem = useCallback((itemId: string, newParentId: string | null) => {
-    let isSubMovingToRoot = false;
+    let _isSubMovingToRoot = false;
     let newSubAsMajor: MajorDungeon | null = null;
-    let isMajorMovingToSub = false;
-    let newMajorAsSub: Dungeon | null = null;
+    let _isMajorMovingToSub = false;
+    let _newMajorAsSub: Dungeon | null = null;
     
     const isSub = dungeons.find(d => d.id === itemId);
     
     if (newParentId === null) {
       if (isSub) {
-        isSubMovingToRoot = true;
+        _isSubMovingToRoot = true;
         newSubAsMajor = {
           id: isSub.id,
           name: isSub.name,

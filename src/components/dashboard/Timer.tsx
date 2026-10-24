@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Play, Pause, RotateCcw, SkipForward, Trophy, Coins, Zap, Scroll, Flame, Settings2, RefreshCw, Coffee, Maximize, Sparkles, Clock, Brain, Wind } from 'lucide-react';
+import { Sword, Play, Pause, RotateCcw, SkipForward, Trophy, Coins, Zap, Flame, Coffee, Sparkles, Clock, Brain, Wind } from 'lucide-react';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { RewardCard, StudySession, Dungeon } from '../../types';
 import { cn } from '../../lib/utils';
@@ -18,14 +18,14 @@ interface TimerProps {
   rewardPool: RewardCard[];
   activeTalents: string[];
   timerSkipVictoryMode?: 'none' | 'auto_pick_highest' | 'skip_rewards' | 'defer_to_chest';
-  dailyRerollUsed: boolean;
-  history: StudySession[];
+  _dailyRerollUsed: boolean;
+  _history: StudySession[];
   standardSessionMinutes?: number;
   pendingRewardChest?: { session: StudySession; choices: RewardCard[]; }[];
   onComplete: (duration: number, focusDuration?: number, restDuration?: number, distractions?: { internal: number; external: number; unavoidable: number }) => StudySession | null;
   onRestComplete?: () => void;
   onInventoryAdd: (id: string) => void;
-  onReroll: () => void;
+  _onReroll: () => void;
   onRewardSelect: (reward: RewardCard, sessionId: string) => void;
   onDeferReward: (session: StudySession, choices: RewardCard[]) => void;
   onUpdateChestItem?: (sessionId: string, newChoices: RewardCard[]) => void;
@@ -35,9 +35,9 @@ interface TimerProps {
   secretCode?: string;
   userName?: string;
   pushEnabled?: boolean;
-  onTogglePip?: () => void;
+  _onTogglePip?: () => void;
   requireFocusConfirmation?: boolean;
-  pipWindow?: Window | null;
+  _pipWindow?: Window | null;
   // External Config
   focusDuration: number;
   restDuration: number;
@@ -72,14 +72,14 @@ export const Timer = React.memo<TimerProps>(({
   rewardPool, 
   activeTalents,
   timerSkipVictoryMode,
-  dailyRerollUsed,
-  history,
+  _dailyRerollUsed,
+  _history,
   standardSessionMinutes,
   pendingRewardChest,
   onComplete, 
   onRestComplete,
   onInventoryAdd,
-  onReroll,
+  _onReroll,
   onRewardSelect,
   onDeferReward,
   onUpdateChestItem,
@@ -89,9 +89,9 @@ export const Timer = React.memo<TimerProps>(({
   secretCode,
   userName,
   pushEnabled,
-  onTogglePip,
+  _onTogglePip,
   requireFocusConfirmation = false,
-  pipWindow,
+  _pipWindow,
   focusDuration,
   restDuration,
   enableRest,
@@ -111,7 +111,7 @@ export const Timer = React.memo<TimerProps>(({
   critMultiplier,
   onTimerStart
 }) => {
-  const { timeLeft, setTimeLeft, distractions, setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt: storeFocusPrompt, setShowFocusPrompt: setStoreFocusPrompt } = useTimerStore();
+  const { timeLeft, setTimeLeft, distractions, _setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt: storeFocusPrompt, setShowFocusPrompt: setStoreFocusPrompt } = useTimerStore();
   const [showRewards, setShowRewards] = useState<{ session: StudySession; choices: RewardCard[] } | null>(null);
   const [studyNote, setStudyNote] = useState('');
   const [showTalentPopup, setShowTalentPopup] = useState<StudySession['triggeredTalents'] | null>(null);
@@ -302,7 +302,7 @@ export const Timer = React.memo<TimerProps>(({
         unavoidable: Number(liveDistractions.unavoidable) || 0
       };
       const session = onComplete(actualDuration, actualFocusDuration, actualRestDuration, recordedDistractions);
-      useTimerStore.getState().setDistractions({ internal: 0, external: 0, unavoidable: 0 });
+      useTimerStore.getState()._setDistractions({ internal: 0, external: 0, unavoidable: 0 });
       if (session) {
         const generated = generateRewardChoicesForSession(session, {
           rewardPool,
@@ -517,9 +517,9 @@ export const Timer = React.memo<TimerProps>(({
     }
   }, [cancelSkipCharge]);
 
-  const canPip = 'documentPictureInPicture' in window && window.self === window.top;
-  const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-  const isDesktop = !('ontouchstart' in window);
+  const _canPip = 'documentPictureInPicture' in window && window.self === window.top;
+  const _isPWA = window.matchMedia('(display-mode: standalone)').matches;
+  const _isDesktop = !('ontouchstart' in window);
 
   const toggleTimer = () => {
     if (isActive) {
@@ -543,7 +543,7 @@ export const Timer = React.memo<TimerProps>(({
     setDuration(focusDuration);
     setTimeLeft(focusDuration * 60);
     setLoopCount(0);
-    setDistractions({ internal: 0, external: 0, unavoidable: 0 });
+    _setDistractions({ internal: 0, external: 0, unavoidable: 0 });
   };
 
   const formatTime = (seconds: number) => {
@@ -552,7 +552,7 @@ export const Timer = React.memo<TimerProps>(({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const showDistractionControls = !isResting;
+  const _showDistractionControls = !isResting;
 
   return (
     <div className={cn(

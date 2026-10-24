@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
-import { INITIAL_GACHA } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, ArrowLeft, Search } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { RewardCard, ShopItem, GachaPool } from '../../types';
+import { X, ChevronRight, Sparkles, Trophy, Timer as TimerIcon, Package, AlertTriangle, Scroll, Settings as SettingsIcon, ShoppingBag, Database, Target, User, Layers, Cloud, Wrench, History, Ticket, ArrowLeft, Search } from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
-import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { SETTINGS_SEARCH_INDEX } from './SettingsSearchIndex';
-import { playSound } from '../../lib/sound';
 
 // Helper to convert VAPID key
-function urlBase64ToUint8Array(base64String: string) {
+function _urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
@@ -27,12 +24,9 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 
-import { ActivityTimeSettings } from './ActivityTimeSettings';
 import { TimerSettingsSection } from './TimerSettingsSection';
 import { LevelRewardsSettings } from './LevelRewardsSettings';
 import { GeneralSettings } from './GeneralSettings';
-import { DevResourceControl } from './DevResourceControl';
-import { RewardSettings } from './RewardSettings';
 import { ShopSettings } from './ShopSettings';
 import { GachaSettings } from './GachaSettings';
 import { DeveloperSettings } from './DeveloperSettings';
@@ -498,8 +492,8 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                 <TimerSettingsSection 
                   state={state} 
                   setState={setState} 
-                  rewardPool={rewardPool}
-                  onUpdateRewards={onUpdateRewards}
+                  _rewardPool={rewardPool}
+                  _onUpdateRewards={onUpdateRewards}
                   onResetRewards={onResetRewards}
                   onTabChange={onTabChange}
                 />
@@ -635,7 +629,7 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                 </div>
               )}
               {activeTab === 'calculator' && (
-                <CalcSettingsSection state={state} setState={setState} />
+                <CalcSettingsSection state={state} _setState={setState} />
               )}
               {activeTab === 'sage' && (
                 <SageSettingsSection state={state} setState={setState} />

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay, isToday } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { createPortal } from 'react-dom';

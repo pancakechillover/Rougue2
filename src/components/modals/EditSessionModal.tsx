@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
-import { X, Edit2, Check, Clock, Calendar, Brain, Wind, Zap, Hash, RotateCcw, Sparkles, Target, ChevronDown } from 'lucide-react';
+import { X, Edit2, Check, Clock, Brain, Wind, Zap, Hash, RotateCcw, Sparkles, Target, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { StudySession, Dungeon, MajorDungeon } from '../../types';
 import { cn } from '../../lib/utils';

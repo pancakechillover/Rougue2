@@ -18,7 +18,6 @@ import {
   BarChart3,
   X,
   Settings as SettingsIcon,
-  Archive,
   Calendar,
   Sun
 } from 'lucide-react';
@@ -38,7 +37,7 @@ import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
 import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
-import { AppState, Dungeon, MajorDungeon, RewardCard } from '../../types';
+import { AppState, Dungeon, MajorDungeon } from '../../types';
 
 interface ExploreViewProps {
   state: AppState;
@@ -76,7 +75,7 @@ interface ExploreViewProps {
   setDungeonSubTab: (tab: any) => void;
   isFullscreenExplore: boolean;
   setIsFullscreenExplore: (full: boolean) => void;
-  showCoinRain: boolean;
+  _showCoinRain: boolean;
   setShowCoinRain: (show: boolean) => void;
   showBuildDetails: boolean;
   setShowBuildDetails: (show: boolean) => void;
@@ -94,8 +93,8 @@ interface ExploreViewProps {
   togglePip: () => void;
   pipWindow?: Window | null;
   canPip: boolean;
-  isPWA: boolean;
-  isDesktop: boolean;
+  _isPWA: boolean;
+  _isDesktop: boolean;
   unclaimedQuestsCount: number;
   unclaimedAchievementsCount: number;
   openTimerSettings: () => void;
@@ -139,7 +138,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   setDungeonSubTab,
   isFullscreenExplore,
   setIsFullscreenExplore,
-  showCoinRain,
+  _showCoinRain,
   setShowCoinRain,
   showBuildDetails,
   setShowBuildDetails,
@@ -157,8 +156,8 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   togglePip,
   pipWindow,
   canPip,
-  isPWA,
-  isDesktop,
+  _isPWA,
+  _isDesktop,
   unclaimedQuestsCount,
   unclaimedAchievementsCount,
   openTimerSettings,
@@ -396,8 +395,8 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         rewardPool={state.rewardPool || []}
         activeTalents={state.activeTalents}
         timerSkipVictoryMode={state.timerSkipVictoryMode}
-        dailyRerollUsed={state.dailyRerollUsed}
-        history={state.history}
+        _dailyRerollUsed={state.dailyRerollUsed}
+        _history={state.history}
         standardSessionMinutes={state.standardSessionMinutes}
         pendingRewardChest={state.pendingRewardChest}
         critChance={state.devModeEnabled ? (state.devCritChance ?? 0.05) : 0.05}
@@ -424,7 +423,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           playSound('success', state.soundVolume, state.soundEnabled);
         }}
         onInventoryAdd={(id) => setState(prev => ({ ...prev, inventory: [...prev.inventory, id] }))}
-        onReroll={() => setState(prev => ({ ...prev, dailyRerollUsed: true }))}
+        _onReroll={() => setState(prev => ({ ...prev, dailyRerollUsed: true }))}
         onRewardSelect={(reward, sessionId) => {
           useTimerStore.getState().setActiveRewardSession(null);
           selectReward(reward, sessionId);
@@ -455,11 +454,11 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         onSaveNote={handleSaveNote}
         setShowCoinRain={setShowCoinRain}
         isFullscreen={isFullscreenExplore}
-        pipWindow={pipWindow}
+        _pipWindow={pipWindow}
         secretCode={state.secretCode}
         userName={state.userName}
         pushEnabled={state.pushEnabled}
-        onTogglePip={togglePip}
+        _onTogglePip={togglePip}
         requireFocusConfirmation={state.requireFocusConfirmation}
         focusDuration={focusDuration}
         restDuration={restDuration}
@@ -706,19 +705,19 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
               {/* Timer Settings (Moved Here for Wide Screens) */}
               <TimerSettings 
                 focusDuration={focusDuration}
-                setFocusDuration={setFocusDuration}
+                _setFocusDuration={setFocusDuration}
                 restDuration={restDuration}
-                setRestDuration={setRestDuration}
+                _setRestDuration={setRestDuration}
                 enableRest={enableRest}
                 setEnableRest={setEnableRest}
                 isLooping={isLooping}
                 setIsLooping={setIsLooping}
                 loopTarget={loopTarget}
                 setLoopTarget={setLoopTarget}
-                loopCount={loopCount}
+                _loopCount={loopCount}
                 setLoopCount={setLoopCount}
-                isActive={isTimerActive}
-                isResting={isResting}
+                _isActive={isTimerActive}
+                _isResting={isResting}
                 applyPreset={applyTimerPreset}
                 handleCustomChange={handleTimerCustomChange}
                 presets={timerPresets}

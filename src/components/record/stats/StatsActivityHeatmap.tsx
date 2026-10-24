@@ -48,7 +48,7 @@ interface StatsActivityHeatmapProps {
   setShowHeatmapMood: (show: boolean) => void;
   heatmapPopoverAnchor: { date: number; element: HTMLElement } | null;
   setHeatmapPopoverAnchor: React.Dispatch<React.SetStateAction<{ date: number; element: HTMLElement } | null>>;
-  formatDuration: (minutes: number) => string;
+  _formatDuration: (minutes: number) => string;
   viewOpts: {
     averageCalculationBase?: 'active_days' | 'total_days';
   };
@@ -71,7 +71,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
   setShowHeatmapMood,
   heatmapPopoverAnchor,
   setHeatmapPopoverAnchor,
-  formatDuration,
+  _formatDuration,
   viewOpts,
 }) => {
   // Days Interval

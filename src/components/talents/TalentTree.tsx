@@ -8,22 +8,16 @@ import { TalentIcon } from './TalentIcon';
 import { PageHeader } from '../common/PageHeader';
 import { 
   Lock, 
-  Unlock, 
   CheckCircle2, 
   ChevronDown, 
   ChevronUp,
   HelpCircle,
-  Zap,
-  Star,
-  Scroll,
-  Puzzle,
-  X,
   Network
 } from 'lucide-react';
 
 interface TalentTreeProps {
   points: number;
-  shards: number;
+  _shards: number;
   unlockedIds: string[];
   activeIds: string[];
   onUnlock: (id: string, cost: number) => void;
@@ -34,7 +28,7 @@ interface TalentTreeProps {
 
 export const TalentTree = React.memo<TalentTreeProps>(({
   points,
-  shards,
+  _shards,
   unlockedIds,
   activeIds,
   onUnlock,

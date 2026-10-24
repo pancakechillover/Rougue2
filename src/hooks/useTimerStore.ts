@@ -18,7 +18,7 @@ interface TimerStore {
   activeRewardSession: ActiveRewardSession | null;
   showFocusPrompt: boolean;
   setTimeLeft: (time: number) => void;
-  setDistractions: (distractions: DistractionsState | ((prev: DistractionsState) => DistractionsState)) => void;
+  _setDistractions: (distractions: DistractionsState | ((prev: DistractionsState) => DistractionsState)) => void;
   setActiveRewardSession: (session: ActiveRewardSession | null) => void;
   setShowFocusPrompt: (show: boolean) => void;
 }
@@ -34,7 +34,7 @@ export const useTimerStore = create<TimerStore>((set) => ({
     localStorage.setItem('timer_timeLeft', time.toString());
     set({ timeLeft: time });
   },
-  setDistractions: (newDistractions) => set((state) => {
+  _setDistractions: (newDistractions) => set((state) => {
     const value = typeof newDistractions === 'function' ? newDistractions(state.distractions) : newDistractions;
     localStorage.setItem('timer_distractions', JSON.stringify(value));
     return { distractions: value };

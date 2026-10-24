@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
-import { Settings2, Plus, Trash2, Check, X } from 'lucide-react';
+import { Settings2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TimerLoopSettings } from './TimerLoopSettings';
 import { SpinnerInput } from '../common/SpinnerInput';
 
 interface TimerSettingsProps {
   focusDuration: number;
-  setFocusDuration: (val: number) => void;
+  _setFocusDuration: (val: number) => void;
   restDuration: number;
-  setRestDuration: (val: number) => void;
+  _setRestDuration: (val: number) => void;
   enableRest: boolean;
   setEnableRest: (val: boolean) => void;
   isLooping: boolean;
   setIsLooping: (val: boolean) => void;
   loopTarget: number;
   setLoopTarget: (val: number) => void;
-  loopCount: number;
+  _loopCount: number;
   setLoopCount: (val: number) => void;
-  isActive: boolean;
-  isResting: boolean;
+  _isActive: boolean;
+  _isResting: boolean;
   applyPreset: (focus: number, rest: number) => void;
   handleCustomChange: (focus: number, rest: number) => void;
   presets: { focus: number, rest: number }[];
@@ -28,19 +28,19 @@ interface TimerSettingsProps {
 
 export const TimerSettings: React.FC<TimerSettingsProps> = ({
   focusDuration,
-  setFocusDuration,
+  _setFocusDuration,
   restDuration,
-  setRestDuration,
+  _setRestDuration,
   enableRest,
   setEnableRest,
   isLooping,
   setIsLooping,
   loopTarget,
   setLoopTarget,
-  loopCount,
+  _loopCount,
   setLoopCount,
-  isActive,
-  isResting,
+  _isActive,
+  _isResting,
   applyPreset,
   handleCustomChange,
   presets,

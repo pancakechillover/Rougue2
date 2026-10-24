@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
-  Building2, 
-  MapPin, 
-  Clock, 
   Play, 
-  Square, 
   ChevronDown, 
-  ListChecks, 
-  Sparkles,
-  Check,
-  Tag,
-  Home,
-  BookOpen,
-  Coffee
+  ListChecks,
+  Tag
 } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, formatDuration, getSettlementDay } from '../../lib/utils';
@@ -38,7 +29,7 @@ export const WorkstationHeaderControls: React.FC<WorkstationHeaderControlsProps>
   syncToCloud,
   onOpenWorkstationView
 }) => {
-  const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
+  const _isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

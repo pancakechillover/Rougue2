@@ -5,9 +5,7 @@ import {
   Settings as SettingsIcon, 
   X, 
   Coins, 
-  Zap, 
-  Trophy, 
-  Star,
+  Zap,
   Scroll, 
   RefreshCw,
   Cloud,
@@ -41,13 +39,13 @@ interface ProfileModalProps {
   editAvatar: string;
   setEditAvatar: (val: string) => void;
   handleSaveProfile: () => void;
-  setShowCloudSync: (val: boolean) => void;
+  _setShowCloudSync: (val: boolean) => void;
   setActiveTab: (tab: any) => void;
   isSyncing: boolean;
   hasUnsyncedChanges: boolean;
   triggerSyncCheck?: (forceModal?: boolean) => void;
-  isTalentLevel: (lvl: number) => boolean;
-  getNextTalentLevel: (lvl: number, rewards?: any[]) => number;
+  _isTalentLevel: (lvl: number) => boolean;
+  _getNextTalentLevel: (lvl: number, rewards?: any[]) => number;
   repairStreak: (dateStr: string) => void;
   openGuideBook?: (chapter: number) => void;
 }
@@ -65,19 +63,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   editAvatar,
   setEditAvatar,
   handleSaveProfile,
-  setShowCloudSync,
+  _setShowCloudSync,
   setActiveTab,
   isSyncing,
   hasUnsyncedChanges,
   triggerSyncCheck,
-  isTalentLevel,
-  getNextTalentLevel,
+  _isTalentLevel,
+  _getNextTalentLevel,
   repairStreak,
   openGuideBook
 }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
   const [showStreakModal, setShowStreakModal] = useState(false);
-  const [patchCandidate, setPatchCandidate] = useState<string | null>(null);
+  const [_patchCandidate, _setPatchCandidate] = useState<string | null>(null);
   
   const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -144,7 +142,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return dates.has(todayStr);
   })();
 
-  const streakData = showStreakModal ? (() => {
+  const _streakData = showStreakModal ? (() => {
     const dates = new Set<string>();
     state.history.forEach(session => {
       dates.add(format(parseISO(session.timestamp), 'yyyy-MM-dd'));

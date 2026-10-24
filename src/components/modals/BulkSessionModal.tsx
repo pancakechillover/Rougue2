@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Plus, Trash2, Calendar, Clock, Target, AlertCircle, Sparkles, CheckCircle2, 
-  Layers, Filter, CheckSquare, Square, Search, ArrowRight, Tag, RotateCcw, 
-  Download, Copy, Check, ChevronDown, Brain, Wind, Zap, Sliders, Play
+  X, Plus, Trash2, Clock, Target, AlertCircle, Sparkles, CheckCircle2, 
+  Layers, CheckSquare, Square, Search, Tag, Copy, Check, Brain, Wind, Zap, Sliders
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { format, parseISO, addHours, addDays } from 'date-fns';
+import { format, parseISO, addHours } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { StudySession, Dungeon } from '../../types';
 import { DatePicker } from '../common/DatePicker';
@@ -35,7 +34,7 @@ interface BulkSessionModalProps {
   ) => void;
   dungeons: Dungeon[];
   history?: StudySession[];
-  allHashtags?: string[];
+  _allHashtags?: string[];
 }
 
 type TabType = 'manage' | 'create' | 'delete';
@@ -50,7 +49,7 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
   onBulkUpdate,
   dungeons,
   history = [],
-  allHashtags = []
+  _allHashtags = []
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('manage');
   
@@ -79,7 +78,7 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
   const [fixedCount, setFixedCount] = useState<number>(4);
   const [focusDuration, setFocusDuration] = useState<number>(25);
   const [restDuration, setRestDuration] = useState<number>(5);
-  const [distribution, setDistribution] = useState<DistributionType>('sequential');
+  const [distribution, _setDistribution] = useState<DistributionType>('sequential');
   const [createObjectiveId, setCreateObjectiveId] = useState('');
 
   // Range Purge States
@@ -274,7 +273,7 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
     setBatchActionType('');
   };
 
-  const handleBatchClearDistractions = () => {
+  const _handleBatchClearDistractions = () => {
     if (selectedIds.size === 0 || !onBulkUpdate) return;
     onBulkUpdate(Array.from(selectedIds), {
       distractions: undefined

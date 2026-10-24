@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShopItem, GachaPool, Rarity } from '../../types';
+import { ShopItem, GachaPool } from '../../types';
 import { ShoppingBag, Sparkles, Trophy, Coins, RefreshCw, HelpCircle, Zap, Flame, Gem, Target, Star, Heart, Shield, Sword, Coffee, Pizza, Gift, Package, Camera, Music, Book, Gamepad2, Ghost, Moon, Sun, Cloud, Anchor, Compass, Map, Key, Lock, Unlock, Bell, BellOff, Eye, EyeOff, Search, Settings, Trash2, Edit2, Plus, X, Check, CheckCircle2, AlertCircle, Info, HelpCircle as HelpIcon, Ticket, Crown } from 'lucide-react';
 import { PageHeader } from '../common/PageHeader';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -40,7 +40,7 @@ export const Shop = React.memo<ShopProps>(({
   onOpenSettings 
 }) => {
   const [activeTab, setActiveTab] = useState<'shop' | 'gacha' | 'ichiban'>('shop');
-  const [showProbabilities, setShowProbabilities] = useState(false);
+  const [_showProbabilities, _setShowProbabilities] = useState(false);
   const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
   
   const gachaPoolsList = gachaPools.filter(p => p.type === 'gacha');
@@ -260,7 +260,7 @@ export const Shop = React.memo<ShopProps>(({
                            const colors = getColorClass(rarity.color);
                            return (
                              <div key={rarity.id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-800/50 bg-slate-900/50">
-                               <span className={cn("text-xs font-black uppercase tracking-wider", colors.textClass)}>{rarity.name}</span>
+                               <span className={cn("text-xs font-black uppercase tracking-wider", colors._textClass)}>{rarity.name}</span>
                                <span className="text-xs font-bold text-slate-400">{prob}%</span>
                              </div>
                            );
@@ -283,7 +283,7 @@ export const Shop = React.memo<ShopProps>(({
                                'emerald': 'bg-emerald-600 border-emerald-500',
                                'slate': 'bg-slate-700 border-slate-600'
                              };
-                             const badgeBg = rarity.color && vibrantMapping[rarity.color] ? vibrantMapping[rarity.color] : colors.bgClass;
+                             const _badgeBg = rarity.color && vibrantMapping[rarity.color] ? vibrantMapping[rarity.color] : colors.bgClass;
 
                              return (
                                <div key={rarity.id} className="bg-slate-900 rounded-xl p-3 border border-slate-800/50">
@@ -291,7 +291,7 @@ export const Shop = React.memo<ShopProps>(({
                                      <div className={cn("w-2 h-2 rounded-full", colors.bgClass)}></div>
                                      <span className={cn(
                                        "text-[10px] font-black uppercase tracking-widest",
-                                       colors.textClass
+                                       colors._textClass
                                      )}>
                                        {rarity.name}
                                      </span>
@@ -477,7 +477,7 @@ export const Shop = React.memo<ShopProps>(({
                                     }
                                   }
                                   
-                                  const { bgClass, textClass, borderClass } = getColorClass(colorId || 'slate');
+                                  const { bgClass, _textClass, borderClass } = getColorClass(colorId || 'slate');
                                   
                                   const vibrantMapping: Record<string, string> = {
                                     'rose': 'bg-rose-600 text-white border-rose-500',

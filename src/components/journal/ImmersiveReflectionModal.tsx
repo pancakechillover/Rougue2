@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Minimize2, Download, Upload, 
   PanelLeftClose, PanelLeftOpen, Search, 
-  Calendar, Bookmark, Star, Percent, FileText, 
-  ChevronRight, X, Sparkles, Check
+  Calendar, Bookmark, Star, Percent, FileText, X, Sparkles, Check
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { format, subDays, parseISO, isValid } from 'date-fns';
@@ -24,7 +23,7 @@ export interface ImmersiveReflectionModalProps {
   dailyLogs?: Record<string, DailyLog>;
   onSelectDate?: (dateStr: string) => void;
   bookmarks?: string[];
-  onToggleBookmark?: (dateStr: string) => void;
+  _onToggleBookmark?: (dateStr: string) => void;
   history?: StudySession[];
   efficiencyRatingConfig?: EfficiencyRatingConfig;
   isMarkdownEnabled?: boolean;
@@ -48,7 +47,7 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
   dailyLogs = {},
   onSelectDate,
   bookmarks = [],
-  onToggleBookmark,
+  _onToggleBookmark,
   history = [],
   efficiencyRatingConfig,
   templates,
@@ -244,7 +243,7 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
                     currentReflection={reflection}
                     onUpdateTemplates={onUpdateTemplates}
                     autoLoadTemplateId={autoLoadTemplateId}
-                    autoLoadTemplateMode={autoLoadTemplateMode}
+                    _autoLoadTemplateMode={autoLoadTemplateMode}
                     onSetAutoLoadTemplate={onSetAutoLoadTemplate}
                   />
                 </div>

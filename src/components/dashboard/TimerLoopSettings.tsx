@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { Repeat } from 'lucide-react';
 import { SpinnerInput } from '../common/SpinnerInput';
 
 interface TimerLoopSettingsProps {

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { StudySession, Dungeon, MajorDungeon } from '../../types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear, eachMonthOfInterval, endOfYear, subDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear, eachMonthOfInterval, endOfYear } from 'date-fns';
 import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
-import { CalendarCheck2, ChevronLeft, ChevronRight, Check, Settings, X, Activity, Clock, Target } from 'lucide-react';
+import { CalendarCheck2, ChevronLeft, ChevronRight, Check, Settings, X } from 'lucide-react';
 import { AppState } from '../../types';
 import { PopoverPortal } from '../common/PopoverPortal';
 import { RoutineDetailModal } from './RoutineDetailModal';

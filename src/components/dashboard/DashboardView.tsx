@@ -7,17 +7,13 @@ import {
   ChevronRight, 
   ChevronDown,
   Calendar,
-  BookOpen, 
-  HelpCircle,
+  BookOpen,
   Coins,
   Zap,
   Compass,
   Package,
-  Clock,
   Target,
   Bot,
-  Sparkles,
-  RefreshCw,
   Send,
   X,
   Copy,
@@ -36,7 +32,7 @@ import {
   ArrowRight,
   BookMarked
 } from 'lucide-react';
-import { format, startOfMonth, startOfWeek, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, subDays, addDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, subDays, addDays } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
@@ -54,12 +50,12 @@ import { DatePicker } from '../common/DatePicker';
 interface DashboardViewProps {
   state: AppState;
   setState: React.Dispatch<React.SetStateAction<AppState>>;
-  currentDungeon: Dungeon | null;
+  _currentDungeon: Dungeon | null;
   setActiveTab: (tab: any) => void;
   setShowDailySummary: (show: boolean) => void;
   setShowStartOfDayModal: (val: string | boolean) => void;
   openGuideBook: (chapter: number) => void;
-  saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
+  _saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
   applyExpeditionPlan?: (plan: any) => void;
   navigateToSettings?: (section: any, settingId?: string) => void;
   dungeons: Dungeon[];
@@ -69,12 +65,12 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   state,
   setState,
-  currentDungeon,
+  _currentDungeon,
   setActiveTab,
   setShowDailySummary,
   setShowStartOfDayModal,
   openGuideBook,
-  saveDailyLog,
+  _saveDailyLog,
   applyExpeditionPlan,
   navigateToSettings,
   dungeons,
@@ -185,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return count;
   }, [calendarDays, ddlMap]);
 
-  const settlementPeriod = useMemo(() => {
+  const _settlementPeriod = useMemo(() => {
     const ts = state.timeSettings || {
       morning: { start: 8, end: 12 },
       afternoon: { start: 14, end: 18 },
@@ -961,7 +957,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
     });
   };
 
-  const clearHistory = () => {
+  const _clearHistory = () => {
     customConfirm("Are you sure you want to clear this entire conversation?", () => {
       setState(prev => {
         const convos = prev.sageConversations || [];
@@ -1205,7 +1201,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                       let parsedPlan = null;
                       let parsedSettings = null;
                       let textToRender = msg.content;
-                      let hasMarkdownBlock = false;
+                      let _hasMarkdownBlock = false;
                       const canModify = !!state.sageAllowGameModifiers;
 
                       if (canModify) {
@@ -1246,8 +1242,8 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                               components={{
                                 code({node, inline, className, children, ...props}: any) {
                                   const match = /language-(\w+)/.exec(className || '');
-                                  const isJson = match && match[1] === 'json';
-                                  const content = String(children).replace(/\n$/, '');
+                                  const _isJson = match && match[1] === 'json';
+                                  const _content = String(children).replace(/\n$/, '');
                                   
                                   // We already extracted top-level JSON above. 
                                   // If there are other code blocks, just render them as normal.
@@ -1344,7 +1340,7 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
 
           {loading && (
             <div className="flex flex-col items-start pr-1">
-              <SageLoadingTimer startTime={loadingStartTime} isDarkTheme={isDarkTheme} onCancel={handleCancelConsult} />
+              <SageLoadingTimer startTime={loadingStartTime} _isDarkTheme={isDarkTheme} onCancel={handleCancelConsult} />
             </div>
           )}
 

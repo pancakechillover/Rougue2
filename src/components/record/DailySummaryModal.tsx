@@ -5,7 +5,6 @@ import {
 
   X, 
   Star, 
-  StarHalf, 
   ChevronDown, 
   ChevronUp, 
   Trophy, 
@@ -18,32 +17,15 @@ import {
   Calendar,
   MessageSquare,
   ArrowRight,
-  Download,
-  Upload,
-  Eye,
-  EyeOff,
-  Clock,
-  LayoutTemplate,
-  Save,
-  Maximize2,
-  Minimize2,
-  File,
-  FileText,
-  Indent,
   Heart,
   Moon,
-  Sparkles,
   SlidersHorizontal,
   Calculator
 } from 'lucide-react';
-import Markdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
-import { cn, getSessionSettlementDate, getSettlementDay, getSessionEffectiveMinutes, formatDuration } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, formatDuration } from '../../lib/utils';
 import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
-import { AppState, StudySession, RewardHistoryItem, Dungeon, MajorDungeon } from '../../types';
-import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
+import { AppState, Dungeon, MajorDungeon } from '../../types';
 
 import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -78,7 +60,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  const immersiveTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const _immersiveTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const hasInitializedFromLog = useRef(false);
 
   const today = useMemo(() => {
@@ -95,7 +77,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       return `${year}-${month}-${day}`;
     };
 
-    const timezone = state.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const _timezone = state.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     let now = new Date();
     if (state.timezone) {
       try {
@@ -195,7 +177,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     const getAssignedDate = (date: Date) => {
       const hour = date.getHours();
       
-      const peaks = [ts.morning, ts.afternoon, ts.night];
+      const _peaks = [ts.morning, ts.afternoon, ts.night];
       
       // Night span midnight check
       if (ts.night.start > ts.night.end && hour < ts.night.end) {
@@ -725,7 +707,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           targetSource={targetFocusStats.source}
           workstationPresenceMinutes={targetFocusStats.workstationMinutes}
           workstationIntervalCount={targetFocusStats.intervalCount}
-          conversionRate={targetFocusStats.conversionRate}
+          _conversionRate={targetFocusStats.conversionRate}
           onUpdateConfig={(newConfig) => {
             onUpdateState?.({
               efficiencyRatingConfig: {

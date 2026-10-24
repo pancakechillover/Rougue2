@@ -2,16 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { 
-  Users, LogIn, Plus, X, MessageSquare, Activity, Crown, Clock, Target, Check, AlertCircle, RefreshCw, Send, Settings, User, UserCheck, UserX, Landmark,
+  Users, LogIn, Plus, X, Activity, Crown, Clock, Target, Check, AlertCircle, RefreshCw, Send, Settings, User, UserCheck, UserX, Landmark,
   Cat, Dog, Ghost, Bot, Skull, Lock, ArrowDown,
   BookOpen, Library, Coffee, Brain, ShieldHalf, Swords, Flame, Sparkles, Castle, Mountain
 } from 'lucide-react';
-import { AppState, Team, TeamMessage, TeamEvent, TeamMember, TeamSettingProposal } from '../../types';
+import { AppState, Team, TeamMessage, TeamEvent, TeamMember } from '../../types';
 import { cn, getTitleForLevel } from '../../lib/utils';
 import { getTeamCycleState, calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey, getCycleBounds } from '../../lib/teamUtils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ProfileModal } from '../settings/ProfileModal';
-import { ConfirmModal } from '../modals/ConfirmModal';
 
 interface TeamModuleProps {
   state: AppState;
@@ -1225,7 +1222,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
               }, "Banish Member", "danger", "Banish");
            }}
            currentUserName={state.userName || 'Scholar'}
-           onReclaimCaptain={(targetId) => {
+           onReclaimCaptain={(_targetId) => {
               customConfirm("Are you sure this is your old account? Claiming it will restore your captaincy and delete the old duplicate entity.", async () => {
                  const identityCode = state.secretCode || getOrGenerateIdentity();
                  await fetch('/api/teams?action=reclaim', {
@@ -1589,7 +1586,7 @@ const TeamMemberProfileModal = ({ member, onClose, isCurrentUserCaptain, isTarge
   );
 };
 
-const GoalDetailsModal = ({ team, state, onClose }: any) => {
+const _GoalDetailsModal = ({ team, state, onClose }: any) => {
   const target = team.config.targetValue;
   const userTotalFocus = state ? calculateUserTotalFocus(state.history, state.includeRestTimeInTasks) : undefined;
   const userCycleFocus = state ? calculateUserCycleFocus(state.history, team.config.targetType, team.config.resetTime, state.includeRestTimeInTasks) : undefined;

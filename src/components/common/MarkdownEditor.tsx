@@ -33,8 +33,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   minHeight = '180px',
   hideToolbar = false,
 }) => {
-  const { fontSize, lineHeight } = useEditorTypography();
-  const lineMultiplier = LINE_HEIGHT_MAP[lineHeight];
+  const { fontSize, _lineHeight } = useEditorTypography();
+  const lineMultiplier = LINE_HEIGHT_MAP[_lineHeight];
 
   // Split document into lines
   const lines = value !== undefined && value !== null ? value.split('\n') : [''];

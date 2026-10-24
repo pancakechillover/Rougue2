@@ -109,7 +109,7 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
           currentReflection={reflection}
           onUpdateTemplates={onUpdateTemplates}
           autoLoadTemplateId={autoLoadTemplateId}
-          autoLoadTemplateMode={autoLoadTemplateMode}
+          _autoLoadTemplateMode={autoLoadTemplateMode}
           onSetAutoLoadTemplate={onSetAutoLoadTemplate}
         />
       )}

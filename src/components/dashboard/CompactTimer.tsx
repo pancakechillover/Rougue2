@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package, Sparkles } from 'lucide-react';
+import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Dungeon, RewardCard, StudySession } from '../../types';
 import { useTimerStore } from '../../hooks/useTimerStore';
@@ -12,12 +12,12 @@ interface CompactTimerProps {
   isActive: boolean;
   isResting: boolean;
   currentDungeon: Dungeon | null;
-  duration: number;
+  _duration: number;
   toggleTimer: () => void;
   resetTimer: () => void;
   skipSession: () => void;
   timerSkipVictoryMode?: 'none' | 'auto_pick_highest' | 'skip_rewards' | 'defer_to_chest';
-  requireFocusConfirmation?: boolean;
+  _requireFocusConfirmation?: boolean;
   lastCompletionRewards?: any | null;
   pipVictorySummary?: { xp: number, coins: number, ts: number } | null;
   standardSessionMinutes?: number;
@@ -168,12 +168,12 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   isActive,
   isResting,
   currentDungeon,
-  duration,
+  _duration,
   toggleTimer,
   resetTimer,
   skipSession,
   timerSkipVictoryMode,
-  requireFocusConfirmation,
+  _requireFocusConfirmation,
   lastCompletionRewards,
   pipVictorySummary,
   standardSessionMinutes,
@@ -183,7 +183,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   onStartFocus
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const { timeLeft, distractions, setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
+  const { timeLeft, distractions, _setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
   const [displayTime, setDisplayTime] = React.useState(timeLeft);
   const [showTransientSummary, setShowTransientSummary] = React.useState(false);
 

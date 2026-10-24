@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, MousePointer2 } from 'lucide-react';
+import { MousePointer2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface ScratchCardProps {

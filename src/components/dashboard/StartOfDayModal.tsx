@@ -10,23 +10,12 @@ import {
   Sun, 
   Clock, 
   MessageSquare, 
-  CheckCircle2, 
-  LayoutTemplate,
+  CheckCircle2,
   Flame,
-  Search,
-  File,
-  FileText,
-  Save,
-  Eye,
-  EyeOff,
-  Maximize2,
-  Upload,
-  Download,
   Plus,
   Trash2,
   CheckCircle,
   Circle,
-  Calendar,
   ListPlus,
   Target,
   Play,
@@ -36,9 +25,6 @@ import {
   Layers,
   ArrowUpDown
 } from 'lucide-react';
-import Markdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
 import { TimePicker } from '../common/TimePicker';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
@@ -46,7 +32,6 @@ import { cn, sortAgendaTodos, getSettlementDay, getDungeonHierarchyStats, getTie
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
-import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 
 interface StartOfDayModalProps {
@@ -167,7 +152,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       night: { start: 20, end: 24 }
     };
 
-    const getYMD = (d: Date) => {
+    const _getYMD = (d: Date) => {
       const year = d.getFullYear();
       const month = (d.getMonth() + 1).toString().padStart(2, '0');
       const day = d.getDate().toString().padStart(2, '0');
@@ -252,7 +237,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     }
     return '';
   });
-  const [mood, setMood] = useState(dailyLog?.mood || '');
+  const [mood, _setMood] = useState(dailyLog?.mood || '');
 
   const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(state.defaultMarkdownEnabled ?? true);
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
@@ -470,7 +455,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     }).length;
   }, [startDayTodos, dungeonMap]);
 
-  const startDayTodosPendingCount = startDayTodos.length - startDayTodosCompletedCount;
+  const _startDayTodosPendingCount = startDayTodos.length - startDayTodosCompletedCount;
 
   const handleAutoSortStartDayTodos = () => {
     if (startDayTodos.length <= 1) return;
@@ -486,7 +471,7 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     onUpdateState({ todayTodos: updated });
   };
 
-  const activeExpeditions = useMemo(() => {
+  const _activeExpeditions = useMemo(() => {
     if (!dungeons) return [];
     return dungeons.filter(d => d.status !== 'completed' && d.status !== 'archived');
   }, [dungeons]);

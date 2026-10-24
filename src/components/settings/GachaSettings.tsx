@@ -1,20 +1,17 @@
-import React, { useState } from 'react';
+import _React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { RewardCard, ShopItem, GachaPool, Rarity } from '../../types';
+import { GachaPool } from '../../types';
 import { INITIAL_GACHA } from '../../constants';
-import { Plus, Trash2, Save, Edit2, X, ChevronRight, Coins, Zap, Sparkles, Trophy, Timer as TimerIcon, Package, Flame, AlertTriangle, Scroll, Volume2, VolumeX, Sun, Moon, Settings as SettingsIcon, ShoppingBag, Trees, Waves, Database, Download, Upload, Target, Gift, User, Sword, Eye, Palette, Check, Bell, BellOff, RefreshCw, Key, Layers, Sunrise, Cloud, CloudSun, Lollipop, Wrench, History, Ticket, Share2, ClipboardCopy } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload, Gift, Check, Ticket, Share2 } from 'lucide-react';
 import { SlotMachine } from '../icons/SlotMachine';
-import * as LucideIcons from 'lucide-react';
-import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
-import { cn, getXPForLevel, getDefaultRewardForLevel } from '../../lib/utils';
-import { playSound } from '../../lib/sound';
+import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { RARITY_COLORS, getColorClass } from '../../lib/colors';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 // Helper to convert VAPID key
-function urlBase64ToUint8Array(base64String: string) {
+function _urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
@@ -361,7 +358,7 @@ export const GachaSettings = ({ pools, onUpdate }: { pools: GachaPool[], onUpdat
                                 <div className="flex items-center gap-4 w-full sm:w-48 shrink-0">
                                   <div className={cn(
                                     "px-3 py-1 rounded-lg text-xs font-black border uppercase tracking-wider",
-                                    isLastOne ? "text-rose-500 border-rose-500/30 bg-rose-500/10" : `${itemColor.textClass} ${itemColor.borderClass} ${itemColor.bgClass}`
+                                    isLastOne ? "text-rose-500 border-rose-500/30 bg-rose-500/10" : `${itemColor._textClass} ${itemColor.borderClass} ${itemColor.bgClass}`
                                   )}>
                                     {isLastOne ? 'Last One' : item.rarity}
                                   </div>

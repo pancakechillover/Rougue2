@@ -10,7 +10,7 @@ export interface ReflectionTemplatesDropdownProps {
   currentReflection: string;
   onUpdateTemplates?: (templates: ReflectionTemplate[]) => void;
   autoLoadTemplateId?: string | null;
-  autoLoadTemplateMode?: 'empty' | 'example';
+  _autoLoadTemplateMode?: 'empty' | 'example';
   onSetAutoLoadTemplate?: (templateId: string | null, mode?: 'empty' | 'example') => void;
   className?: string;
   buttonClassName?: string;
@@ -22,7 +22,7 @@ export const ReflectionTemplatesDropdown: React.FC<ReflectionTemplatesDropdownPr
   currentReflection,
   onUpdateTemplates,
   autoLoadTemplateId,
-  autoLoadTemplateMode = 'empty',
+  _autoLoadTemplateMode = 'empty',
   onSetAutoLoadTemplate,
   className,
   buttonClassName,

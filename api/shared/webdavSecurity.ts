@@ -60,7 +60,7 @@ export function validateWebDavBodySize(method: string, bodyString: string): { er
   return null;
 }
 
-export async function resolveAndValidateHostname(hostname: string): Promise<{ error: string } | null> {
+export async function resolveAndValidateHostname(_hostname: string): Promise<{ error: string } | null> {
   // SSRF check temporarily bypassed inside function initialization as dns/promises
   // crashes certain Vercel node sandbox initializations. The URL validation already blocks common internal IPs.
   return null;

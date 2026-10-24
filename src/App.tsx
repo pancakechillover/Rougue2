@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { createRoot } from 'react-dom/client';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sword, 
@@ -10,17 +9,12 @@ import {
   ChevronRight, 
   LayoutDashboard,
   Settings as SettingsIcon,
-  User,
   Coins,
-  Zap,
   Network,
-  X,
-  Trophy,
   Package,
   Scroll,
   Puzzle,
   RefreshCw,
-  Gift,
   Flame
 } from 'lucide-react';
 import { AppIcon } from './components/icons/AppIcon';
@@ -49,7 +43,7 @@ import { useWorkstation } from './hooks/useWorkstation';
 import { triggerSimpleConfetti } from './lib/effects';
 import { cn, getXPForLevel, getSettlementDay, getTitleForLevel } from './lib/utils';
 import { playSound } from './lib/sound';
-import { Dungeon, MajorDungeon, DungeonReward, AppState, WorkstationInterval, ActiveWorkstationSession } from './types';
+import { Dungeon, MajorDungeon, DungeonReward, AppState, ActiveWorkstationSession } from './types';
 import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
@@ -58,7 +52,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useTimerStore } from './hooks/useTimerStore';
 import { renderAvatar } from './components/guild/TeamModule';
 import { WorkstationTimeoutModal, WorkstationTimeoutInfo } from './components/modals/WorkstationTimeoutModal';
-import { MAX_WORKSTATION_SESSION_MS, MAX_WORKSTATION_SESSION_MINUTES } from './lib/workstationUtils';
+import { MAX_WORKSTATION_SESSION_MS } from './lib/workstationUtils';
 import { parseISO, isValid } from 'date-fns';
 
 const isTalentLevel = (lvl: number) => {
@@ -271,7 +265,7 @@ function App() {
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', isSidebarCollapsed.toString());
   }, [isSidebarCollapsed]);
-  const [isActiveTalentsCollapsed, setIsActiveTalentsCollapsed] = useState(false);
+  const [_isActiveTalentsCollapsed, _setIsActiveTalentsCollapsed] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
@@ -316,8 +310,6 @@ function App() {
     majorDungeons,
     setMajorDungeons,
     addXP,
-    addCoins,
-    addRewardToHistory,
     toggleRewardRedeemed,
     consumeInventoryItem,
     completeSession, 
@@ -330,7 +322,6 @@ function App() {
     reorderSubDungeon,
     moveDungeonItem,
     finalizeMajorDungeon: finalizeMajorDungeonBase,
-    updateQuests,
     updateSession,
     deleteSession,
     claimDailyTalentReward,
@@ -850,7 +841,7 @@ function App() {
     setIsEditingProfile(false);
   };
 
-  const currentLevelUp = showLevelUp?.[0];
+  const _currentLevelUp = showLevelUp?.[0];
 
   const openProfile = () => {
     setEditName(state.userName || 'Scholar');
@@ -1071,7 +1062,7 @@ function App() {
     });
   };
 
-  const progressToNextLevel = (state.xp / getXPForLevel(state.level)) * 100;
+  const _progressToNextLevel = (state.xp / getXPForLevel(state.level)) * 100;
 
   const unclaimedQuestsCount = state.quests.filter(q => !q.isAchievement && q.completed && !q.claimed).length;
   const unclaimedAchievementsCount = state.quests.filter(q => q.isAchievement && q.completed && !q.claimed).length;
@@ -1270,12 +1261,12 @@ function App() {
           isActive={isTimerActive}
           isResting={isResting}
           currentDungeon={currentDungeon || null}
-          duration={duration}
+          _duration={duration}
           toggleTimer={toggleTimerPip}
           resetTimer={resetTimerPip}
           skipSession={skipSessionPip}
           timerSkipVictoryMode={state.timerSkipVictoryMode}
-          requireFocusConfirmation={state.requireFocusConfirmation}
+          _requireFocusConfirmation={state.requireFocusConfirmation}
           lastCompletionRewards={state.lastCompletionRewards}
           pipVictorySummary={pipVictorySummary}
           standardSessionMinutes={state.standardSessionMinutes}
@@ -1659,7 +1650,7 @@ function App() {
                 setState={setState}
                 dungeons={dungeons}
                 majorDungeons={majorDungeons}
-                currentDungeon={currentDungeon || null}
+                _currentDungeon={currentDungeon || null}
                 setActiveTab={setActiveTab}
                 setShowDailySummary={setShowDailySummary}
                 setShowStartOfDayModal={setShowStartOfDayModal}
@@ -1667,7 +1658,7 @@ function App() {
                   setGuideInitialPage(chapter);
                   setShowGuideBook(true);
                 }}
-                saveDailyLog={saveDailyLog}
+                _saveDailyLog={saveDailyLog}
                 applyExpeditionPlan={(plan) => {
                   const generateId = () => Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
                   const majorId = generateId();
@@ -1765,7 +1756,7 @@ function App() {
                  setDungeonSubTab={setDungeonSubTab}
                  isFullscreenExplore={isFullscreenExplore}
                  setIsFullscreenExplore={setIsFullscreenExplore}
-                 showCoinRain={showCoinRain}
+                 _showCoinRain={showCoinRain}
                  setShowCoinRain={setShowCoinRain}
                  showBuildDetails={showBuildDetails}
                  setShowBuildDetails={setShowBuildDetails}
@@ -1783,8 +1774,8 @@ function App() {
                  togglePip={togglePip}
                  pipWindow={pipWindow}
                  canPip={canPip}
-                 isPWA={isPWA}
-                 isDesktop={isDesktop}
+                 _isPWA={isPWA}
+                 _isDesktop={isDesktop}
                  unclaimedQuestsCount={unclaimedQuestsCount}
                  unclaimedAchievementsCount={unclaimedAchievementsCount}
                  openTimerSettings={() => {
@@ -1975,13 +1966,13 @@ function App() {
         editAvatar={editAvatar}
         setEditAvatar={setEditAvatar}
         handleSaveProfile={handleSaveProfile}
-        setShowCloudSync={setShowCloudSync}
+        _setShowCloudSync={setShowCloudSync}
         setActiveTab={setActiveTab}
         isSyncing={isSyncing}
         hasUnsyncedChanges={hasUnsyncedChanges}
         triggerSyncCheck={() => checkCloudSync(true)}
-        isTalentLevel={isTalentLevel}
-        getNextTalentLevel={getNextTalentLevel}
+        _isTalentLevel={isTalentLevel}
+        _getNextTalentLevel={getNextTalentLevel}
         repairStreak={repairStreak}
         openGuideBook={(chapter) => {
           setGuideInitialPage(chapter);

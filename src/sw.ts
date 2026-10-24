@@ -1,19 +1,19 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute } from 'workbox-precaching';
 
-declare let self: ServiceWorkerGlobalScope;
+declare let _self: ServiceWorkerGlobalScope;
 
-precacheAndRoute(self.__WB_MANIFEST);
+precacheAndRoute(_self.__WB_MANIFEST);
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
+_self.addEventListener('install', (event) => {
+  _self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+_self.addEventListener('activate', (event) => {
+  event.waitUntil(_self.clients.claim());
 });
 
-self.addEventListener('push', (event) => {
+_self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
       };
 
       event.waitUntil(
-        self.registration.showNotification(data.title || 'Dungeon Alert', options)
+        _self.registration.showNotification(data.title || 'Dungeon Alert', options)
           .catch(err => console.error('[Service Worker] Failed to show notification:', err))
       );
     } catch (e) {
@@ -40,7 +40,7 @@ self.addEventListener('push', (event) => {
       // Fallback for non-JSON data
       const text = event.data.text();
       event.waitUntil(
-        self.registration.showNotification('Dungeon Alert', { body: text })
+        _self.registration.showNotification('Dungeon Alert', { body: text })
       );
     }
   } else {
@@ -48,21 +48,21 @@ self.addEventListener('push', (event) => {
   }
 });
 
-self.addEventListener('notificationclick', (event) => {
+_self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    _self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       if (clientList.length > 0) {
         return clientList[0].focus();
       }
-      return self.clients.openWindow('/');
+      return _self.clients.openWindow('/');
     })
   );
 });
 
-self.addEventListener('message', (event) => {
+_self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'TEST_NOTIFICATION_SW') {
-    self.registration.showNotification('Scholar\'s Dungeon', {
+    _self.registration.showNotification('Scholar\'s Dungeon', {
       body: 'Service Worker thread notification test successful!',
       icon: '/pwa-icon.svg',
       tag: 'test-thread'

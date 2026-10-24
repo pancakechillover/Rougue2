@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, FolderOpen, Trash2, X, Check, Star, RefreshCcw } from 'lucide-react';
+import { Save, FolderOpen, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -9,10 +9,10 @@ interface PresetControlProps<T> {
   onLoad: (data: T) => void;
   className?: string;
   // Fallback data when resetting/clearing
-  defaultData: T;
+  _defaultData: T;
 }
 
-export function PresetControl<T>({ type, currentData, onLoad, className, defaultData }: PresetControlProps<T>) {
+export function PresetControl<T>({ type, currentData, onLoad, className, _defaultData }: PresetControlProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [presets, setPresets] = useState<Record<string, T>>({});
   const [newName, setNewName] = useState('');

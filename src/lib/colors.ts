@@ -18,6 +18,6 @@ export const RARITY_COLORS: RarityColor[] = [
 
 export const getColorClass = (colorId?: string) => {
   const color = RARITY_COLORS.find(c => c.id === colorId);
-  if (color) return { textClass: color.textClass, borderClass: color.borderClass, bgClass: color.bgClass };
+  if (color) return { _textClass: color.textClass, borderClass: color.borderClass, bgClass: color.bgClass };
   return { textClass: 'text-slate-400', borderClass: 'border-slate-400/20', bgClass: 'bg-slate-400/10' };
 };

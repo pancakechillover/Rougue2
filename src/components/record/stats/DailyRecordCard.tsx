@@ -420,7 +420,7 @@ export const DailyRecordCard: React.FC<DailyRecordCardProps> = ({
           targetSource={dayStats.targetSource}
           workstationPresenceMinutes={dayStats.workstationMinutes}
           workstationIntervalCount={dayStats.workstationIntervalCount}
-          conversionRate={dayStats.conversionRate}
+          _conversionRate={dayStats.conversionRate}
           state={state}
           onUpdateState={onUpdateState}
         />

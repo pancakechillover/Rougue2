@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import _React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X } from 'lucide-react';
 import { APP_VERSION } from '../../version';

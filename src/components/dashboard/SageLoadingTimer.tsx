@@ -4,11 +4,11 @@ import { cn } from '../../lib/utils';
 
 interface SageLoadingTimerProps {
   startTime: number;
-  isDarkTheme: boolean;
+  _isDarkTheme: boolean;
   onCancel?: () => void;
 }
 
-export const SageLoadingTimer: React.FC<SageLoadingTimerProps> = ({ startTime, isDarkTheme, onCancel }) => {
+export const SageLoadingTimer: React.FC<SageLoadingTimerProps> = ({ startTime, _isDarkTheme, onCancel }) => {
   const [elapsed, setElapsed] = React.useState(0);
   
   React.useEffect(() => {

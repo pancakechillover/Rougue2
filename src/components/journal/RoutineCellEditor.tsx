@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import _React, { useState, useMemo } from 'react';
 import { StudySession, Dungeon, AppState, MajorDungeon } from '../../types';
-import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
-import { Check, X, Clock, Trash2 } from 'lucide-react';
+import { getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
+import { Check, Clock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const RoutineCellEditor = ({ 

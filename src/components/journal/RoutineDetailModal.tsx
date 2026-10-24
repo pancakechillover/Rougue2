@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { StudySession, Dungeon, MajorDungeon, AppState } from '../../types';
-import { X, Target, Clock, Activity, Calendar } from 'lucide-react';
+import { StudySession, Dungeon, MajorDungeon } from '../../types';
+import { X, Target, Clock, Calendar } from 'lucide-react';
 import { DatePicker } from '../common/DatePicker';
 import { cn, getSessionSettlementDate, getDescendantDungeonIds } from '../../lib/utils';
 import { createPortal } from 'react-dom';

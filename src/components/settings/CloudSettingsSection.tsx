@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Cloud, Server, HardDrive, CheckCircle2, ChevronRight, Settings, Lock, X, History, ArrowDownUp, RefreshCw, LogIn, Trash2, ShieldBan, Eye, Search, UploadCloud, DownloadCloud, Download, Laptop, Monitor, Smartphone, Tablet, Copy, Key, WifiOff, Users, Database } from 'lucide-react';
+import { Cloud, Server, HardDrive, CheckCircle2, ChevronRight, Settings, Lock, X, History, ArrowDownUp, RefreshCw, LogIn, Trash2, ShieldBan, Eye, Search, Download, Laptop, Monitor, Smartphone, Tablet, Copy, Key, WifiOff, Users, Database } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getDeviceCode } from '../../lib/utils';
 import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../../lib/migrations';
@@ -548,8 +548,8 @@ export const CloudSettingsSection: React.FC<CloudSettingsSectionProps> = ({
                 // We'll pass the payload to setState and major dungeons etc if possible, but actually we need to trigger the hook's replace logic. 
                 // Or we can just rewrite localStorage here.
                 const stateData = historyData.state || historyData;
-                const dungs = historyData.dungeons || [];
-                const majorDungs = historyData.majorDungeons || [];
+                const _dungs = historyData.dungeons || [];
+                const _majorDungs = historyData.majorDungeons || [];
                 
                 // Keep the current save so a mistaken restore can still be undone by hand
                 const currentRaw = localStorage.getItem('scholars_dungeon_state');

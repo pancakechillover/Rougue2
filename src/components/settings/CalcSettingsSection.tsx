@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Calculator, Zap, Clock, Coins, Ticket, Sparkles, Target, AlertTriangle, HelpCircle, Info, ChevronDown, Check } from 'lucide-react';
+import { Zap, Clock, Coins, Ticket, Sparkles, Target, AlertTriangle, HelpCircle, Info, ChevronDown } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getXPForLevel } from '../../lib/utils';
 import { AnimatePresence } from 'motion/react';
 
 interface CalcSettingsProps {
   state: AppState;
-  setState: React.Dispatch<React.SetStateAction<AppState>>;
+  _setState: React.Dispatch<React.SetStateAction<AppState>>;
 }
 
-export const CalcSettingsSection: React.FC<CalcSettingsProps> = ({ state, setState }) => {
+export const CalcSettingsSection: React.FC<CalcSettingsProps> = ({ state, _setState }) => {
   // Basic Calculator State
   const [focusInput, setFocusInput] = useState(25);
   const [restInput, setRestInput] = useState(5);

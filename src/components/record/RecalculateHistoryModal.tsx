@@ -13,7 +13,7 @@ import {
   Sparkles,
   Layers
 } from 'lucide-react';
-import { format, parseISO, subDays, startOfMonth, endOfMonth, isValid } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { AppState, EfficiencyRatingConfig } from '../../types';
 import { 
@@ -49,7 +49,7 @@ export const RecalculateHistoryModal: React.FC<RecalculateHistoryModalProps> = (
   const [startDate, setStartDate] = useState<string>(rangeInfo.earliestDate);
   const [endDate, setEndDate] = useState<string>(rangeInfo.latestDate);
   const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
-  const [progressCount, setProgressCount] = useState<number>(0);
+  const [_progressCount, setProgressCount] = useState<number>(0);
   const [resultCount, setResultCount] = useState<number>(0);
 
   // Calculate matching dates

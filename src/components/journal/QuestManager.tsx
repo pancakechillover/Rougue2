@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
-import { Quest, QuestType, QuestReward, QuestHistoryItem, Talent } from '../../types';
-import { Target, Trophy, Plus, Trash2, Edit2, CheckCircle2, ChevronDown, ChevronUp, X, Gift, Coins, Zap, Star, Scroll, CheckSquare, Square, GripVertical, Pin, Clock, History, BrainCircuit } from 'lucide-react';
-import { PageHeader } from '../common/PageHeader';
+import { Quest, QuestType, QuestReward, QuestHistoryItem } from '../../types';
+import { Target, Trophy, Plus, Trash2, Edit2, CheckCircle2, X, Gift, Coins, Zap, Scroll, CheckSquare, Square, GripVertical, Clock, History, BrainCircuit } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { TALENTS } from '../../constants';
@@ -13,7 +12,7 @@ const DraggableQuestItem = ({ quest, isEditMode, children, className }: any) => 
   const controls = useDragControls();
   
   // Truly random rotation on mount for the "pinned note" look
-  const rotation = React.useMemo(() => (Math.random() * 6) - 3, []); // -3 to 3 degrees range
+  const _rotation = React.useMemo(() => (Math.random() * 6) - 3, []); // -3 to 3 degrees range
 
   return (
     <Reorder.Item 
@@ -286,7 +285,7 @@ export const QuestManager = React.memo<QuestManagerProps>(({ quests, questHistor
                     <PresetControl
                       type={activeTab === 'quests' ? 'quest' : 'achievement'}
                       currentData={newQuest}
-                      defaultData={{
+                      _defaultData={{
                         title: '',
                         description: '',
                         type: activeTab === 'achievements' ? 'total_sessions' : 'daily_sessions',
@@ -514,7 +513,7 @@ export const QuestManager = React.memo<QuestManagerProps>(({ quests, questHistor
             }}
             className="space-y-6 relative z-10"
           >
-            {filteredQuests.map((quest, index) => (
+            {filteredQuests.map((quest, _index) => (
               <DraggableQuestItem 
                 key={quest.id} 
                 quest={quest} 

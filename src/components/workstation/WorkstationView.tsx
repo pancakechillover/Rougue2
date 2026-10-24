@@ -1,29 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { 
   Building2, 
-  MapPin, 
   Clock, 
   Plus, 
   Trash2, 
   Edit3, 
-  Check, 
   Calendar, 
   ChevronLeft, 
   ChevronRight, 
-  Home, 
-  BookOpen, 
-  Coffee, 
-  Laptop, 
   Sparkles, 
   Percent, 
-  Play, 
-  Square, 
-  AlertCircle,
+  Square,
   Tag,
   ArrowLeft,
-  Settings,
   X,
   ListFilter
 } from 'lucide-react';
@@ -64,7 +55,7 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
   onBack,
   initialDate
 }) => {
-  const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
+  const _isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const todayStr = useMemo(() => getSettlementDay(new Date(), state.timeSettings), [state.timeSettings]);
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || todayStr);
   const [now, setNow] = useState<Date>(new Date());
@@ -113,7 +104,7 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
     .reduce((acc, s) => acc + getSessionEffectiveMinutes(s, state.includeRestTimeInTasks ?? false), 0);
 
   const totalPresenceMinutes = getWorkstationTotalMinutes(selectedDate, state, now);
-  const targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
+  const _targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
 
   // Conversion rate calculation
   const conversionRate = totalPresenceMinutes > 0 

@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import unusedImports from 'eslint-plugin-unused-imports';
 
 export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', '**/*.d.ts'] },
@@ -17,7 +18,11 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
-    plugins: { 'react-hooks': reactHooks, '@typescript-eslint': tseslint.plugin },
+    plugins: {
+      'react-hooks': reactHooks,
+      '@typescript-eslint': tseslint.plugin,
+      'unused-imports': unusedImports,
+    },
     rules: {
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
@@ -28,6 +33,11 @@ export default tseslint.config(
       // flags legitimate TS type names (NodeJS, EventListener, ...) as undefined.
       'no-undef': 'off',
       'no-empty': ['error', { allowEmptyCatch: true }],
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        { args: 'none', varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
 
       'react-hooks/rules-of-hooks': 'error',

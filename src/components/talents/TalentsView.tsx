@@ -44,7 +44,7 @@ export const TalentsView: React.FC<TalentsViewProps> = ({ state, unlockTalent, t
     >
       <TalentTree 
         points={state.talentPoints}
-        shards={state.talentShards}
+        _shards={state.talentShards}
         unlockedIds={state.unlockedTalents}
         activeIds={state.activeTalents}
         onUnlock={unlockTalent}

@@ -74,7 +74,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               completeSession={completeSession}
               dungeons={dungeons}
               majorDungeons={majorDungeons}
-              setShowStartOfDayModal={setShowStartOfDayModal}
+              _setShowStartOfDayModal={setShowStartOfDayModal}
               onOpenJournal={() => {
                 setShowJournalView(true);
                 window.scrollTo({ top: 0, behavior: 'smooth' });

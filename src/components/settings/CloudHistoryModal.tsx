@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import _React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { History, X, Download, AlertTriangle, Cloud, HardDrive, Database, Server, RefreshCw } from 'lucide-react';
+import { motion } from 'motion/react';
+import { History, X, Download, AlertTriangle, HardDrive, Database, RefreshCw } from 'lucide-react';
 import { AppState } from '../../types';
-import { cn } from '../../lib/utils';
 import { GoogleDriveAPI } from '../../lib/googleDriveApi';
 
 interface CloudHistoryModalProps {

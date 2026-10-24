@@ -494,7 +494,7 @@ export function useCloudSync(
 
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
+          const _text = await response.text();
           throw new Error(`Server returned non-JSON response (${response.status}).`);
         }
 

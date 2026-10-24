@@ -87,7 +87,7 @@ export function useEditorTypography() {
   return {
     typography,
     fontSize: typography.fontSize,
-    lineHeight: typography.lineHeight,
+    _lineHeight: typography.lineHeight,
     lineMultiplier,
     updateFontSize,
     updateLineHeight,

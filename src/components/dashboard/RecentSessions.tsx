@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { History, Clock, Trophy, Edit2, Trash2, Filter, Search, X, Check, SearchX, Calendar, Sword, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Zap, Layers, Download, Brain, Wind, Sunrise, Sun, Moon, Star } from 'lucide-react';
+import { History, Clock, Trophy, Edit2, Trash2, Filter, Search, X, SearchX, Calendar, Sword, ChevronUp, ChevronDown, Zap, Layers, Download, Brain, Wind, Sunrise, Sun, Moon, Star } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, RewardCard, TimeSettings } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
@@ -232,7 +232,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
     return segments;
   }, [filteredSessions, getPeriod, showPeriodicSplits]);
 
-  const stats = useMemo(() => {
+  const _stats = useMemo(() => {
     return {
       totalTime: history.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, includeRestTimeInTasks), 0),
       totalGold: history.reduce((acc, s) => acc + s.coinsEarned, 0),
@@ -348,7 +348,7 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
         onBulkUpdate={bulkUpdateSessions}
         dungeons={dungeons}
         history={history}
-        allHashtags={allHashtags}
+        _allHashtags={allHashtags}
       />
 
       <AnimatePresence>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AppState, MajorDungeon, Dungeon, DungeonReward } from '../../types';
-import { Check, Edit2, Plus, Save, Trash2, X, Sword, Target, Coins, Zap, Map, Maximize, Minimize } from 'lucide-react';
+import { Check, Edit2, Plus, X, Target, Coins, Zap, Map, Maximize, Minimize } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface ExpeditionPlan {

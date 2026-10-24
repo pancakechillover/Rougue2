@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Image as ImageIcon, Download, Settings, Loader2, FileText, Calendar, BarChart2, Star, Clock, Trash2 } from 'lucide-react';
+import { X, Image as ImageIcon, Download, Settings, Loader2, FileText, Calendar, Star, Clock, Trash2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';

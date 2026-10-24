@@ -4,8 +4,6 @@ import {
   ChevronRight, 
   ChevronDown, 
   Layers, 
-  CheckCircle2, 
-  Flame, 
   Search,
   Sparkles,
   Check,
@@ -112,7 +110,7 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
     const children = getSubTiers(tier.id);
     const hasChildren = children.length > 0;
     const isExpanded = !!expandedNodes[tier.id] || searchTerm.trim().length > 0;
-    const isMatched = !searchTerm.trim() || tier.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const _isMatched = !searchTerm.trim() || tier.name.toLowerCase().includes(searchTerm.toLowerCase());
     const tierDepth = getDepth(tier.id);
 
     if (searchTerm.trim() && !matchesSearch(tier)) {

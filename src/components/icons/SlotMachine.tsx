@@ -4,14 +4,14 @@ interface SlotMachineProps {
   size?: number | string;
   className?: string;
   color?: string;
-  strokeWidth?: number;
+  _strokeWidth?: number;
 }
 
 export const SlotMachine: React.FC<SlotMachineProps> = ({ 
   size = 24, 
   className = "", 
   color = "currentColor",
-  strokeWidth = 2
+  _strokeWidth = 2
 }) => {
   return (
     <svg 
