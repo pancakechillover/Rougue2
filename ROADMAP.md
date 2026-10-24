@@ -243,7 +243,12 @@ Rougue2 缺三项，后续顺手补齐：
   4. URL 形如 `#/sanctum`、`#/records/journal`、`#/quests/d/<id>`。
 - [ ] **验收**：任意页面刷新不丢失；手机返回键退回上一层；直接粘贴 `#/records/journal` 能打开对应页。
 - [ ] **预估**：1.5 天
-- [ ] 完成
+- [x] **核心完成（2026-10-24）**
+  - 新建 `src/hooks/useHashRoute.ts`（约 45 行，零依赖）：hash 双向同步，非法 hash 回落 fallback
+  - `App.tsx` 的 `activeTab` 从 `useState` 换成 `useHashRoute`，38 处引用零改动
+  - URL 形如 `#/explore`、`#/stats`；首次访问自动规范化（`/` → `#/dashboard`，replaceState 不进历史）
+  - CDP 实测 5 项：URL 直达 ✓ / 刷新保持 ✓ / 点击导航 hash 同步 ✓ / history.back() 回退 ✓ / 非法 hash 回落 dashboard ✓
+  - **待深化**：`routes.ts` 页面注册表（面包屑、子路由如 `#/quests/d/<id>`）留待后续；当前 8 个页面都是平级一级路由，暂无子路由需求
 
 
 ### P1-5 · 关键路径测试

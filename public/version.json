@@ -54,8 +54,12 @@
       {
         "category": "CI",
         "description": "Every push and pull request now runs install, typecheck, lint, tests and a full build on GitHub Actions. Failures block the PR and upload the build output for diagnosis."
+      },
+      {
+        "category": "Routing",
+        "description": "Page state now lives in the URL hash (#/explore, #/stats, ...). Refreshing, deep-linking and the mobile back button all work; invalid hashes fall back to the dashboard."
       }
     ]
   },
-  "timestamp": 1792762871897
+  "timestamp": 1792833888611
 }
