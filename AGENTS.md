@@ -5,7 +5,16 @@ You are an AI assistant maintaining the "Scholar's Dungeon" project.
 At the start of every interaction, you automatically read this file (injected into your system prompt).
 
 **ACTIVE DEVELOPMENT DIRECTIVE:**
-- Currently developing features step-by-step strictly according to the multi-phase implementation roadmap in `Plan.md` (Workstation Presence & Target Focus Time Upgrade).
+- Follow the maintenance roadmap in `ROADMAP.md` (work only on tasks the user assigns; do not start roadmap items on your own).
+- **Multi-Agent Workflow (since 2026-10-24):** Two AI assistants maintain this repo in parallel:
+  - **CodeBuddy (小迪)** commits to `feat-workstation-checkin` and owns the final merges into `main`.
+  - **Google AI Studio (you)** commit **directly to `main`**.
+- **RULES for the Google AI agent:**
+  1. NEVER edit `src/version.ts`, `ROADMAP.md`, or this `AGENTS.md`. Version numbers and the roadmap are centrally managed by CodeBuddy — conflicts in these files block every merge.
+  2. Keep changes small and focused: one task per commit, push right after each completed task.
+  3. Every push runs CI (typecheck / lint / test / build). If your push turns the check red, fix it in a follow-up commit BEFORE starting anything new.
+  4. If production (scholars-dungeon.karakan.top) breaks after your deploy, the user can Instant-Rollback on Vercel — do NOT force-push or revert on your own.
+  5. The app UI is pure English (see CSS & UI STANDARDS below); chat replies to the user are Chinese.
 
 **CRITICAL RULE FOR EVERY UPDATE:**
 We now separate updates into **Preview Updates** (预览更新) and **Official Updates** (正式更新):
@@ -40,9 +49,10 @@ We now separate updates into **Preview Updates** (预览更新) and **Official U
 - **Theme-Aware Colors & Minimalist UI:** We have 6 different theme colors. Every color choice (especially backgrounds, progress bars, or buttons) MUST consider all themes to maintain a minimalist and premium aesthetic. Avoid thick, flashy, or hardcoded colors like `bg-emerald-500` which may look jarring or "rough" (粗率) in certain themes. Rely on theme-aware colors (`indigo-300`, `indigo-400`, `indigo-500`, `indigo-600`) or neutral slate colors with opacity. DO NOT use `indigo-200` or `indigo-700`+ for primary themed elements, as they will appear in the default blue color across all themes.
 
 ## Current Status
-- **Current Version:** v9.3.39
-- **Last Update Date:** 2026-09-11
-- **Last Update Time:** 01:20:00
+- **Current Version:** v9.4.0
+- **Last Update Date:** 2026-10-24
+- **Active branch (CodeBuddy):** `feat-workstation-checkin`
+- **Production domain:** https://scholars-dungeon.karakan.top
 
 ## Dark Themes Definition
 The following themes are considered "Dark Themes" and form the baseline for vibrant visual effects and high-contrast glowing elements:
@@ -67,7 +77,7 @@ Due to inconsistencies in Web Push delivery in various environments (Iframes, PW
 
 
 ## Task History
-> Detailed task history is archived and maintained in `TaskHistory.md` (retaining at most the 3 most recent entries).
+> Recent history is maintained in `docs/TaskHistory.md` (3 most recent entries). The full archive lives in `docs/archive/TaskHistory-full.md`.
 
 - **v9.3.39 (2026-09-11):** Fellowship Guild Chat Modernization: Smart Date/Time Dividers, Message Clustering & Floating Unread/Scroll Pill
   - *Smart Date & Interval Dividers:* Added centered date badges (`Today`, `Yesterday`, or formatted date) and subtle centered time badges when the interval between consecutive messages exceeds 5 minutes.
