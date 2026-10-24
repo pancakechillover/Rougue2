@@ -248,7 +248,13 @@ Rougue2 缺三项，后续顺手补齐：
   - `App.tsx` 的 `activeTab` 从 `useState` 换成 `useHashRoute`，38 处引用零改动
   - URL 形如 `#/explore`、`#/stats`；首次访问自动规范化（`/` → `#/dashboard`，replaceState 不进历史）
   - CDP 实测 5 项：URL 直达 ✓ / 刷新保持 ✓ / 点击导航 hash 同步 ✓ / history.back() 回退 ✓ / 非法 hash 回落 dashboard ✓
-  - **待深化**：`routes.ts` 页面注册表（面包屑、子路由如 `#/quests/d/<id>`）留待后续；当前 8 个页面都是平级一级路由，暂无子路由需求
+  - **升级到 History 路由（同日追加，用户选择方案 B）**：
+    - `useHashRoute.ts` → `useHistoryRoute.ts`：pathname 解析 + `pushState`/`popstate`
+    - 新增 `vercel.json` rewrites（`/:path*` → `/index.html`；Vercel 文件系统优先，`/api/*` 自动豁免）
+    - `server.ts` dev 模式 `appType: "spa"` 与 production `app.get('*')` 回退本就存在，未改动
+    - 老书签兼容：首次加载检测 `#/tab` 并 replaceState 迁移到干净路径
+    - CDP 实测 7 项：直达 / 刷新 / 导航 / back / 非法路径回落 / 老书签迁移 / API 路由不受影响（/api/stats 200）
+  - **待深化**：`routes.ts` 页面注册表（面包屑、子路由如 `/quests/d/<id>`）留待后续；当前 8 个页面都是平级一级路由，暂无子路由需求
 
 
 ### P1-5 · 关键路径测试

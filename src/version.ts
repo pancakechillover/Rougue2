@@ -29,7 +29,7 @@ export const RELEASE_HISTORY: ReleaseLog[] = [
       { category: 'Cloud Sync Hardening', description: 'Secret codes are now format-validated before any backend work, and cloud sync endpoints apply a per-IP rate limit (60s / 20 requests) on top of the existing 300-user quota.' },
       { category: 'Lint Setup', description: 'Added ESLint 9 flat config (typescript-eslint + react-hooks) and Prettier. The first audit caught a duplicate interface, dead code and a misleading hook-like callback name; lint passes with 0 errors.' },
       { category: 'CI', description: 'Every push and pull request now runs install, typecheck, lint, tests and a full build on GitHub Actions. Failures block the PR and upload the build output for diagnosis.' },
-      { category: 'Routing', description: 'Page state now lives in the URL hash (#/explore, #/stats, ...). Refreshing, deep-linking and the mobile back button all work; invalid hashes fall back to the dashboard.' }
+      { category: 'Routing', description: 'Page state now lives in the URL path (/explore, /stats, ...). Refreshing, deep-linking and the mobile back button all work; unknown paths fall back to the dashboard, and legacy #/tab bookmarks are migrated automatically.' }
     ]
   },
   {

@@ -57,9 +57,9 @@
       },
       {
         "category": "Routing",
-        "description": "Page state now lives in the URL hash (#/explore, #/stats, ...). Refreshing, deep-linking and the mobile back button all work; invalid hashes fall back to the dashboard."
+        "description": "Page state now lives in the URL path (/explore, /stats, ...). Refreshing, deep-linking and the mobile back button all work; unknown paths fall back to the dashboard, and legacy #/tab bookmarks are migrated automatically."
       }
     ]
   },
-  "timestamp": 1792833888611
+  "timestamp": 1792834840482
 }

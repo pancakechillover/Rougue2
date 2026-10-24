@@ -48,7 +48,7 @@ import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
 import { UpdateChecker } from './components/common/UpdateChecker';
-import { useHashRoute } from './hooks/useHashRoute';
+import { useHistoryRoute } from './hooks/useHistoryRoute';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useTimerStore } from './hooks/useTimerStore';
 import { renderAvatar } from './components/guild/TeamModule';
@@ -83,7 +83,7 @@ const getNextTalentLevel = (currentLvl: number, levelRewards?: any[]) => {
 
 function App() {
   const [appReady, setAppReady] = useState(false);
-  const [activeTab, setActiveTab] = useHashRoute(
+  const [activeTab, setActiveTab] = useHistoryRoute(
     ['dashboard', 'explore', 'dungeons', 'talents', 'shop', 'stats', 'settings', 'vault'],
     'dashboard'
   );
