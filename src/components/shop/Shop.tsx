@@ -275,15 +275,6 @@ export const Shop = React.memo<ShopProps>(({
                              const items = gachaPool.items.filter(i => i.rarity === rarity.id);
                              if (items.length === 0) return null;
                              const colors = getColorClass(rarity.color);
-                             const vibrantMapping: Record<string, string> = {
-                               'rose': 'bg-rose-600 border-rose-500',
-                               'amber': 'bg-amber-500 border-amber-400',
-                               'purple': 'bg-purple-600 border-purple-500',
-                               'blue': 'bg-blue-600 border-blue-500',
-                               'emerald': 'bg-emerald-600 border-emerald-500',
-                               'slate': 'bg-slate-700 border-slate-600'
-                             };
-                             const _badgeBg = rarity.color && vibrantMapping[rarity.color] ? vibrantMapping[rarity.color] : colors.bgClass;
 
                              return (
                                <div key={rarity.id} className="bg-slate-900 rounded-xl p-3 border border-slate-800/50">
@@ -477,7 +468,7 @@ export const Shop = React.memo<ShopProps>(({
                                     }
                                   }
                                   
-                                  const { bgClass, _textClass, borderClass } = getColorClass(colorId || 'slate');
+                                  const { bgClass, _textClass: __textClass, borderClass } = getColorClass(colorId || 'slate');
                                   
                                   const vibrantMapping: Record<string, string> = {
                                     'rose': 'bg-rose-600 text-white border-rose-500',

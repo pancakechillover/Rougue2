@@ -72,14 +72,14 @@ export const Timer = React.memo<TimerProps>(({
   rewardPool, 
   activeTalents,
   timerSkipVictoryMode,
-  _dailyRerollUsed,
-  _history,
+  _dailyRerollUsed: __dailyRerollUsed,
+  _history: __history,
   standardSessionMinutes,
   pendingRewardChest,
   onComplete, 
   onRestComplete,
   onInventoryAdd,
-  _onReroll,
+  _onReroll: __onReroll,
   onRewardSelect,
   onDeferReward,
   onUpdateChestItem,
@@ -89,9 +89,9 @@ export const Timer = React.memo<TimerProps>(({
   secretCode,
   userName,
   pushEnabled,
-  _onTogglePip,
+  _onTogglePip: __onTogglePip,
   requireFocusConfirmation = false,
-  _pipWindow,
+  _pipWindow: __pipWindow,
   focusDuration,
   restDuration,
   enableRest,
@@ -517,9 +517,6 @@ export const Timer = React.memo<TimerProps>(({
     }
   }, [cancelSkipCharge]);
 
-  const _canPip = 'documentPictureInPicture' in window && window.self === window.top;
-  const _isPWA = window.matchMedia('(display-mode: standalone)').matches;
-  const _isDesktop = !('ontouchstart' in window);
 
   const toggleTimer = () => {
     if (isActive) {
@@ -552,7 +549,6 @@ export const Timer = React.memo<TimerProps>(({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const _showDistractionControls = !isResting;
 
   return (
     <div className={cn(

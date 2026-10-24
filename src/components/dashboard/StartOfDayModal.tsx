@@ -152,12 +152,6 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       night: { start: 20, end: 24 }
     };
 
-    const _getYMD = (d: Date) => {
-      const year = d.getFullYear();
-      const month = (d.getMonth() + 1).toString().padStart(2, '0');
-      const day = d.getDate().toString().padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
 
     let now = new Date();
     if (initialDateStr) {
@@ -455,7 +449,6 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     }).length;
   }, [startDayTodos, dungeonMap]);
 
-  const _startDayTodosPendingCount = startDayTodos.length - startDayTodosCompletedCount;
 
   const handleAutoSortStartDayTodos = () => {
     if (startDayTodos.length <= 1) return;
@@ -471,11 +464,10 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     onUpdateState({ todayTodos: updated });
   };
 
-  const _activeExpeditions = useMemo(() => {
+useMemo(() => {
     if (!dungeons) return [];
     return dungeons.filter(d => d.status !== 'completed' && d.status !== 'archived');
-  }, [dungeons]);
-
+  }, [dungeons]);;
   const { sleepDurationMin, isTimeValid } = useMemo(() => {
     if (!sleepTime || !wakeTime) return { sleepDurationMin: 0, isTimeValid: false };
     const [sH, sM] = sleepTime.split(':').map(Number);

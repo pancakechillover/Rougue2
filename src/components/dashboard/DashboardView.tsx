@@ -65,12 +65,12 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   state,
   setState,
-  _currentDungeon,
+  _currentDungeon: __currentDungeon,
   setActiveTab,
   setShowDailySummary,
   setShowStartOfDayModal,
   openGuideBook,
-  _saveDailyLog,
+  _saveDailyLog: __saveDailyLog,
   applyExpeditionPlan,
   navigateToSettings,
   dungeons,
@@ -181,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return count;
   }, [calendarDays, ddlMap]);
 
-  const _settlementPeriod = useMemo(() => {
+useMemo(() => {
     const ts = state.timeSettings || {
       morning: { start: 8, end: 12 },
       afternoon: { start: 14, end: 18 },
@@ -243,8 +243,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     };
 
     return `${formatDate(startDate)} - ${formatDate(endDate, ts.night.end === 24)}`;
-  }, [state.timeSettings, state.timezone]);
-
+  }, [state.timeSettings, state.timezone]);;
   return (
     <>
       <AnimatePresence mode="wait" initial={false}>
@@ -732,9 +731,6 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
     setConfirmDialog({ isOpen: true, title, message, isAlert: true, type: 'info' });
   };
 
-  const customConfirm = (message: string, onConfirm: () => void, title = 'Confirm', type: 'danger' | 'warning' | 'info' = 'warning') => {
-    setConfirmDialog({ isOpen: true, title, message, isAlert: false, type, onConfirm });
-  };
 
   // Initialize conversations if empty, using legacy history if it exists
   React.useEffect(() => {
@@ -957,19 +953,6 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
     });
   };
 
-  const _clearHistory = () => {
-    customConfirm("Are you sure you want to clear this entire conversation?", () => {
-      setState(prev => {
-        const convos = prev.sageConversations || [];
-        return {
-          ...prev,
-          sageConversations: convos.map(c => 
-            c.id === activeConversationId ? { ...c, messages: [] } : c
-          )
-        };
-      });
-    }, "Clear Conversation", "danger");
-  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -1201,7 +1184,6 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                       let parsedPlan = null;
                       let parsedSettings = null;
                       let textToRender = msg.content;
-                      let _hasMarkdownBlock = false;
                       const canModify = !!state.sageAllowGameModifiers;
 
                       if (canModify) {
@@ -1241,9 +1223,6 @@ const SageConsultModal: React.FC<SageConsultModalProps> = ({ state, setState, on
                               remarkPlugins={[remarkGfm, remarkBreaks]}
                               components={{
                                 code({node, inline, className, children, ...props}: any) {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  const _isJson = match && match[1] === 'json';
-                                  const _content = String(children).replace(/\n$/, '');
                                   
                                   // We already extracted top-level JSON above. 
                                   // If there are other code blocks, just render them as normal.

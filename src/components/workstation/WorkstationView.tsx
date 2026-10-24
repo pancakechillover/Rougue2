@@ -31,7 +31,6 @@ import { cn, formatDuration, getSessionEffectiveMinutes, getSettlementDay } from
 import { 
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
-  getEffectiveTargetFocusMinutes, 
   getActiveSessionDurationFormatted
 } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
@@ -55,7 +54,6 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
   onBack,
   initialDate
 }) => {
-  const _isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const todayStr = useMemo(() => getSettlementDay(new Date(), state.timeSettings), [state.timeSettings]);
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || todayStr);
   const [now, setNow] = useState<Date>(new Date());
@@ -104,7 +102,6 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
     .reduce((acc, s) => acc + getSessionEffectiveMinutes(s, state.includeRestTimeInTasks ?? false), 0);
 
   const totalPresenceMinutes = getWorkstationTotalMinutes(selectedDate, state, now);
-  const _targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
 
   // Conversion rate calculation
   const conversionRate = totalPresenceMinutes > 0 

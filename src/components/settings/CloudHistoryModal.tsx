@@ -1,4 +1,4 @@
-import _React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { History, X, Download, AlertTriangle, HardDrive, Database, RefreshCw } from 'lucide-react';

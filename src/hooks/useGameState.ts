@@ -1008,10 +1008,9 @@ export function useGameState() {
     setState(prev => processXP(prev, amount));
   }, []);
 
-  const _addShards = useCallback((amount: number) => {
+useCallback((amount: number) => {
     setState(prev => processShards(prev, amount));
-  }, []);
-
+  }, []);;
   const addCoins = useCallback((amount: number, reason: string = 'Added Coins') => {
     setState(prev => {
       const newState = processTransaction(prev, 'coins', amount, reason);
@@ -1642,12 +1641,10 @@ export function useGameState() {
 
   const drawGacha = useCallback((poolId: string, amount: number = 1) => {
     let pullResults: { item: string; rarity: string; poolType: 'gacha' | 'ichiban', color?: string }[] = [];
-    let _success = false;
 
     setState(prev => {
       const pool = prev.gachaPools.find(p => p.id === poolId);
       if (!pool || prev.coins < pool.cost * amount) return prev;
-      const _poolType = pool.type;
 
       let newCoins = prev.coins;
       let newPools = [...prev.gachaPools];
@@ -1745,7 +1742,6 @@ export function useGameState() {
 
       newPools = newPools.map(p => p.id === poolId ? currentPool : p);
       pullResults = results;
-      _success = true;
 
       const expectedCost = prev.coins - newCoins;
 
@@ -2460,16 +2456,12 @@ export function useGameState() {
   }, []);
 
   const moveDungeonItem = useCallback((itemId: string, newParentId: string | null) => {
-    let _isSubMovingToRoot = false;
     let newSubAsMajor: MajorDungeon | null = null;
-    let _isMajorMovingToSub = false;
-    let _newMajorAsSub: Dungeon | null = null;
     
     const isSub = dungeons.find(d => d.id === itemId);
     
     if (newParentId === null) {
       if (isSub) {
-        _isSubMovingToRoot = true;
         newSubAsMajor = {
           id: isSub.id,
           name: isSub.name,

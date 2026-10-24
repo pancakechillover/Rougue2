@@ -49,7 +49,7 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
   onBulkUpdate,
   dungeons,
   history = [],
-  _allHashtags = []
+  _allHashtags: __allHashtags = []
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('manage');
   
@@ -273,13 +273,6 @@ export const BulkSessionModal: React.FC<BulkSessionModalProps> = ({
     setBatchActionType('');
   };
 
-  const _handleBatchClearDistractions = () => {
-    if (selectedIds.size === 0 || !onBulkUpdate) return;
-    onBulkUpdate(Array.from(selectedIds), {
-      distractions: undefined
-    });
-    setBatchActionType('');
-  };
 
   const handleExportSelected = () => {
     const selected = history.filter(s => selectedIds.has(s.id));

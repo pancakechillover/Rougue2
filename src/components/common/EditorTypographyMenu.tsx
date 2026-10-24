@@ -23,7 +23,7 @@ const LINE_HEIGHT_OPTIONS: { id: EditorLineHeight; label: string; ratio: string 
 
 export const EditorTypographyMenu: React.FC<EditorTypographyMenuProps> = ({
   className,
-  _compact = false,
+  _compact: __compact = false,
 }) => {
   const { fontSize, _lineHeight, updateFontSize, updateLineHeight } = useEditorTypography();
   const [isOpen, setIsOpen] = useState(false);

@@ -21,7 +21,6 @@ import { cn, formatDuration, getSessionEffectiveMinutes, getSettlementDay } from
 import { 
   getWorkstationLocations,
   getWorkstationTotalMinutes, 
-  getEffectiveTargetFocusMinutes, 
   getActiveSessionDurationFormatted
 } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
@@ -102,7 +101,6 @@ export const WorkstationModal: React.FC<WorkstationModalProps> = ({
     .reduce((acc, s) => acc + getSessionEffectiveMinutes(s, state.includeRestTimeInTasks ?? false), 0);
 
   const totalPresenceMinutes = getWorkstationTotalMinutes(selectedDate, state, now);
-  const _targetFocusStats = getEffectiveTargetFocusMinutes(selectedDate, state, selectedDateFocusMinutes, now);
 
   const conversionRate = totalPresenceMinutes > 0
     ? Math.min(100, Math.round((selectedDateFocusMinutes / totalPresenceMinutes) * 100))

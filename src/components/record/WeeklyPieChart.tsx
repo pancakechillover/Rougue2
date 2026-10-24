@@ -4,7 +4,6 @@ import { StudySession, TimeSettings } from '../../types';
 import { getDay } from 'date-fns';
 import { getSessionEffectiveMinutes } from '../../lib/utils';
 
-const _COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6'];
 
 interface Props {
   weekSessions: StudySession[];
@@ -13,7 +12,7 @@ interface Props {
   _timeSettings?: TimeSettings;
 }
 
-export const WeeklyPieChart: React.FC<Props> = ({ weekSessions, mode, includeRestTimeInTasks = true, _timeSettings }) => {
+export const WeeklyPieChart: React.FC<Props> = ({ weekSessions, mode, includeRestTimeInTasks = true, _timeSettings: __timeSettings }) => {
   const { chartData, legendPayload } = useMemo(() => {
     let rawSegments: { name: string; value: number; color: string }[] = [];
     

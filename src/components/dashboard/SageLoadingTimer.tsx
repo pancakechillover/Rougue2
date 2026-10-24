@@ -8,7 +8,7 @@ interface SageLoadingTimerProps {
   onCancel?: () => void;
 }
 
-export const SageLoadingTimer: React.FC<SageLoadingTimerProps> = ({ startTime, _isDarkTheme, onCancel }) => {
+export const SageLoadingTimer: React.FC<SageLoadingTimerProps> = ({ startTime, _isDarkTheme: __isDarkTheme, onCancel }) => {
   const [elapsed, setElapsed] = React.useState(0);
   
   React.useEffect(() => {

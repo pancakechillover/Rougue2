@@ -168,12 +168,12 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   isActive,
   isResting,
   currentDungeon,
-  _duration,
+  _duration: __duration,
   toggleTimer,
   resetTimer,
   skipSession,
   timerSkipVictoryMode,
-  _requireFocusConfirmation,
+  _requireFocusConfirmation: __requireFocusConfirmation,
   lastCompletionRewards,
   pipVictorySummary,
   standardSessionMinutes,
@@ -183,7 +183,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   onStartFocus
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const { timeLeft, distractions, _setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
+  const { timeLeft, distractions, _setDistractions: __setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
   const [displayTime, setDisplayTime] = React.useState(timeLeft);
   const [showTransientSummary, setShowTransientSummary] = React.useState(false);
 

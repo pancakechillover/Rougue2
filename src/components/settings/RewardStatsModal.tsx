@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'motion/react';
 import { X, Calculator, Coins, Zap } from 'lucide-react';
 import { RewardCard } from '../../types';

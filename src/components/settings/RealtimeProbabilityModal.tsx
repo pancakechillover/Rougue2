@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'motion/react';
 import { X, HelpCircle, AlertCircle, Clock } from 'lucide-react';
 import { RewardCard, AppState } from '../../types';

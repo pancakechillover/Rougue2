@@ -9,7 +9,7 @@ import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
 import { DatePicker } from '../common/DatePicker';
 import { format } from 'date-fns';
 
-const DraggableItem = ({ item, isEditMode, children, className, handleClassName, _onMove, onDragStart }: any) => {
+const DraggableItem = ({ item, isEditMode, children, className, handleClassName, _onMove: __onMove, onDragStart }: any) => {
   const controls = useDragControls();
   return (
     <Reorder.Item 
@@ -102,8 +102,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
   onUpdateSub,
   onDeleteMajor,
   onDeleteSub,
-  _onReorderMajor,
-  _onReorderSub,
+  _onReorderMajor: __onReorderMajor,
+  _onReorderSub: __onReorderSub,
   onMoveItem,
   onDragStart,
   setMajorDungeons,
@@ -401,7 +401,6 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               // 2. Identify the intended order based on newSubs (which comes from the group)
               // We only want to reorder items that ARE still in this parent
               const reorderedIds = newSubs.map(s => s.id);
-              const _itemsToReorder = currentSubsInParent.filter(d => reorderedIds.includes(d.id));
               
               // If we have items in newSubs that aren't in currentSubsInParent, it means they were 
               // just moved IN. If we have items in currentSubsInParent NOT in newSubs, they were 
@@ -674,7 +673,6 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     );
   };
 
-  const _activeDungeon = dungeons.find(d => d.id === currentDungeonId);
 
   const filteredMajors = React.useMemo(() => {
     if (activeTab === 'active') {

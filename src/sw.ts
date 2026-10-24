@@ -5,7 +5,7 @@ declare let _self: ServiceWorkerGlobalScope;
 
 precacheAndRoute(_self.__WB_MANIFEST);
 
-_self.addEventListener('install', (event) => {
+_self.addEventListener('install', () => {
   _self.skipWaiting();
 });
 
@@ -61,6 +61,10 @@ _self.addEventListener('notificationclick', (event) => {
 });
 
 _self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    _self.skipWaiting();
+    return;
+  }
   if (event.data && event.data.type === 'TEST_NOTIFICATION_SW') {
     _self.registration.showNotification('Scholar\'s Dungeon', {
       body: 'Service Worker thread notification test successful!',

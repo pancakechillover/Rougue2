@@ -50,7 +50,7 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   targetSource,
   workstationPresenceMinutes = 0,
   workstationIntervalCount = 0,
-  _conversionRate = 0,
+  _conversionRate: __conversionRate = 0,
   state,
   onUpdateState
 }) => {
@@ -100,7 +100,6 @@ export const EfficiencyDetailsModal: React.FC<EfficiencyDetailsModalProps> = ({
   const rawStars = efficiency * 5;
   const calculatedStars = capMetrics ? Math.min(5, Math.max(0, rawStars)) : rawStars;
   const calculatedEfficiency = Math.round(efficiency * 1000) / 10;
-  const _displayStarIcon = Math.round(calculatedStars * 2) / 2;
 
   // Rate penalty per distraction string (e.g. "10%" when max=10)
   const penaltyPerDistractionVal = maxDistractions > 0 ? (100 / maxDistractions) : 10;

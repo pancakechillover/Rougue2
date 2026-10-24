@@ -110,7 +110,6 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
     const children = getSubTiers(tier.id);
     const hasChildren = children.length > 0;
     const isExpanded = !!expandedNodes[tier.id] || searchTerm.trim().length > 0;
-    const _isMatched = !searchTerm.trim() || tier.name.toLowerCase().includes(searchTerm.toLowerCase());
     const tierDepth = getDepth(tier.id);
 
     if (searchTerm.trim() && !matchesSearch(tier)) {

@@ -10,7 +10,7 @@ interface CalcSettingsProps {
   _setState: React.Dispatch<React.SetStateAction<AppState>>;
 }
 
-export const CalcSettingsSection: React.FC<CalcSettingsProps> = ({ state, _setState }) => {
+export const CalcSettingsSection: React.FC<CalcSettingsProps> = ({ state, _setState: __setState }) => {
   // Basic Calculator State
   const [focusInput, setFocusInput] = useState(25);
   const [restInput, setRestInput] = useState(5);

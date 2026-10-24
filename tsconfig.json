@@ -24,7 +24,9 @@
     "noEmit": true,
     "types": [
       "vite/client"
-    ]
+    ],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "exclude": [
     "src/rewrite_force.mjs",

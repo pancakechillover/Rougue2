@@ -845,7 +845,6 @@ function App() {
     setIsEditingProfile(false);
   };
 
-  const _currentLevelUp = showLevelUp?.[0];
 
   const openProfile = () => {
     setEditName(state.userName || 'Scholar');
@@ -1066,7 +1065,6 @@ function App() {
     });
   };
 
-  const _progressToNextLevel = (state.xp / getXPForLevel(state.level)) * 100;
 
   const unclaimedQuestsCount = state.quests.filter(q => !q.isAchievement && q.completed && !q.claimed).length;
   const unclaimedAchievementsCount = state.quests.filter(q => q.isAchievement && q.completed && !q.claimed).length;

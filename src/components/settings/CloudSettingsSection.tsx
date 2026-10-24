@@ -548,8 +548,6 @@ export const CloudSettingsSection: React.FC<CloudSettingsSectionProps> = ({
                 // We'll pass the payload to setState and major dungeons etc if possible, but actually we need to trigger the hook's replace logic. 
                 // Or we can just rewrite localStorage here.
                 const stateData = historyData.state || historyData;
-                const _dungs = historyData.dungeons || [];
-                const _majorDungs = historyData.majorDungeons || [];
                 
                 // Keep the current save so a mistaken restore can still be undone by hand
                 const currentRaw = localStorage.getItem('scholars_dungeon_state');

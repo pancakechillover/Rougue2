@@ -12,7 +12,7 @@ const DraggableQuestItem = ({ quest, isEditMode, children, className }: any) => 
   const controls = useDragControls();
   
   // Truly random rotation on mount for the "pinned note" look
-  const _rotation = React.useMemo(() => (Math.random() * 6) - 3, []); // -3 to 3 degrees range
+  React.useMemo(() => (Math.random() * 6) - 3, []);; // -3 to 3 degrees range
 
   return (
     <Reorder.Item 

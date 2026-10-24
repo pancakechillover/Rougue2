@@ -12,7 +12,7 @@ interface PresetControlProps<T> {
   _defaultData: T;
 }
 
-export function PresetControl<T>({ type, currentData, onLoad, className, _defaultData }: PresetControlProps<T>) {
+export function PresetControl<T>({ type, currentData, onLoad, className, _defaultData: __defaultData }: PresetControlProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [presets, setPresets] = useState<Record<string, T>>({});
   const [newName, setNewName] = useState('');

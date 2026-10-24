@@ -2,20 +2,6 @@ import React, { useState } from 'react';
 import { SpinnerInput } from '../common/SpinnerInput';
 
 // Helper to convert VAPID key
-function _urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 
 export const DevResourceControl = ({ label, value, onAdd, onSub, icon, defaultAmount = 1 }: { label: string, value: number, onAdd: (amount: number) => void, onSub: (amount: number) => void, icon: React.ReactNode, defaultAmount?: number }) => {

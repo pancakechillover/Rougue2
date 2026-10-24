@@ -55,11 +55,9 @@ const SyncPhraseTyper = () => {
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
   
   useEffect(() => {
-    let _currentPhraseIndex = 0;
     const interval = setInterval(() => {
       setPhraseIndex(prev => {
         const next = (prev + 1) % SYNC_PHRASES.length;
-        _currentPhraseIndex = next;
         return next;
       });
     }, 5000);

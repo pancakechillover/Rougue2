@@ -22,7 +22,7 @@ import {
 import { createPortal } from 'react-dom';
 import { AppState } from '../../types';
 import { cn, getXPForLevel, getDefaultRewardForLevel, getTitleForLevel } from '../../lib/utils';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { StreakRecordModal } from '../record/StreakRecordModal';
 
@@ -63,13 +63,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   editAvatar,
   setEditAvatar,
   handleSaveProfile,
-  _setShowCloudSync,
+  _setShowCloudSync: __setShowCloudSync,
   setActiveTab,
   isSyncing,
   hasUnsyncedChanges,
   triggerSyncCheck,
-  _isTalentLevel,
-  _getNextTalentLevel,
+  _isTalentLevel: __isTalentLevel,
+  _getNextTalentLevel: __getNextTalentLevel,
   repairStreak,
   openGuideBook
 }) => {
@@ -142,32 +142,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return dates.has(todayStr);
   })();
 
-  const _streakData = showStreakModal ? (() => {
-    const dates = new Set<string>();
-    state.history.forEach(session => {
-      dates.add(format(parseISO(session.timestamp), 'yyyy-MM-dd'));
-    });
-    (state.patchedDays || []).forEach(d => dates.add(d));
-
-    const result = [];
-    const now = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = subDays(now, i);
-      const str = format(d, 'yyyy-MM-dd');
-      const isCompleted = dates.has(str);
-      const isPatched = (state.patchedDays || []).includes(str);
-      result.push({
-        dateStr: str,
-        shortDate: format(d, 'MM/dd'),
-        displayLabel: format(d, 'eee'), // Mon, Tue, etc.
-        isCompleted,
-        isPatched,
-        isToday: i === 0,
-        canPatch: !isCompleted && i !== 0 // Can patch if not completed and not today
-      });
-    }
-    return result;
-  })() : [];
 
   if (!isOpen) return null;
 

@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const AppIcon = ({ size = 64, className = "" }: { size?: number | string, className?: string }) => {
   return (

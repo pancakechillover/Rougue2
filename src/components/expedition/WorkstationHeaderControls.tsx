@@ -29,7 +29,6 @@ export const WorkstationHeaderControls: React.FC<WorkstationHeaderControlsProps>
   syncToCloud,
   onOpenWorkstationView
 }) => {
-  const _isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

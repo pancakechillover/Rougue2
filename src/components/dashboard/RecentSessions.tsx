@@ -232,14 +232,13 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
     return segments;
   }, [filteredSessions, getPeriod, showPeriodicSplits]);
 
-  const _stats = useMemo(() => {
+useMemo(() => {
     return {
       totalTime: history.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, includeRestTimeInTasks), 0),
       totalGold: history.reduce((acc, s) => acc + s.coinsEarned, 0),
       totalXP: history.reduce((acc, s) => acc + s.xpEarned, 0),
     };
-  }, [history, includeRestTimeInTasks]);
-
+  }, [history, includeRestTimeInTasks]);;
   const exportToCSV = useCallback(() => {
     // CSV Header
     const headers = ['Date', 'Major Dungeon', 'Dungeon Goal', 'Focus (min)', 'Rest (min)', 'Total (min)', 'Reward', 'XP Earned', 'Gold Earned', 'Note'];

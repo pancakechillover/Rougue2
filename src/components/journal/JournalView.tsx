@@ -77,7 +77,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialPeakDate());
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const { fontSize, _lineHeight, lineMultiplier } = useEditorTypography();
+  const { fontSize, _lineHeight: __lineHeight, lineMultiplier } = useEditorTypography();
   const [pageFlipDirection, setPageFlipDirection] = useState<'left' | 'right'>('right');
 
   // Logs state

@@ -60,8 +60,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  const _immersiveTextAreaRef = useRef<HTMLTextAreaElement>(null);
-  const hasInitializedFromLog = useRef(false);
+useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false);
 
   const today = useMemo(() => {
     const ts = state.timeSettings || {
@@ -77,7 +76,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
       return `${year}-${month}-${day}`;
     };
 
-    const _timezone = state.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     let now = new Date();
     if (state.timezone) {
       try {
@@ -177,7 +175,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     const getAssignedDate = (date: Date) => {
       const hour = date.getHours();
       
-      const _peaks = [ts.morning, ts.afternoon, ts.night];
       
       // Night span midnight check
       if (ts.night.start > ts.night.end && hour < ts.night.end) {

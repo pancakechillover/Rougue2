@@ -61,7 +61,6 @@ export const ActivityTimeSettings = ({ state, setState }: { state: any, setState
     periodKey: 'morning' | 'afternoon' | 'night'
   }) => {
     const isCrossDay = settings.start > settings.end;
-    const _duration = isCrossDay ? (24 - settings.start + settings.end) : (settings.end - settings.start);
 
     return (
       <div className="p-4 bg-slate-950 border border-slate-900 rounded-3xl space-y-4">

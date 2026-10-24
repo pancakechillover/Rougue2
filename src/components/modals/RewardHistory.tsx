@@ -123,13 +123,12 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
     });
   }, [history, activeTab, subTab, timeRange, sourceFilter, statusFilter, rarityFilter, searchQuery]);
 
-  const _stats = useMemo(() => {
+useMemo(() => {
     const treasures = history.filter(i => i.type !== 'text').length;
     const custom = history.filter(i => i.type === 'text').length;
     const pending = history.filter(i => i.type === 'text' && !i.redeemed).length;
     return { treasures, custom, pending };
-  }, [history]);
-
+  }, [history]);;
   if (activeTab === 'menu') {
     return (
       <div className="w-full space-y-6 sm:space-y-8">
