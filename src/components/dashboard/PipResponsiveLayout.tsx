@@ -65,7 +65,17 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
         side &&
         createPortal(
           <div
-            className="absolute left-0 top-0 bottom-0 w-[118px] z-10 border-r border-slate-800 bg-slate-900/60 overflow-y-auto"
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 118,
+              zIndex: 10,
+              borderRight: '1px solid rgba(30,41,59,0.9)',
+              background: 'rgba(15,23,42,0.92)',
+              overflowY: 'auto',
+            }}
           >
             {side}
           </div>,
