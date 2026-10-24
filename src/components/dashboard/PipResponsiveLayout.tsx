@@ -34,17 +34,18 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
   useEffect(() => {
     if (!pipWindow) return;
     const el = pipWindow.document.documentElement;
-    const style = pipWindow.document.createElement('style');
-    style.textContent =
-      'html.pip-wide .pip-container { width: calc(100dvw - 118px) !important; }';
-    pipWindow.document.head.appendChild(style);
 
     const measure = () => {
       // Both dimensions matter: a short-but-wide strip (the common shape)
       // cannot fit a side column without crushing the timer.
       const isWide = el.clientWidth >= threshold && el.clientHeight >= 150;
       setWide(isWide);
-      el.classList.toggle('pip-wide', isWide);
+      // Imperative width control on the timer root — a CSS override via a
+      // copied stylesheet proved unreliable, inline style always wins.
+      const container = pipWindow.document.querySelector<HTMLElement>('.pip-container');
+      if (container) {
+        container.style.width = isWide ? 'calc(100dvw - 118px)' : '';
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -53,8 +54,8 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
     return () => {
       ro.disconnect();
       pipWindow.removeEventListener('resize', measure);
-      el.classList.remove('pip-wide');
-      style.remove();
+      const container = pipWindow.document.querySelector<HTMLElement>('.pip-container');
+      if (container) container.style.width = '';
     };
   }, [pipWindow, threshold]);
 
