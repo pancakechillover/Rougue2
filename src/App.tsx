@@ -47,6 +47,8 @@ import { Dungeon, MajorDungeon, DungeonReward, AppState, ActiveWorkstationSessio
 import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
+import { PipResponsiveLayout } from './components/dashboard/PipResponsiveLayout';
+import { PipWorkstationPanel } from './components/workstation/PipWorkstationPanel';
 import { UpdateChecker } from './components/common/UpdateChecker';
 import { useHistoryRoute } from './hooks/useHistoryRoute';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -1258,6 +1260,10 @@ function App() {
       </AnimatePresence>
 
       {pipWindow && createPortal(
+        <PipResponsiveLayout
+          pipWindow={pipWindow}
+          side={<PipWorkstationPanel state={state} setState={setState} syncToCloud={syncToCloud} />}
+        >
         <CompactTimer 
           endTime={timerEndTime}
           isActive={isTimerActive}
@@ -1294,7 +1300,8 @@ function App() {
             setIsTimerActive(true);
             setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
           }}
-        />,
+        />
+        </PipResponsiveLayout>,
         pipWindow.document.body
       )}
 
