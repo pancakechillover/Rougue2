@@ -8,3 +8,12 @@ coverage/
 !.env.example
 .obsidian/
 .obsidian-user-backup/
+
+# AI tool scratch space (Google AI Studio artifacts / media storage)
+.aistudio/
+public/assets/aistudio/
+
+# Alternative lockfiles - pnpm-lock.yaml is the single source of truth
+# (package.json pins packageManager, CI runs pnpm install --frozen-lockfile)
+bun.lock
+package-lock.json

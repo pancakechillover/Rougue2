@@ -1,6 +1,0 @@
-{
-  "summary":  "Updated implementation plan removing the admin_reset_password endpoint from Phase 1 (eliminating REGISTRATION_SECRET privilege escalation), replacing DEL+RPUSH message migration with in-place LSET to prevent message loss on concurrent LPUSH, and requiring client-side AppState.teamId injection + documenting the 15-day dormant team index edge case.",
-  "updatedAt":  "2026-10-24T14:10:35.034317979Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}
