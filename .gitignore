@@ -18,3 +18,7 @@ public/assets/aistudio/
 bun.lock
 package-lock.json
 _原始版备份/
+
+# Local debug scripts and PWA plugin build output
+.tmp-*.mjs
+dev-dist/
