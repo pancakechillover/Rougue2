@@ -362,7 +362,7 @@ function App() {
     login,
     logout,
     migrateLegacy
-  } = useAuth(state, setState);
+  } = useAuth({ state, onUpdateState: setState });
 
   const {
     isSyncing,
