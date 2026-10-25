@@ -442,7 +442,7 @@ function App() {
     syncToCloud,
   });
 
-  const handlePipWsToggle = React.useCallback(async () => {
+  const handlePipWsToggle = useCallback(async () => {
     if (pipWsActive) {
       await pipPunchOut({});
       return;
@@ -1345,7 +1345,7 @@ function App() {
           </div>
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors shrink-0"
+            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors"
           >
             {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronRight size={18} className="rotate-180" />}
           </button>
