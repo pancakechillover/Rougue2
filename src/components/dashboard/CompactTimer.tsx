@@ -210,7 +210,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   React.useEffect(() => {
     const w = containerRef.current?.ownerDocument.defaultView || null;
     if (!w || w === window) { setPipWide(false); return; }
-    const measure = () => setPipWide((w.document.documentElement.clientWidth || 0) > 280);
+    const measure = () => setPipWide((w.document.documentElement.clientWidth || 0) > 340);
     measure();
     w.addEventListener('resize', measure);
     return () => w.removeEventListener('resize', measure);
@@ -710,7 +710,10 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </div>
 
         {/* Controls (Ultra-Minimalist Strip Mode - Center / Middle) */}
-        <div className="pip-controls-minimal items-center justify-center shrink-0">
+        <div
+          className="pip-controls-minimal items-center justify-center shrink-0"
+          style={pipWide ? { position: 'absolute', left: '50%', transform: 'translateX(-50%)' } : undefined}
+        >
           <button
             onClick={toggleTimer}
             className={cn(
