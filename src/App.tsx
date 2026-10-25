@@ -442,6 +442,15 @@ function App() {
     syncToCloud,
   });
 
+  const pipWsLocation = useMemo(() => {
+    if (pipWsActive?.location) return pipWsActive.location;
+    try {
+      const saved = localStorage.getItem('scholars_last_ws_location');
+      if (saved) return saved;
+    } catch { /* private mode */ }
+    return 'Home';
+  }, [pipWsActive]);
+
   const handlePipWsToggle = useCallback(async () => {
     if (pipWsActive) {
       await pipPunchOut({});
@@ -1309,6 +1318,7 @@ function App() {
           }}
           wsActive={!!pipWsActive}
           wsStartedAt={state.activeWorkstationSession?.startTime}
+          wsLocation={pipWsLocation}
           onWsToggle={handlePipWsToggle}
         />,
         pipWindow.document.body

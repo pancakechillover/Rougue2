@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package, Armchair } from 'lucide-react';
+import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package } from 'lucide-react';
+import { LocationIcon } from '../workstation/LocationIcon';
 import { cn } from '../../lib/utils';
 import { Dungeon, RewardCard, StudySession } from '../../types';
 import { useTimerStore } from '../../hooks/useTimerStore';
@@ -27,6 +28,7 @@ interface CompactTimerProps {
   onStartFocus?: () => void;
   wsActive?: boolean;
   wsStartedAt?: string;
+  wsLocation?: string;
   onWsToggle?: () => void;
 }
 
@@ -186,6 +188,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   onStartFocus,
   wsActive,
   wsStartedAt,
+  wsLocation,
   onWsToggle
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -824,7 +827,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               )}
               title={wsActive ? "Check out of workstation" : "Check in to workstation"}
             >
-              <Armchair size={17} className={wsActive ? "text-indigo-400" : "text-slate-300"} />
+              <LocationIcon locName={wsLocation} size={17} />
               {wsActive && wsMinutes !== null && (
                 <span className={cn(
                   "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none bg-indigo-500 text-white-pure"
@@ -931,7 +934,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               title={wsActive ? "Check out of workstation" : "Check in to workstation"}
             >
               <div className="flex items-center gap-1">
-                <Armchair size={12} />
+                <span className="flex items-center"><LocationIcon locName={wsLocation} size={11} /></span>
                 <span className="font-bold">WS</span>
               </div>
               {wsActive && wsMinutes !== null && (
