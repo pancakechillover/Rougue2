@@ -8,7 +8,9 @@ import {
   Wind, 
   Check, 
   Activity,
-  Sparkles
+  Sparkles,
+  SlidersHorizontal,
+  CalendarRange
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { ChartLayerSelection } from '../../../types';
@@ -16,6 +18,8 @@ import { ChartLayerSelection } from '../../../types';
 interface ChartLayerFilterDropdownProps {
   layers: ChartLayerSelection;
   onChange: (newLayers: ChartLayerSelection) => void;
+  weekMode?: 'calendar' | 'rolling';
+  onWeekModeChange?: (mode: 'calendar' | 'rolling') => void;
   title?: string;
   className?: string;
 }
@@ -31,6 +35,8 @@ export const DEFAULT_CHART_LAYERS: ChartLayerSelection = {
 export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> = ({
   layers,
   onChange,
+  weekMode,
+  onWeekModeChange,
   title = "Display Layers",
   className
 }) => {
@@ -58,14 +64,14 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
 
     // Vertical positioning: default below button
     let top = rect.bottom + 6;
-    const estimatedHeight = 350;
+    const estimatedHeight = weekMode && onWeekModeChange ? 410 : 350;
     // Flip upward if overflowing bottom viewport and enough space on top
     if (top + estimatedHeight > window.innerHeight - 12 && rect.top > estimatedHeight + 12) {
       top = rect.top - estimatedHeight - 6;
     }
 
     setPopoverPos({ top, left });
-  }, []);
+  }, [weekMode, onWeekModeChange]);
 
   const handleToggleOpen = () => {
     if (!isOpen) {
@@ -222,6 +228,12 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
     }
   ];
 
+  const modePrefix = weekMode
+    ? weekMode === 'calendar'
+      ? 'Natural · '
+      : 'Last 7d · '
+    : '';
+
   return (
     <div className={cn("relative inline-block text-left", className)}>
       {/* Custom Trigger Button */}
@@ -230,18 +242,17 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
         type="button"
         onClick={handleToggleOpen}
         className={cn(
-          "bg-slate-800/50 hover:bg-slate-700 transition-colors rounded-lg flex items-center px-2 py-1 cursor-pointer group select-none min-w-[50px] justify-center",
-          isOpen && "bg-slate-700"
+          "p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center cursor-pointer group select-none",
+          isOpen && "bg-slate-700 text-indigo-400"
         )}
-        title={title}
+        title={`${title}: ${modePrefix}${getButtonLabel()}`}
+        aria-label={title}
         aria-expanded={isOpen}
       >
-        <span className={cn(
-          "text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-widest text-indigo-400 group-hover:text-indigo-300 whitespace-nowrap",
-          isOpen && "text-indigo-300"
-        )}>
-          {getButtonLabel()}
-        </span>
+        <SlidersHorizontal
+          size={14}
+          className="shrink-0 transition-colors"
+        />
       </button>
 
       {/* Portaled Custom Dropdown Popover */}
@@ -262,6 +273,47 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
               }}
               className="w-[260px] sm:w-[280px] max-w-[calc(100vw-24px)] bg-slate-900/95 backdrop-blur-md border border-slate-700/70 shadow-2xl shadow-indigo-950/50 rounded-xl p-3 flex flex-col gap-2.5 box-border"
             >
+              {/* Optional Week Mode Section */}
+              {weekMode && onWeekModeChange && (
+                <div className="flex flex-col gap-1.5 border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                      <CalendarRange size={12} className="text-indigo-400" />
+                      <span>Week Mode</span>
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tight">
+                      Window
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 bg-slate-950/60 p-1 rounded-lg border border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => onWeekModeChange('calendar')}
+                      className={cn(
+                        "py-1 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                        weekMode === 'calendar'
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      )}
+                    >
+                      Natural Week
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onWeekModeChange('rolling')}
+                      className={cn(
+                        "py-1 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                        weekMode === 'rolling'
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                      )}
+                    >
+                      Last 7 Days
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">

@@ -199,7 +199,7 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
             style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible', cursor: 'pointer' }} 
             margin={{ top: 10, right: -5, left: -30, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-slate-800)" vertical={false} />
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 9 }} />
             <YAxis 
                yAxisId="right" 

@@ -6,6 +6,8 @@ import { AppState, Dungeon, MajorDungeon, StudySession } from '../../types';
 
 interface StatsViewProps {
   state: AppState;
+  setState?: React.Dispatch<React.SetStateAction<AppState>>;
+  syncToCloud?: (forceOverwrite?: boolean, specificState?: AppState, syncMethod?: any) => void;
   saveDailyLog: (date: string, rating: number, reflection: string, mood?: string) => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
   updateSession?: (id: string, updates: Partial<StudySession>) => void;
@@ -18,6 +20,8 @@ interface StatsViewProps {
 
 export const StatsView: React.FC<StatsViewProps> = ({ 
   state, 
+  setState,
+  syncToCloud,
   saveDailyLog, 
   onUpdateState, 
   updateSession, 
@@ -67,6 +71,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
           >
             <Stats 
               state={state} 
+              setState={setState}
+              syncToCloud={syncToCloud}
               saveDailyLog={saveDailyLog} 
               onUpdateState={onUpdateState}
               updateSession={updateSession}

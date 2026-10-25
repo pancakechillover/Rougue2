@@ -17,3 +17,4 @@ public/assets/aistudio/
 # (package.json pins packageManager, CI runs pnpm install --frozen-lockfile)
 bun.lock
 package-lock.json
+_原始版备份/

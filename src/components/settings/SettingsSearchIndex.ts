@@ -17,6 +17,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchItem[] = [
 
   // General Time-Based Calculation
   { id: 'setting-time-based', tab: 'timer', title: 'Time-Based Calculation', description: 'Compute tasks by time instead of sessions', keywords: ['compute', 'session duration', 'minutes', 'rest time', 'include rest'] },
+  { id: 'setting-workstation', tab: 'general', title: 'Workstation Check-in', description: 'Configure workstation auto-cutoff limit and check-in locations', keywords: ['workstation', 'desk', 'check in', 'auto cutoff', 'locations', 'presence'] },
   { id: 'setting-open-ended', tab: 'general', title: 'Tasks Default to Open-Ended', description: 'Tasks default to tracking total time with no specific session limits', keywords: ['rooms', 'endless', 'open-ended', 'default'] },
   
   // General Heatmap

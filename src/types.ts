@@ -384,6 +384,7 @@ export interface AppState {
   activeWorkstationSession?: ActiveWorkstationSession | null;
   workstationLocations?: string[];
   workstationLocationIcons?: Record<string, string>;
+  workstationMaxSessionMinutes?: number;
   limitedMentalEffort?: boolean;
   // Custom Time Mocking
   customTimeEnabled?: boolean;
@@ -412,6 +413,7 @@ export interface AppState {
     showWeeklyBar?: boolean;
     showWeeklyDonut?: boolean;
     showRoutineTracker?: boolean;
+    showWorkstationTracker?: boolean;
     showSleepTracker?: boolean;
     showHeatmap?: boolean;
     dailyDonutMode?: '24h' | 'compact';

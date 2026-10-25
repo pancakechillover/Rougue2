@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { differenceInMinutes } from 'date-fns';
-import { Check, Settings2 } from 'lucide-react';
+import { Check, Clock, Settings2, Square } from 'lucide-react';
 import { AppState } from '../../types';
 import { useWorkstation } from '../../hooks/useWorkstation';
-import { getWorkstationLocations, getWorkstationTotalMinutes } from '../../lib/workstationUtils';
+import {
+  getActiveSessionDurationFormatted,
+  getMaxWorkstationSessionMinutes,
+  getWorkstationLocations,
+  getWorkstationTotalMinutes,
+} from '../../lib/workstationUtils';
 import { cn, getSettlementDay } from '../../lib/utils';
 import { LocationIcon } from './LocationIcon';
 import { DurationText } from '../common/DurationText';
@@ -13,6 +18,7 @@ interface WorkstationStatusChipProps {
   state: AppState;
   setState: React.Dispatch<React.SetStateAction<AppState>>;
   syncToCloud?: (forceOverwrite?: boolean, specificState?: AppState, syncMethod?: any) => void;
+  onOpenDeskLog?: () => void;
 }
 
 /**
@@ -20,15 +26,20 @@ interface WorkstationStatusChipProps {
  *
  * - Grey icon  = no active session
  * - Coloured   = session running (icon keeps its own location colour)
- * - Click      = check in (opens location picker) / check out
+ * - Click      = opens quick menu (Check Out / Switch Location / Desk Log / Manage)
  * - Wide screen= shows today's total workstation time next to the icon
  */
 export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
   state,
   setState,
   syncToCloud,
+  onOpenDeskLog,
 }) => {
-  const { active, punchIn, punchOut } = useWorkstation({ state, setState, syncToCloud });
+  const { active, punchIn, punchOut, switchLocation } = useWorkstation({
+    state,
+    setState,
+    syncToCloud,
+  });
 
   const [now, setNow] = useState<Date>(() => new Date());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,6 +47,7 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const locations = useMemo(() => getWorkstationLocations(state), [state.workstationLocations]);
+  const maxSessionMins = getMaxWorkstationSessionMinutes(state);
 
   const [preferredLocation, setPreferredLocation] = useState<string>(() => {
     try {
@@ -89,35 +101,49 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
       const runningDay = getSettlementDay(new Date(running.startTime), state.timeSettings);
       if (runningDay === todayStr) {
         const loc = running.location || 'Unknown';
-        const elapsed = Math.max(0, differenceInMinutes(now, new Date(running.startTime)));
+        const elapsed = Math.min(
+          maxSessionMins,
+          Math.max(0, differenceInMinutes(now, new Date(running.startTime)))
+        );
         map.set(loc, (map.get(loc) || 0) + elapsed);
       }
     }
 
     return map;
-  }, [state.workstationLogs, state.activeWorkstationSession, state.timeSettings, todayStr, now]);
+  }, [
+    state.workstationLogs,
+    state.activeWorkstationSession,
+    state.timeSettings,
+    todayStr,
+    now,
+    maxSessionMins,
+  ]);
 
   const displayLocation = active?.location || preferredLocation;
   const isRunning = Boolean(active);
 
-  const startAt = (location: string) => {
+  const handleSelectLocation = (location: string) => {
     try {
       localStorage.setItem('scholars_last_ws_location', location);
     } catch {}
     setPreferredLocation(location);
-    punchIn({ location });
+
+    if (isRunning) {
+      if (active?.location !== location) {
+        switchLocation(location);
+      }
+    } else {
+      punchIn({ location });
+    }
+    setIsMenuOpen(false);
+  };
+
+  const handleCheckOut = () => {
+    punchOut({ fallbackLocation: preferredLocation });
     setIsMenuOpen(false);
   };
 
   const handleClick = () => {
-    if (isRunning) {
-      punchOut({ fallbackLocation: preferredLocation });
-      return;
-    }
-    if (locations.length <= 1) {
-      startAt(locations[0] || 'Home');
-      return;
-    }
     setIsMenuOpen((prev) => !prev);
   };
 
@@ -128,12 +154,12 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
         onClick={handleClick}
         title={
           isRunning
-            ? `At ${displayLocation} — click to check out`
+            ? `At ${displayLocation} — click to open workstation menu`
             : 'Not checked in — click to choose a location'
         }
         className={cn(
           'flex items-center gap-1.5 p-1 -m-1 rounded-lg transition-all active:scale-95',
-          isRunning ? 'hover:bg-emerald-500/10' : 'hover:bg-slate-500/10'
+          isRunning ? 'hover:bg-indigo-500/10' : 'hover:bg-slate-500/10'
         )}
       >
         <LocationIcon
@@ -146,7 +172,7 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
         <span
           className={cn(
             'hidden lg:inline-flex items-center text-xs sm:text-sm leading-none transition-colors',
-            isRunning ? 'text-emerald-500' : 'text-slate-500'
+            isRunning ? 'text-indigo-400 font-bold' : 'text-slate-500'
           )}
         >
           <DurationText minutes={todayTotalMinutes} />
@@ -154,57 +180,104 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
       </button>
 
       {isMenuOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-44 rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl p-1.5 z-[100] animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Check in location
-          </div>
-          {locations.map((loc) => {
-            const minutesHere = todayMinutesByLocation.get(loc) || 0;
-            const isCurrent = loc === preferredLocation;
-            return (
+        <div className="absolute left-0 top-full mt-1.5 w-56 rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl p-2 z-[100] animate-in fade-in zoom-in-95 duration-150">
+          {/* Active Session Banner & Check Out */}
+          {isRunning && active?.startTime && (
+            <div className="mb-2 p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-200 truncate">
+                    {active.location || preferredLocation}
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono font-black text-indigo-400 tabular-nums shrink-0">
+                  {getActiveSessionDurationFormatted(active.startTime, now, maxSessionMins).textClock}
+                </span>
+              </div>
+
               <button
-                key={loc}
                 type="button"
-                onClick={() => startAt(loc)}
-                className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition-colors hover:bg-slate-800',
-                  isCurrent ? 'text-slate-100' : 'text-slate-300'
-                )}
+                onClick={handleCheckOut}
+                className="w-full py-1.5 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm"
               >
-                <span className="flex items-center gap-2 min-w-0">
-                  <LocationIcon
-                    locName={loc}
-                    customIcons={state.workstationLocationIcons}
-                    size={14}
-                  />
-                  <span className="truncate">{loc}</span>
-                </span>
-
-                <span className="flex items-center gap-1.5 shrink-0">
-                  {minutesHere > 0 && (
-                    <span className="text-[10px] text-slate-400 tabular-nums">
-                      <DurationText minutes={minutesHere} />
-                    </span>
-                  )}
-                  {isCurrent && <Check size={12} className="text-indigo-400" />}
-                </span>
+                <Square size={11} className="fill-current" />
+                <span>Check Out</span>
               </button>
-            );
-          })}
+            </div>
+          )}
 
-          <div className="my-1 border-t border-slate-800" />
+          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            {isRunning ? 'Switch location' : 'Check in location'}
+          </div>
+          <div className="space-y-0.5">
+            {locations.map((loc) => {
+              const minutesHere = todayMinutesByLocation.get(loc) || 0;
+              const isCurrent = isRunning ? active?.location === loc : loc === preferredLocation;
+              return (
+                <button
+                  key={loc}
+                  type="button"
+                  onClick={() => handleSelectLocation(loc)}
+                  className={cn(
+                    'w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition-colors hover:bg-slate-800',
+                    isCurrent ? 'bg-slate-800/70 text-slate-100' : 'text-slate-300'
+                  )}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <LocationIcon
+                      locName={loc}
+                      customIcons={state.workstationLocationIcons}
+                      size={14}
+                    />
+                    <span className="truncate">{loc}</span>
+                  </span>
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              setIsManageOpen(true);
-            }}
-            className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors text-slate-400 hover:bg-slate-800 hover:text-indigo-400"
-          >
-            <Settings2 size={12} />
-            <span>Manage</span>
-          </button>
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    {minutesHere > 0 && (
+                      <span className="text-[10px] text-slate-400 tabular-nums">
+                        <DurationText minutes={minutesHere} />
+                      </span>
+                    )}
+                    {isCurrent && <Check size={12} className="text-indigo-400" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="my-1.5 border-t border-slate-800" />
+
+          <div className="space-y-0.5">
+            {onOpenDeskLog && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onOpenDeskLog();
+                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors text-slate-300 hover:bg-slate-800 hover:text-indigo-400"
+              >
+                <Clock size={12} className="text-indigo-400" />
+                <span>Desk Log</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                setIsManageOpen(true);
+              }}
+              className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors text-slate-400 hover:bg-slate-800 hover:text-indigo-400"
+            >
+              <Settings2 size={12} />
+              <span>Manage Locations</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -218,3 +291,4 @@ export const WorkstationStatusChip: React.FC<WorkstationStatusChipProps> = ({
     </div>
   );
 };
+

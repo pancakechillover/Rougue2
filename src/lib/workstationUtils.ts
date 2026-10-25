@@ -8,8 +8,19 @@ export const DEFAULT_WORKSTATION_LOCATIONS = [
   'Library'
 ] as const;
 
-export const MAX_WORKSTATION_SESSION_MINUTES = 240; // 4 hours maximum single session
+export const MAX_WORKSTATION_SESSION_MINUTES = 240; // 4 hours default maximum single session
 export const MAX_WORKSTATION_SESSION_MS = MAX_WORKSTATION_SESSION_MINUTES * 60 * 1000;
+
+/**
+ * Returns the configured maximum workstation session minutes (defaults to 240 = 4 hours).
+ */
+export function getMaxWorkstationSessionMinutes(state?: Partial<AppState> | null): number {
+  const configured = state?.workstationMaxSessionMinutes;
+  if (typeof configured === 'number' && configured >= 30 && configured <= 1440) {
+    return configured;
+  }
+  return MAX_WORKSTATION_SESSION_MINUTES;
+}
 
 /**
  * Returns the configured workstation locations for the user or default 3 locations.
@@ -51,7 +62,8 @@ export function getWorkstationTotalMinutes(
     if (isValid(activeStart)) {
       const activeDateStr = getSettlementDay(activeStart, state.timeSettings);
       if (activeDateStr === dateStr) {
-        const activeMins = Math.min(MAX_WORKSTATION_SESSION_MINUTES, Math.max(0, differenceInMinutes(now, activeStart)));
+        const maxMins = getMaxWorkstationSessionMinutes(state);
+        const activeMins = Math.min(maxMins, Math.max(0, differenceInMinutes(now, activeStart)));
         totalMins += activeMins;
       }
     }
@@ -167,7 +179,8 @@ export function getEffectiveTargetFocusMinutes(
  */
 export function getActiveSessionDurationFormatted(
   startTimeISO: string,
-  now: Date = new Date()
+  now: Date = new Date(),
+  maxMinutes: number = MAX_WORKSTATION_SESSION_MINUTES
 ): { hours: number; minutes: number; seconds: number; textShort: string; textClock: string } {
   const start = parseISO(startTimeISO);
   if (!isValid(start)) {
@@ -175,7 +188,7 @@ export function getActiveSessionDurationFormatted(
   }
 
   const totalSecs = Math.min(
-    MAX_WORKSTATION_SESSION_MINUTES * 60,
+    maxMinutes * 60,
     Math.max(0, differenceInSeconds(now, start))
   );
   const hours = Math.floor(totalSecs / 3600);

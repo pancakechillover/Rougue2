@@ -362,28 +362,20 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
     : Math.max(1, weeklyDays.length);
 
   return (
-    <div id="weekly-activity-section" className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
+    <div id="weekly-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
         <div className="flex flex-wrap items-center justify-between md:justify-start gap-2.5">
           <div className="flex items-center gap-2">
             <CalendarDays className="text-indigo-400" size={20} />
             <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Weekly</h3>
           </div>
-          <button 
-            type="button"
-            onClick={() => setWeeklyMode(weeklyMode === 'calendar' ? 'rolling' : 'calendar')}
-            className="bg-slate-800/50 hover:bg-slate-700 transition-colors rounded-lg flex items-center px-2 py-1 cursor-pointer group"
-            title="Switch Week Mode"
-          >
-            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-widest text-indigo-400 group-hover:text-indigo-300 whitespace-nowrap">
-              {weeklyMode === 'calendar' ? 'Natural' : 'Last 7d'}
-            </span>
-          </button>
 
           <ChartLayerFilterDropdown 
             layers={activeLayers}
             onChange={handleLayersChange}
-            title="Weekly Chart Layers"
+            weekMode={weeklyMode}
+            onWeekModeChange={setWeeklyMode}
+            title="Weekly View & Layers"
           />
         </div>
 

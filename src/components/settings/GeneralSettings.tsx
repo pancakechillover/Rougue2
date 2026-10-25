@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
-import { Trash2, Volume2, VolumeX, Sun, Moon, Smile, Trees, Waves, Target, Gift, Eye, Palette, Check, Bell, BellOff, RefreshCw, Sunrise, CloudSun, Lollipop, History, Globe, CalendarCheck, Clock } from 'lucide-react';
+import { Trash2, Volume2, VolumeX, Sun, Moon, Smile, Trees, Waves, Target, Gift, Eye, Palette, Check, Bell, BellOff, RefreshCw, Sunrise, CloudSun, Lollipop, History, Globe, CalendarCheck, Clock, MapPin, Settings2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { TimePicker } from '../common/TimePicker';
+import { ManageLocationsModal } from '../workstation/ManageLocationsModal';
+import { LocationIcon } from '../workstation/LocationIcon';
+import { getMaxWorkstationSessionMinutes, getWorkstationLocations } from '../../lib/workstationUtils';
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String: string) {
@@ -27,6 +30,7 @@ function urlBase64ToUint8Array(base64String: string) {
 import { ActivityTimeSettings } from './ActivityTimeSettings';
 
 export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn: (prev: any) => any) => void }) => {
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{ 
     isOpen: boolean; 
     title: string; 
@@ -613,6 +617,125 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
 
       <div className="space-y-6 pt-6 border-t border-slate-800">
         <ActivityTimeSettings state={state} setState={setState} />
+      </div>
+
+      <div id="setting-workstation" className="space-y-6 pt-6 border-t border-slate-800">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5 text-indigo-400">
+            <MapPin size={20} />
+            <h4 className="text-lg font-bold uppercase tracking-widest pr-1">Workstation Check-in</h4>
+          </div>
+          <p className="text-[10px] text-slate-500 italic leading-relaxed pr-1">
+            Configure the maximum single-session auto-checkout limit and manage your desk locations.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Auto-Cutoff Limit Card */}
+          <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                  Auto-Cutoff Duration
+                </span>
+                <span className="text-xs font-mono font-black text-indigo-400">
+                  {Math.round(getMaxWorkstationSessionMinutes(state) / 60)}h ({getMaxWorkstationSessionMinutes(state)}m)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Automatically checks out and saves the interval if a workstation session runs longer than this limit.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className="grid grid-cols-5 gap-1.5">
+                {[2, 4, 6, 8, 12].map((hr) => {
+                  const mins = hr * 60;
+                  const isSelected = getMaxWorkstationSessionMinutes(state) === mins;
+                  return (
+                    <button
+                      key={hr}
+                      type="button"
+                      onClick={() => setState((prev) => ({ ...prev, workstationMaxSessionMinutes: mins }))}
+                      className={cn(
+                        'py-1.5 rounded-xl text-xs font-bold border transition-all',
+                        isSelected
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      )}
+                    >
+                      {hr}h
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between bg-slate-950/60 px-3 py-2 rounded-xl border border-slate-800">
+                <span className="text-xs font-bold text-slate-400">Custom Hours:</span>
+                <SpinnerInput
+                  value={Math.max(1, Math.round(getMaxWorkstationSessionMinutes(state) / 60))}
+                  onChange={(val) => {
+                    const hours = typeof val === 'number' ? Math.max(1, Math.min(24, val)) : 4;
+                    setState((prev) => ({ ...prev, workstationMaxSessionMinutes: hours * 60 }));
+                  }}
+                  min={1}
+                  max={24}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Check-in Locations Card */}
+          <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                  Check-In Locations
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-500">
+                  {getWorkstationLocations(state).length} configured
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Customize the desk, lab, or library locations available in your top-bar workstation menu.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className="flex flex-wrap gap-1.5">
+                {getWorkstationLocations(state).map((loc) => (
+                  <span
+                    key={loc}
+                    className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300 flex items-center gap-1.5"
+                  >
+                    <LocationIcon
+                      locName={loc}
+                      customIcons={state.workstationLocationIcons}
+                      size={12}
+                    />
+                    <span>{loc}</span>
+                  </span>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+              >
+                <Settings2 size={14} className="text-indigo-400" />
+                <span>Manage Locations & Icons</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ManageLocationsModal
+          isOpen={isLocationModalOpen}
+          onClose={() => setIsLocationModalOpen(false)}
+          state={state}
+          setState={setState}
+        />
       </div>
 
       <div className="space-y-6 pt-6 border-t border-slate-800">

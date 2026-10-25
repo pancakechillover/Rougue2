@@ -21,6 +21,7 @@ import { StatsActivityHeatmap } from './stats/StatsActivityHeatmap';
 import { StatsDailySection } from './stats/StatsDailySection';
 import { StatsWeeklySection } from './stats/StatsWeeklySection';
 import { StatsSleepTrackerSection } from './stats/StatsSleepTrackerSection';
+import { StatsWorkstationSection } from './stats/StatsWorkstationSection';
 import { SharedPopoverContent } from './stats/SharedPopoverContent';
 import { DEFAULT_CHART_LAYERS } from './stats/ChartLayerFilterDropdown';
 
@@ -36,6 +37,8 @@ export interface ShareConfig {
 
 interface StatsProps {
   state: AppState;
+  setState?: React.Dispatch<React.SetStateAction<AppState>>;
+  syncToCloud?: (forceOverwrite?: boolean, specificState?: AppState, syncMethod?: any) => void;
   saveDailyLog: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (updates: Partial<AppState>) => void;
   updateSession?: (id: string, updates: Partial<StudySession>) => void;
@@ -115,7 +118,7 @@ const computeTimeYAxis = (maxMinutes: number, isFixed: boolean, defaultFixedMax:
 };
 
 
-export const Stats = React.memo<StatsProps>(({ state, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], _setShowStartOfDayModal: __setShowStartOfDayModal, onOpenJournal }) => {
+export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, saveDailyLog, onUpdateState, updateSession, deleteSession, completeSession, dungeons = [], majorDungeons = [], _setShowStartOfDayModal: __setShowStartOfDayModal, onOpenJournal }) => {
   const history = state.history;
   const dailyLogs = state.dailyLogs || {};
   const [showDailySessionsDate, setShowDailySessionsDate] = useState<Date | null>(null);
@@ -1027,6 +1030,24 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             )}
           />
         </div>
+      )}
+
+      {(viewOpts.showWorkstationTracker ?? true) && (
+        <StatsWorkstationSection
+          state={state}
+          setState={
+            setState ||
+            ((updater) => {
+              if (!onUpdateState) return;
+              const next = typeof updater === 'function' ? updater(state) : updater;
+              onUpdateState(next);
+            })
+          }
+          syncToCloud={syncToCloud}
+          dungeons={dungeons}
+          majorDungeons={majorDungeons}
+          dateIndicators={dateIndicators}
+        />
       )}
 
       {(viewOpts.showSleepTracker ?? true) && (

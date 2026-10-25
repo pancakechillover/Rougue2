@@ -13,6 +13,7 @@ interface ViewSettingsModalProps {
     showWeeklyBar?: boolean;
     showWeeklyDonut?: boolean;
     showRoutineTracker?: boolean;
+    showWorkstationTracker?: boolean;
     showSleepTracker?: boolean;
     dailyDonutMode?: '24h' | 'compact';
     weeklyDonutMode?: 'time_of_day' | 'day_of_week';
@@ -164,6 +165,11 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({ isOpen, on
                   label="Routine Tracker"
                   checked={opts.showRoutineTracker ?? true}
                   onChange={() => onUpdate({ showRoutineTracker: !(opts.showRoutineTracker ?? true) })}
+                />
+                <ToggleRow
+                  label="Workstation Tracker"
+                  checked={opts.showWorkstationTracker ?? true}
+                  onChange={() => onUpdate({ showWorkstationTracker: !(opts.showWorkstationTracker ?? true) })}
                 />
                 <ToggleRow
                   label="Sleep Tracker"

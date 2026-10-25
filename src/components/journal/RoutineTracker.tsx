@@ -139,7 +139,7 @@ export const RoutineTracker: React.FC<RoutineTrackerProps> = ({ history, dungeon
   const dateLabel = activeTab === 'monthly' ? format(currentDate, 'yyyy') : format(currentDate, 'MMM yyyy');
 
   return (
-    <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 lg:col-span-2">
+    <div className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 lg:col-span-2">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-800/50 pb-4">
         <div className="flex items-center gap-4">
           <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 uppercase tracking-widest">
@@ -202,7 +202,7 @@ export const RoutineTracker: React.FC<RoutineTrackerProps> = ({ history, dungeon
                 >
                   <div className="flex items-center gap-1 group">
                     Task
-                    <Settings size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Settings size={12} className="text-indigo-400 opacity-60 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </th>
                 {columns.map(col => {

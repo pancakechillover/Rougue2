@@ -243,7 +243,7 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
   const bothAxes = hasTime && hasDistractions;
 
   return (
-    <div id="daily-activity-section" className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
+    <div id="daily-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
         <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5">
           <div className="flex items-center gap-2">

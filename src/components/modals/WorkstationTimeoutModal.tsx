@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, Play, X } from 'lucide-react';
-import { format, parseISO, isValid } from 'date-fns';
+import { Clock, Edit3, Play, Settings2, X } from 'lucide-react';
+import { addDays, differenceInMinutes, format, parseISO, isValid } from 'date-fns';
 import { LocationIcon } from '../workstation/LocationIcon';
 
 export interface WorkstationTimeoutInfo {
   id: string;
+  dateStr?: string;
   location: string;
   startTime: string;
   endTime: string;
@@ -19,6 +20,8 @@ export interface WorkstationTimeoutModalProps {
   info: WorkstationTimeoutInfo | null;
   onContinue: (location: string, note?: string) => void;
   onDismiss: () => void;
+  onAdjustEndTime?: (dateStr: string, intervalId: string, newEndTimeISO: string, newDurationMinutes: number) => void;
+  onOpenSettings?: () => void;
   theme?: string;
 }
 
@@ -26,30 +29,71 @@ export const WorkstationTimeoutModal: React.FC<WorkstationTimeoutModalProps> = (
   isOpen,
   info,
   onContinue,
-  onDismiss
+  onDismiss,
+  onAdjustEndTime,
+  onOpenSettings,
 }) => {
+  const [isEditingEnd, setIsEditingEnd] = useState(false);
+  const [customEndTime, setCustomEndTime] = useState('12:00');
+
+  useEffect(() => {
+    if (!info) return;
+    setIsEditingEnd(false);
+    try {
+      const end = parseISO(info.endTime);
+      if (isValid(end)) {
+        setCustomEndTime(format(end, 'HH:mm'));
+      }
+    } catch {}
+  }, [info]);
+
   if (!isOpen || !info) return null;
+
+  const limitHoursLabel = `${Math.max(1, Math.round((info.durationMinutes || 240) / 60))}h Max`;
 
   const timeRecordedFormatted = (() => {
     try {
       const start = parseISO(info.startTime);
       const end = parseISO(info.endTime);
-      if (!isValid(start) || !isValid(end)) return '4h 00m';
+      if (!isValid(start) || !isValid(end)) return `${limitHoursLabel}`;
 
       const startDayStr = format(start, 'MMM d');
       const endDayStr = format(end, 'MMM d');
       const startTimeStr = format(start, 'HH:mm');
       const endTimeStr = format(end, 'HH:mm');
+      const h = Math.floor(info.durationMinutes / 60);
+      const m = info.durationMinutes % 60;
+      const durText = m > 0 ? `${h}h ${m}m` : `${h}h`;
 
       if (startDayStr === endDayStr) {
-        return `${startDayStr}, ${startTimeStr} – ${endTimeStr} (4h)`;
+        return `${startDayStr}, ${startTimeStr} – ${endTimeStr} (${durText})`;
       } else {
-        return `${startDayStr} ${startTimeStr} – ${endDayStr} ${endTimeStr} (4h)`;
+        return `${startDayStr} ${startTimeStr} – ${endDayStr} ${endTimeStr} (${durText})`;
       }
     } catch {
-      return '4h 00m';
+      return limitHoursLabel;
     }
   })();
+
+  const handleSaveAdjustedEnd = () => {
+    if (!onAdjustEndTime || !info.dateStr) {
+      onDismiss();
+      return;
+    }
+    const [eH, eM] = customEndTime.split(':').map(Number);
+    const start = parseISO(info.startTime);
+    if (isNaN(eH) || isNaN(eM) || !isValid(start)) return;
+
+    const endCandidate = new Date(start);
+    endCandidate.setHours(eH, eM, 0, 0);
+    let finalEnd = endCandidate;
+    if (finalEnd <= start) {
+      finalEnd = addDays(finalEnd, 1);
+    }
+    const newMins = Math.max(1, differenceInMinutes(finalEnd, start));
+    onAdjustEndTime(info.dateStr, info.id, finalEnd.toISOString(), newMins);
+    onDismiss();
+  };
 
   const modalContent = (
     <AnimatePresence>
@@ -77,17 +121,16 @@ export const WorkstationTimeoutModal: React.FC<WorkstationTimeoutModalProps> = (
               <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
                 <Clock size={20} />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base font-bold text-white tracking-tight">
                   Workstation Session Limit
                 </h3>
                 <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 uppercase tracking-wider">
-                  4h Max
+                  {limitHoursLabel}
                 </span>
               </div>
             </div>
 
-            {/* Close button */}
             <button
               onClick={onDismiss}
               className="p-2 text-slate-500 hover:text-white transition-colors bg-slate-800/60 hover:bg-slate-800 rounded-full"
@@ -98,7 +141,7 @@ export const WorkstationTimeoutModal: React.FC<WorkstationTimeoutModalProps> = (
           </div>
 
           {/* Session Summary Card */}
-          <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-slate-800/80 mb-3.5 space-y-2">
+          <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-slate-800/80 mb-3.5 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Location:</span>
               <span className="font-semibold text-slate-200 flex items-center gap-1.5">
@@ -122,9 +165,59 @@ export const WorkstationTimeoutModal: React.FC<WorkstationTimeoutModalProps> = (
                 </span>
               </div>
             )}
+
+            {/* Quick Edit End Time Toggle / Form */}
+            {onAdjustEndTime && info.dateStr && (
+              <div className="pt-2 border-t border-slate-800/60">
+                {!isEditingEnd ? (
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEnd(true)}
+                      className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                    >
+                      <Edit3 size={11} />
+                      <span>Left earlier? Edit End Time</span>
+                    </button>
+
+                    {onOpenSettings && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDismiss();
+                          onOpenSettings();
+                        }}
+                        className="text-[11px] font-semibold text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                      >
+                        <Settings2 size={11} />
+                        <span>Cutoff Limit</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0">
+                      Actual End:
+                    </span>
+                    <input
+                      type="time"
+                      value={customEndTime}
+                      onChange={(e) => setCustomEndTime(e.target.value)}
+                      className="flex-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-slate-100 outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveAdjustedEnd}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold transition-colors shrink-0"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Simplified Prompt */}
           <p className="text-xs text-slate-400 leading-relaxed mb-5">
             Auto-saved to workstation logs. Continue timing now?
           </p>
@@ -152,3 +245,4 @@ export const WorkstationTimeoutModal: React.FC<WorkstationTimeoutModalProps> = (
 
   return createPortal(modalContent, document.body);
 };
+
