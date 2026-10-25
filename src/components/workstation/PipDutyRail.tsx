@@ -37,7 +37,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
   syncToCloud,
   children,
   threshold = 340,
-  railWidth = 56,
+  railWidth = 78,
 }) => {
   const [wide, setWide] = useState(false);
   const { active, punchIn, punchOut } = useWorkstation({ state, setState, syncToCloud });
@@ -115,7 +115,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
         zIndex: 10,
         cursor: 'pointer',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
