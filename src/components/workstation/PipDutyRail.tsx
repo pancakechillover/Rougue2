@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { differenceInMinutes, parseISO, isValid } from 'date-fns';
 import { AppState } from '../../types';
 import { useWorkstation } from '../../hooks/useWorkstation';
 import { getWorkstationLocations, getWorkstationTotalMinutes } from '../../lib/workstationUtils';
 import { getSettlementDay } from '../../lib/utils';
 import { LocationIcon } from '../workstation/LocationIcon';
+import { DurationText } from '../common/DurationText';
 
 interface PipDutyRailProps {
   pipWindow: Window | null;
@@ -18,12 +18,6 @@ interface PipDutyRailProps {
   /** Rail width (px). The timer gets viewport width minus this. */
   railWidth?: number;
 }
-
-const fmt = (mins: number) => {
-  const h = Math.floor(mins / 60);
-  const m = Math.round(mins % 60);
-  return h > 0 ? `${h}h${m.toString().padStart(2, '0')}m` : `${m}m`;
-};
 
 /**
  * Minimal duty rail for wide Document PiP windows (>= threshold).
@@ -67,16 +61,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
   const todayStr = useMemo(() => getSettlementDay(new Date(), state.timeSettings), [state.timeSettings]);
   const todayTotalMinutes = getWorkstationTotalMinutes(todayStr, state, now);
 
-  const running = state.activeWorkstationSession;
-  const runningMinutes = useMemo(() => {
-    if (!active || !running?.startTime) return 0;
-    const start = parseISO(running.startTime);
-    if (!isValid(start)) return 0;
-    return Math.max(0, differenceInMinutes(now, start));
-  }, [active, running?.startTime, now]);
-
   const displayLocation = active?.location || preferredLocation;
-  const displayMinutes = active ? runningMinutes : todayTotalMinutes;
 
   const handleToggle = async (ev: React.MouseEvent) => {
     ev.stopPropagation();
@@ -140,16 +125,8 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
       }}
     >
       <LocationIcon locName={displayLocation} size={20} />
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1,
-          color: active ? 'var(--color-indigo-500, #6366f1)' : 'var(--color-slate-400, #94a3b8)',
-        }}
-      >
-        {fmt(displayMinutes)}
+      <div style={{ fontSize: 15, lineHeight: 1, color: active ? 'var(--color-slate-100, #e2e8f0)' : 'var(--color-slate-400, #94a3b8)' }}>
+        <DurationText minutes={todayTotalMinutes} />
       </div>
     </div>
   );
