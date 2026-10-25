@@ -277,6 +277,21 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
   });
   const [activeChart, setActiveChart] = useState<'daily' | 'weeklyBar' | 'weeklyLine' | 'sleep' | null>(null);
 
+  /**
+   * Mirror of `activeChart` for the document-level dismiss handler.
+   *
+   * The handler is registered once with an empty dependency array, so it would
+   * otherwise close over the initial `null` value. Reading the ref lets it tell
+   * "a chart popover is actually open" apart from "nothing is open".
+   *
+   * This matters on touch devices: the reset below swaps every chart's React
+   * key, which unmounts and remounts all six Recharts containers. Doing that on
+   * every tap made the layout jump between touchstart and click, so the click
+   * landed on a moved element and the user had to tap twice.
+   */
+  const activeChartRef = useRef(activeChart);
+  activeChartRef.current = activeChart;
+
   const dateIndicators = React.useMemo(() => {
     const res: Record<string, { highlight?: boolean; star?: boolean }> = {};
     if (state.history) {
@@ -342,7 +357,10 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
           setHeatmapPopoverAnchor(prev => prev !== null ? null : prev);
         }
         
-        if (!inTooltip && !inChart) {
+        // Only reset when a chart popover is actually open. Resetting
+        // unconditionally remounted all six charts on every single tap, which
+        // shifted the layout mid-gesture and ate the first tap on touch devices.
+        if (!inTooltip && !inChart && activeChartRef.current !== null) {
           setActiveChart(null);
           setChartKeys({
             daily: Date.now() + Math.random(),
