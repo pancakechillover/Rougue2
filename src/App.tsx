@@ -56,7 +56,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useTimerStore } from './hooks/useTimerStore';
 import { renderAvatar } from './components/guild/TeamModule';
 import { WorkstationTimeoutModal, WorkstationTimeoutInfo } from './components/modals/WorkstationTimeoutModal';
-import { MAX_WORKSTATION_SESSION_MS } from './lib/workstationUtils';
+import { getMaxWorkstationSessionMinutes } from './lib/workstationUtils';
 import { parseISO, isValid } from 'date-fns';
 
 const isTalentLevel = (lvl: number) => {
@@ -449,11 +449,11 @@ function App() {
     };
   }, [state.teamId, activeTab, state.account?.token, state.account?.userId, state.secretCode, state.userName]);
 
-  // Workstation Active Session 4-Hour Limit Check & State
+  // Workstation Active Session Auto-Cutoff Limit Check & State
   const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);
   const isHandlingWorkstationTimeoutRef = useRef(false);
 
-  const { closeTimedOutSession } = useWorkstation({
+  const { closeTimedOutSession, updateIntervalEndTime } = useWorkstation({
     state,
     setState,
     syncToCloud,
@@ -463,13 +463,15 @@ function App() {
     const active = state.activeWorkstationSession;
     if (!active || !active.startTime) return;
 
+    const maxSessionMs = getMaxWorkstationSessionMinutes(state) * 60 * 1000;
+
     const checkWorkstationTimeout = () => {
       if (isHandlingWorkstationTimeoutRef.current) return;
       const start = parseISO(active.startTime);
       if (!isValid(start)) return;
 
       const elapsedMs = Date.now() - start.getTime();
-      if (elapsedMs >= MAX_WORKSTATION_SESSION_MS) {
+      if (elapsedMs >= maxSessionMs) {
         isHandlingWorkstationTimeoutRef.current = true;
 
         const completed = closeTimedOutSession('Home');
@@ -481,6 +483,7 @@ function App() {
 
         setWorkstationTimeoutInfo({
           id: completed.id,
+          dateStr: completed.date,
           location: completed.location || 'Home',
           startTime: completed.startTime,
           endTime: completed.endTime,
@@ -497,7 +500,7 @@ function App() {
     checkWorkstationTimeout();
     const interval = setInterval(checkWorkstationTimeout, 1000);
     return () => clearInterval(interval);
-  }, [state.activeWorkstationSession, state.timeSettings, closeTimedOutSession]);
+  }, [state.activeWorkstationSession, state.timeSettings, state.workstationMaxSessionMinutes, closeTimedOutSession]);
 
   const handleContinueWorkstationSession = (location: string, note?: string) => {
     const startISO = new Date().toISOString();
@@ -1321,7 +1324,7 @@ function App() {
             setIsTimerActive(true);
             setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
           }}
-        />
+        />,
         </PipDutyRail>,
         pipWindow.document.body
       )}
@@ -1472,6 +1475,42 @@ function App() {
               state={state}
               setState={setState}
               syncToCloud={syncToCloud}
+              onOpenDeskLog={() => {
+                try {
+                  localStorage.setItem('record_showJournalView', 'false');
+                } catch {}
+                if (!(state.statsViewOpts?.showWorkstationTracker ?? true)) {
+                  setState((prev) => ({
+                    ...prev,
+                    statsViewOpts: { ...(prev.statsViewOpts || {}), showWorkstationTracker: true },
+                  }));
+                }
+                setActiveTab('stats');
+                setTimeout(() => {
+                  const el = document.getElementById('workstation-section');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add(
+                      'ring-2',
+                      'ring-indigo-500',
+                      'ring-offset-2',
+                      'ring-offset-slate-950',
+                      'transition-all',
+                      'duration-500'
+                    );
+                    setTimeout(
+                      () =>
+                        el.classList.remove(
+                          'ring-2',
+                          'ring-indigo-500',
+                          'ring-offset-2',
+                          'ring-offset-slate-950'
+                        ),
+                      1600
+                    );
+                  }
+                }, 220);
+              }}
             />
           </div>
 
@@ -1904,6 +1943,8 @@ function App() {
             {activeTab === 'stats' && (
               <StatsView 
                 state={state} 
+                setState={setState}
+                syncToCloud={syncToCloud}
                 saveDailyLog={saveDailyLog} 
                 onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
                 updateSession={updateSession}
@@ -2198,12 +2239,25 @@ function App() {
         getNextTalentLevel={getNextTalentLevel}
       />
 
-      {/* Workstation 4-Hour Timeout Prompt Modal */}
+      {/* Workstation Auto-Cutoff Timeout Prompt Modal */}
       <WorkstationTimeoutModal 
         isOpen={!!workstationTimeoutInfo}
         info={workstationTimeoutInfo}
         onContinue={handleContinueWorkstationSession}
         onDismiss={handleDismissWorkstationTimeout}
+        onAdjustEndTime={updateIntervalEndTime}
+        onOpenSettings={() => {
+          setActiveTab('settings');
+          setActiveSettingsSection('general');
+          setTimeout(() => {
+            const el = document.getElementById('setting-workstation');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900', 'transition-all', 'duration-500');
+              setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900'), 1500);
+            }
+          }, 250);
+        }}
         theme={state.theme}
       />
 
