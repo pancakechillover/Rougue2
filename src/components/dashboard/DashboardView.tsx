@@ -60,6 +60,7 @@ interface DashboardViewProps {
   navigateToSettings?: (section: any, settingId?: string) => void;
   dungeons: Dungeon[];
   majorDungeons?: MajorDungeon[];
+  onRequirePassportAuth?: (message?: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -74,7 +75,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   applyExpeditionPlan,
   navigateToSettings,
   dungeons,
-  majorDungeons = []
+  majorDungeons = [],
+  onRequirePassportAuth
 }) => {
 
   const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
@@ -671,7 +673,7 @@ useMemo(() => {
         </div>
       </div>
       
-      <TeamModule state={state} setState={setState} />
+      <TeamModule state={state} setState={setState} onRequirePassportAuth={onRequirePassportAuth} />
 
       {showSageConsult && createPortal(
          <SageConsultModal 

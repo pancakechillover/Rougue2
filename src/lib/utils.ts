@@ -526,9 +526,10 @@ export function getDungeonHierarchyStats(
 export function getDeviceCode(): string {
   if (typeof localStorage === 'undefined') return 'server';
   let code = localStorage.getItem('scholars_dungeon_device_code');
-  if (!code) {
-    code = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  if (!code || code.length > 8) {
+    code = code ? code.substring(0, 8) : Math.random().toString(36).substring(2, 10);
     localStorage.setItem('scholars_dungeon_device_code', code);
   }
   return code;
 }
+

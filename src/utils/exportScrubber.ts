@@ -1,7 +1,12 @@
 export function isSensitiveKey(key: string): boolean {
   const lowerKey = key.toLowerCase();
 
-  if (lowerKey === 'googledrivetokens' || lowerKey === 'webdavsettings' || lowerKey === 'sageapiurl') {
+  if (
+    lowerKey === 'googledrivetokens' ||
+    lowerKey === 'webdavsettings' ||
+    lowerKey === 'sageapiurl' ||
+    lowerKey === 'account'
+  ) {
     return true;
   }
 
@@ -23,7 +28,7 @@ export function isSensitiveKey(key: string): boolean {
     'credentials'
   ];
 
-  return sensitiveKeywords.some(keyword => lowerKey.includes(keyword));
+  return sensitiveKeywords.some((keyword) => lowerKey.includes(keyword));
 }
 
 export function scrubObject(obj: any): any {
@@ -42,101 +47,114 @@ export function scrubObject(obj: any): any {
   return obj;
 }
 
+function scrubStateFields(rawState: any): any {
+  const scrubbed = scrubObject(rawState);
+
+  // 1. Cloud Account, Auth, Sync & Guild credentials
+  delete scrubbed.account;
+  delete scrubbed.secretCode;
+  delete scrubbed.webdavSettings;
+  delete scrubbed.googleDriveTokens;
+  delete scrubbed.googleDriveFileId;
+  delete scrubbed.syncProvider;
+  delete scrubbed.deviceNickname;
+  delete scrubbed.deviceCode;
+  delete scrubbed.teamId;
+  delete scrubbed.lastTeamData;
+  scrubbed.isRedisUnlocked = false;
+  scrubbed.isGoogleDriveUnlocked = false;
+  scrubbed.pushEnabled = false;
+  scrubbed.pushSubscription = null;
+  scrubbed.syncHistory = [];
+  scrubbed.autoSyncMode = 'manual';
+  scrubbed.autoSyncDebounceSeconds = 10;
+  scrubbed.autoSyncIntervalMinutes = 1;
+
+  // 2. Personal Profile Info
+  delete scrubbed.userName;
+  delete scrubbed.userAvatar;
+  delete scrubbed.userBio;
+  delete scrubbed.userTitle;
+  delete scrubbed.userUniqueId;
+
+  // 3. User's Diaries / Journals / Reflections
+  scrubbed.dailyLogs = {};
+  scrubbed.journalBookmarks = [];
+  delete scrubbed.reflectionTemplates;
+  scrubbed.autoLoadTemplateId = null;
+
+  // 4. Sage AI Credentials & Private Conversations
+  delete scrubbed.sageApiKey;
+  delete scrubbed.sageApiUrl;
+  scrubbed.sageModels = [];
+  delete scrubbed.activeSageModelId;
+  scrubbed.sageChatHistory = [];
+  scrubbed.sageConversations = [];
+  delete scrubbed.activeSageConversationId;
+  delete scrubbed.sagePrompts;
+  delete scrubbed.sagePersonalityPrompts;
+
+  return scrubbed;
+}
+
+function isSensitiveStorageKey(key: string): boolean {
+  const lower = key.toLowerCase();
+  const explicitRemove = new Set([
+    'scholars_dungeon_sync_code',
+    'scholars_dungeon_device_nickname',
+    'scholars_dungeon_device_code',
+    'scholars_dungeon_webdav_password',
+    'scholars_dungeon_auth',
+    'scholars_dungeon_unsynced',
+    'scholars_dungeon_state__backup_raw',
+    'scholars_dungeon_state__corrupt_raw',
+    'team_identity_code',
+    'scholars_last_ws_location',
+    'settings_recent_searches'
+  ]);
+  if (explicitRemove.has(key) || explicitRemove.has(lower)) {
+    return true;
+  }
+  const blockedPatterns = [
+    'backup',
+    'corrupt',
+    'auth',
+    'token',
+    'secret',
+    'password',
+    'credential',
+    'device_code',
+    'device_nickname',
+    'team_identity',
+    'webdav'
+  ];
+  return blockedPatterns.some((p) => lower.includes(p));
+}
+
 export function scrubExportData(dataToExport: any): any {
-  // Remove sync passwords, nicknames, and unlock statuses
-  const { 
-    secretCode, 
-    webdavSettings, 
-    googleDriveTokens, 
-    googleDriveFileId,
-    isRedisUnlocked,
-    isGoogleDriveUnlocked,
-    syncProvider,
-    deviceNickname, 
-    deviceCode,
-    syncHistory,
-    pushEnabled,
-    pushSubscription,
-    userName,
-    userAvatar,
-    userBio,
-    userTitle,
-    userUniqueId,
-    sageApiKey,
-    sageApiUrl,
-    ...safeState 
-  } = dataToExport;
+  const { fullLocalStorage, ...restData } = dataToExport;
+  const finalData: any = scrubStateFields(restData);
 
-  let finalData: any = {
-    ...scrubObject(safeState),
-    deviceNickname: undefined,
-    deviceCode: undefined,
-    secretCode: undefined,
-    googleDriveTokens: undefined,
-    googleDriveFileId: undefined,
-    isRedisUnlocked: false,
-    isGoogleDriveUnlocked: false,
-    syncProvider: undefined,
-    webdavSettings: undefined,
-    pushEnabled: false,
-    pushSubscription: null,
-    syncHistory: [],
-    autoSyncMode: 'manual',
-    autoSyncDebounceSeconds: 10,
-    autoSyncIntervalMinutes: 1,
-    userName: undefined,
-    userAvatar: undefined,
-    userBio: undefined,
-    userTitle: undefined,
-    userUniqueId: undefined,
-    sageApiKey: undefined,
-    sageApiUrl: undefined
-  };
-
-  // Also clean up fullLocalStorage if it's being used as the main source of truth
-  if (finalData.fullLocalStorage) {
-    const safeLocal: Record<string, string> = { ...finalData.fullLocalStorage };
-    const keysToRemove = [
-      'scholars_dungeon_sync_code',
-      'scholars_dungeon_device_nickname',
-      'scholars_dungeon_device_code',
-      'scholars_dungeon_webdav_password'
-    ];
-    keysToRemove.forEach(k => delete safeLocal[k]);
-    
-    // Also the main state string in localStorage needs to be updated if it exists there
-    if (safeLocal['scholars_dungeon_state']) {
-      try {
-        const parsed = JSON.parse(safeLocal['scholars_dungeon_state']);
-        const scrubbedParsed = scrubObject(parsed);
-        
-        delete scrubbedParsed.secretCode;
-        delete scrubbedParsed.deviceNickname;
-        delete scrubbedParsed.deviceCode;
-        delete scrubbedParsed.webdavSettings;
-        delete scrubbedParsed.googleDriveTokens;
-        delete scrubbedParsed.googleDriveFileId;
-        scrubbedParsed.isRedisUnlocked = false;
-        scrubbedParsed.isGoogleDriveUnlocked = false;
-        scrubbedParsed.syncProvider = undefined;
-        scrubbedParsed.pushEnabled = false;
-        scrubbedParsed.pushSubscription = null;
-        scrubbedParsed.syncHistory = [];
-        scrubbedParsed.autoSyncMode = 'manual';
-        scrubbedParsed.autoSyncDebounceSeconds = 10;
-        scrubbedParsed.autoSyncIntervalMinutes = 1;
-        delete scrubbedParsed.userName;
-        delete scrubbedParsed.userAvatar;
-        delete scrubbedParsed.userBio;
-        delete scrubbedParsed.userTitle;
-        delete scrubbedParsed.userUniqueId;
-        delete scrubbedParsed.sageApiKey;
-        delete scrubbedParsed.sageApiUrl;
-        safeLocal['scholars_dungeon_state'] = JSON.stringify(scrubbedParsed);
-      } catch (e) {}
+  if (fullLocalStorage && typeof fullLocalStorage === 'object') {
+    const safeLocal: Record<string, string> = {};
+    for (const [key, val] of Object.entries(fullLocalStorage)) {
+      if (isSensitiveStorageKey(key)) {
+        continue;
+      }
+      if (key === 'scholars_dungeon_state' && typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          safeLocal[key] = JSON.stringify(scrubStateFields(parsed));
+        } catch {
+          // Skip malformed state
+        }
+      } else if (typeof val === 'string') {
+        safeLocal[key] = val;
+      }
     }
     finalData.fullLocalStorage = safeLocal;
   }
 
   return finalData;
 }
+

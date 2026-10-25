@@ -45,6 +45,7 @@ export function useCloudSync(
       syncProvider,
       isGoogleDriveUnlocked,
       isRedisUnlocked,
+      account,
       ...restState 
     } = dataObj.state;
     return {
@@ -55,10 +56,10 @@ export function useCloudSync(
 
   // Invalidate any ongoing requests when provider/code is cleared (Cross-tab safety)
   useEffect(() => {
-    if (!state.secretCode && !state.syncProvider && !state.googleDriveTokens && !state.webdavSettings) {
+    if (!state.account?.token && !state.secretCode && !state.syncProvider && !state.googleDriveTokens && !state.webdavSettings) {
       activeSyncRequestRef.current++;
     }
-  }, [state.secretCode, state.syncProvider, state.googleDriveTokens, state.webdavSettings]);
+  }, [state.account?.token, state.secretCode, state.syncProvider, state.googleDriveTokens, state.webdavSettings]);
 
   const logSyncEvent = useCallback((
     type: 'login' | 'force_sync' | 'local_to_cloud' | 'cloud_to_local' | 'cancel_login' | 'unbind_local' | 'delete_cloud', 
@@ -96,14 +97,15 @@ export function useCloudSync(
     const currentState = specificState || state;
     
     // Safety lock: DO NOT AUTO-SYNC IF INITIAL CHECK IS PENDING! Let manual overwrites pass to break loops.
-    if (!forceOverwrite && (currentState.secretCode || currentState.syncProvider) && !isInitialSyncCheckDone) {
+    if (!forceOverwrite && (currentState.account?.token || currentState.secretCode || currentState.syncProvider) && !isInitialSyncCheckDone) {
       if (import.meta.env.DEV) console.log(`[Cloud Sync] Blocked background auto-sync before initial sync integrity verified.`);
       return;
     }
 
     const isGoogleDrive = currentState.syncProvider === 'Google Drive';
     const isWebDav = currentState.syncProvider === 'WebDAV';
-    if (!isGoogleDrive && !isWebDav && (!currentState.secretCode || !currentState.isRedisUnlocked)) return;
+    const hasRedisAuth = Boolean(currentState.account?.token && currentState.account?.userId);
+    if (!isGoogleDrive && !isWebDav && !hasRedisAuth) return;
     if (isGoogleDrive && !currentState.googleDriveTokens) return;
     if (isWebDav && (!currentState.webdavSettings || !currentState.webdavSettings.url || !currentState.isRedisUnlocked)) return;
 
@@ -401,12 +403,17 @@ export function useCloudSync(
 
       } else {
         let backendForceOverwrite = forceOverwrite;
+        const activeCode = currentState.account?.userId || currentState.secretCode || 'Account';
+        const authHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...(currentState.account?.token ? { Authorization: `Bearer ${currentState.account.token}` } : {})
+        };
         // Redis
         if (!forceOverwrite) {
           // Fetch first to check identity
           const getResponse = await fetch('/api/sync/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders,
             body: JSON.stringify({ secretCode: currentState.secretCode })
           });
           
@@ -460,7 +467,7 @@ export function useCloudSync(
                 setSyncCheckResult({
                   status: cloudTime > localTime ? 'cloud_newer' : 'local_newer', // Conflict
                   cloudData: data.cloudData,
-                  code: currentState.secretCode!
+                  code: activeCode
                 });
                 setIsSyncing(false);
                 return;
@@ -482,7 +489,7 @@ export function useCloudSync(
 
         const response = await fetch('/api/sync/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify(payload)
         });
 
@@ -494,7 +501,8 @@ export function useCloudSync(
 
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-await response.text();;          throw new Error(`Server returned non-JSON response (${response.status}).`);
+          await response.text();
+          throw new Error(`Server returned non-JSON response (${response.status}).`);
         }
 
         const data = await response.json();
@@ -504,7 +512,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
             setSyncCheckResult({
               status: 'cloud_newer',
               cloudData: data.cloudData,
-              code: currentState.secretCode!
+              code: activeCode
             });
           }
         } else if (!response.ok) {
@@ -514,7 +522,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
           if (requestId === activeSyncRequestRef.current) {
             setSyncCheckResult(null);
           }
-          logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', currentState.secretCode!, 'success', undefined, syncMethod, 'Redis');
+          logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', activeCode, 'success', undefined, syncMethod, 'Redis');
           options?.onSuccess?.();
         }
       }
@@ -522,7 +530,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
       if (requestId === activeSyncRequestRef.current) {
         setSyncError(err.message);
         const prov = currentState.syncProvider || 'Redis';
-        const code = prov === 'WebDAV' ? 'WebDAV' : (prov === 'Google Drive' ? 'Google Drive' : (currentState.secretCode || 'Unknown'));
+        const code = prov === 'WebDAV' ? 'WebDAV' : (prov === 'Google Drive' ? 'Google Drive' : (currentState.account?.userId || currentState.secretCode || 'Unknown'));
         logSyncEvent(forceOverwrite ? 'force_sync' : 'local_to_cloud', code, 'failed', err.message, syncMethod, prov);
       }
     } finally {
@@ -548,6 +556,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
                 const mergedState = {
                     ...cloudState,
                     // Preserve local identity/sync settings
+                    account: localState.account || state.account,
                     deviceNickname: localState.deviceNickname || cloudState.deviceNickname,
                     deviceCode: cloudState.deviceCode || syncCheckResult.cloudData.savedByDeviceCode || getDeviceCode(),
                     secretCode: localState.secretCode || cloudState.secretCode,
@@ -566,6 +575,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
         } else {
           localStorage.setItem('scholars_dungeon_state', JSON.stringify({
               ...syncCheckResult.cloudData.state,
+              account: state.account,
               deviceNickname: state.deviceNickname || syncCheckResult.cloudData.state.deviceNickname,
               deviceCode: syncCheckResult.cloudData.state.deviceCode || syncCheckResult.cloudData.savedByDeviceCode || getDeviceCode(),
               secretCode: state.secretCode || syncCheckResult.cloudData.state.secretCode,
@@ -577,11 +587,13 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
           localStorage.setItem('scholars_dungeon_state_major_dungeons', JSON.stringify(syncCheckResult.cloudData.majorDungeons));
         }
 
+        const isSpecialCode = syncCheckResult.code === 'WebDAV' || syncCheckResult.code === 'GoogleDrive' || syncCheckResult.code === 'GoogleDriveAuth' || syncCheckResult.code.startsWith('usr_') || syncCheckResult.code === 'Account';
         const mergedState = {
             ...syncCheckResult.cloudData.state,
+            account: state.account,
             deviceNickname: state.deviceNickname || syncCheckResult.cloudData.state.deviceNickname,
             deviceCode: syncCheckResult.cloudData.state.deviceCode || syncCheckResult.cloudData.savedByDeviceCode || getDeviceCode(),
-            secretCode: (syncCheckResult.code !== 'WebDAV' && syncCheckResult.code !== 'GoogleDrive' && syncCheckResult.code !== 'GoogleDriveAuth') 
+            secretCode: !isSpecialCode
                 ? syncCheckResult.code 
                 : (state.secretCode || syncCheckResult.cloudData.state.secretCode),
             syncProvider: syncCheckResult.code === 'WebDAV' 
@@ -609,8 +621,8 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
 
         await syncToCloud(true, mergedState, 'Immediate');
       } else if (!useCloud) {
-        const isProviderCode = syncCheckResult.code === 'WebDAV' || syncCheckResult.code === 'GoogleDrive' || syncCheckResult.code === 'GoogleDriveAuth';
-        const newSecretCode = isProviderCode ? state.secretCode : syncCheckResult.code;
+        const isSpecialCode = syncCheckResult.code === 'WebDAV' || syncCheckResult.code === 'GoogleDrive' || syncCheckResult.code === 'GoogleDriveAuth' || syncCheckResult.code.startsWith('usr_') || syncCheckResult.code === 'Account';
+        const newSecretCode = isSpecialCode ? state.secretCode : syncCheckResult.code;
         const newSyncProvider = syncCheckResult.code === 'WebDAV' ? 'WebDAV' : (syncCheckResult.code === 'GoogleDrive' || syncCheckResult.code === 'GoogleDriveAuth' ? 'Google Drive' : 'Redis');
         
         setState(prev => ({ 
@@ -679,6 +691,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
           },
           body: JSON.stringify({ secretCode: code })
         });
@@ -748,11 +761,11 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
         });
 
         if (decision === 'silent_upload') {
-          const isProviderCode = code === 'WebDAV' || code === 'GoogleDrive' || code === 'GoogleDriveAuth';
+          const isSpecialCode = code === 'WebDAV' || code === 'GoogleDrive' || code === 'GoogleDriveAuth' || code.startsWith('usr_') || code === 'Account';
           setState(prev => ({ 
             ...prev, 
             lastUpdated: cloudDataToProcess.lastUpdated, 
-            secretCode: !isProviderCode ? code : prev.secretCode,
+            secretCode: !isSpecialCode ? code : prev.secretCode,
             syncProvider: (code === 'WebDAV') ? 'WebDAV' : ((code === 'GoogleDrive' || code === 'GoogleDriveAuth') ? 'Google Drive' : 'Redis')
           }));
           setSyncCheckResult(null);
@@ -786,8 +799,9 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
   const checkCloudSync = useCallback(async (forceModal = false, isStartup = false) => {
     const isGoogleDrive = state.syncProvider === 'Google Drive';
     const isWebDav = state.syncProvider === 'WebDAV';
+    const hasRedisAuth = Boolean(state.account?.token && state.account?.userId);
 
-    if (!isGoogleDrive && !isWebDav && (!state.secretCode || !state.isRedisUnlocked)) return;
+    if (!isGoogleDrive && !isWebDav && !hasRedisAuth) return;
     if (isGoogleDrive && !state.googleDriveTokens) return;
     if (isWebDav && (!state.webdavSettings || !state.webdavSettings.url || !state.isRedisUnlocked)) return;
 
@@ -858,11 +872,11 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
 
         // If exact data match, we can silently refresh local identity by not showing modal
         if (localFingerprint === cloudFingerprint && !forceModal) {
-          const isProviderCode = code === 'WebDAV' || code === 'GoogleDrive' || code === 'GoogleDriveAuth';
+          const isSpecialCode = code === 'WebDAV' || code === 'GoogleDrive' || code === 'GoogleDriveAuth' || code.startsWith('usr_') || code === 'Account';
           setState(prev => ({ 
             ...prev, 
             lastUpdated: data.lastUpdated || (data.state && data.state.lastUpdated), 
-            secretCode: !isProviderCode ? code : prev.secretCode,
+            secretCode: !isSpecialCode ? code : prev.secretCode,
             syncProvider: (code === 'WebDAV') ? 'WebDAV' : ((code === 'GoogleDrive' || code === 'GoogleDriveAuth') ? 'Google Drive' : 'Redis')
           }));
           setSyncCheckResult(null);
@@ -927,11 +941,15 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
             if (forceModal) setSyncCheckResult({ status: 'no_save', code: 'GoogleDrive' });
             if (isStartup || !forceModal) setIsInitialSyncCheckDone(true);
         }
-      } else if (state.secretCode) {
-        // Redis
+      } else if (state.account?.token && state.account?.userId) {
+        // Scholar Passport Redis Sync
+        const activeCode = state.account.userId;
         const response = await fetch('/api/sync/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+            },
             body: JSON.stringify({ secretCode: state.secretCode })
         });
 
@@ -950,16 +968,16 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
             throw new Error(data.error || 'Failed to fetch from cloud');
         }
         if (data.cloudData) {
-            await checkNewer(data.cloudData, state.secretCode);
+            await checkNewer(data.cloudData, activeCode);
         } else {
-            if (forceModal) setSyncCheckResult({ status: 'no_save', code: state.secretCode });
+            if (forceModal) setSyncCheckResult({ status: 'no_save', code: activeCode });
             if (isStartup || !forceModal) setIsInitialSyncCheckDone(true);
         }
       }
     } catch (err: any) {
       setSyncError(err.message);
       const prov = state.syncProvider || 'Redis';
-      const code = prov === 'WebDAV' ? 'WebDAV' : (prov === 'Google Drive' ? 'Google Drive' : (state.secretCode || 'Unknown'));
+      const code = prov === 'WebDAV' ? 'WebDAV' : (prov === 'Google Drive' ? 'Google Drive' : (state.account?.userId || state.secretCode || 'Unknown'));
       logSyncEvent('force_sync', code, 'failed', err.message, 'Manual', prov);
     } finally {
       if (requestId === activeCheckRequestRef.current) {
@@ -973,7 +991,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
     activeSyncRequestRef.current++; // Invalidate any pending sync requests
     activeCheckRequestRef.current++; // Invalidate any pending check requests
     const provider = state.syncProvider || 'Redis';
-    const code = state.secretCode || (provider === 'Google Drive' ? 'Google' : 'WebDAV');
+    const code = state.account?.userId || state.secretCode || (provider === 'Google Drive' ? 'Google' : 'WebDAV');
     logSyncEvent('unbind_local', code, 'success', undefined, 'Manual', provider);
     
     // Clear ephemeral sync states
@@ -983,11 +1001,14 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
     setIsVerifying(false);
     setIsInitialSyncCheckDone(true);
     
-    if (state.secretCode && state.pushEnabled) {
+    if ((state.account?.token || state.secretCode) && state.pushEnabled) {
       fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secretCode: state.secretCode, subscription: null })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+        },
+        body: JSON.stringify({ secretCode: state.account?.userId || state.secretCode, subscription: null })
       }).catch(err => console.debug("Push cancel skipped or failed:", err));
     }
 
@@ -1001,11 +1022,11 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
       newState.pushEnabled = false;
       return newState;
     });
-  }, [setState, state.secretCode, state.syncProvider, state.pushEnabled, logSyncEvent]);
+  }, [setState, state.account, state.secretCode, state.syncProvider, state.pushEnabled, logSyncEvent]);
 
   const deleteCloudData = useCallback(async () => {
-    if (!state.secretCode) return;
-    const code = state.secretCode;
+    if (!state.account?.token && !state.secretCode) return;
+    const code = state.account?.userId || state.secretCode || 'Account';
     setIsSyncing(true);
     setSyncError(null);
     try {
@@ -1013,8 +1034,9 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
         },
-        body: JSON.stringify({ secretCode: code })
+        body: JSON.stringify({ secretCode: state.secretCode })
       });
 
       const contentType = response.headers.get('content-type');
@@ -1036,7 +1058,7 @@ await response.text();;          throw new Error(`Server returned non-JSON respo
     } finally {
       setIsSyncing(false);
     }
-  }, [state.secretCode, unbindFromCloud, logSyncEvent]);
+  }, [state.account, state.secretCode, unbindFromCloud, logSyncEvent]);
 
   return {
     isSyncing,

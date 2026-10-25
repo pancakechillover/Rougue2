@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { MOOD_OPTIONS, DEFAULT_ENABLED_MOODS } from '../../constants';
-import { Trash2, AlertTriangle, Volume2, VolumeX, Sun, Moon, Smile, Trees, Waves, Database, Download, Upload, Target, Gift, Eye, Palette, Check, Bell, BellOff, RefreshCw, Sunrise, CloudSun, Lollipop, History, Globe, ShieldCheck, CalendarCheck, Clock } from 'lucide-react';
-import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../../lib/migrations';
+import { Trash2, Volume2, VolumeX, Sun, Moon, Smile, Trees, Waves, Target, Gift, Eye, Palette, Check, Bell, BellOff, RefreshCw, Sunrise, CloudSun, Lollipop, History, Globe, CalendarCheck, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { TimePicker } from '../common/TimePicker';
-import { scrubExportData } from '../../utils/exportScrubber';
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String: string) {
@@ -28,7 +26,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 import { ActivityTimeSettings } from './ActivityTimeSettings';
 
-export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { state: any, setState: (fn: (prev: any) => any) => void, setShowClearConfirm: (show: boolean) => void }) => {
+export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn: (prev: any) => any) => void }) => {
   const [modalConfig, setModalConfig] = useState<{ 
     isOpen: boolean; 
     title: string; 
@@ -331,106 +329,6 @@ export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { stat
     } finally {
       setIsSubscribing(false);
     }
-  };
-
-  const handleExport = (includeSensitiveData: boolean = true) => {
-    if (includeSensitiveData) {
-      setModalConfig({
-        isOpen: true,
-        title: "Full Export Warning",
-        message: "This full export will include all your personal information, including your unique user ID and active cloud sync credentials. Are you sure you want to proceed?",
-        confirmText: "Export Full Data",
-        onConfirm: () => executeExport(true)
-      });
-    } else {
-      executeExport(false);
-    }
-  };
-
-  const executeExport = (includeSensitiveData: boolean = true) => {
-    const fullLocalStorage: Record<string, string> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        fullLocalStorage[key] = localStorage.getItem(key) || '';
-      }
-    }
-
-    let dataToExport: any = {
-      ...state,
-      dungeons: JSON.parse(localStorage.getItem('scholars_dungeon_state_dungeons') || '[]'),
-      majorDungeons: JSON.parse(localStorage.getItem('scholars_dungeon_state_major_dungeons') || '[]'),
-      fullLocalStorage
-    };
-
-    if (!includeSensitiveData) {
-      dataToExport = scrubExportData(dataToExport);
-    }
-
-    const filename = includeSensitiveData ? "scholars_dungeon_full_save.json" : "scholars_dungeon_safe_save.json";
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", filename);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    
-    setModalConfig(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const importedData = JSON.parse(e.target?.result as string);
-        if (importedData && typeof importedData === 'object') {
-          // Extract state and dungeon data
-          const { dungeons, majorDungeons, fullLocalStorage, ...importedState } = importedData;
-          
-          // Keep the current save so a mistaken import can still be undone by hand
-          const currentRaw = localStorage.getItem('scholars_dungeon_state');
-          if (currentRaw) backupRaw(currentRaw, PRE_MIGRATION_BACKUP_KEY);
-
-          if (fullLocalStorage) {
-            Object.keys(fullLocalStorage).forEach(key => {
-              if (key !== 'scholars_dungeon_device_code') {
-                localStorage.setItem(key, fullLocalStorage[key]);
-              }
-            });
-          } else {
-            localStorage.setItem('scholars_dungeon_state', JSON.stringify({ ...importedState, schemaVersion: CURRENT_SCHEMA_VERSION }));
-            if (dungeons) localStorage.setItem('scholars_dungeon_state_dungeons', JSON.stringify(dungeons));
-            if (majorDungeons) localStorage.setItem('scholars_dungeon_state_major_dungeons', JSON.stringify(majorDungeons));
-          }
-          
-          window.location.reload();
-        } else {
-          setModalConfig({
-            isOpen: true,
-            title: "Import Error",
-            message: "Invalid save file format.",
-            confirmText: "Close",
-            type: "danger",
-            isAlert: true
-          });
-        }
-      } catch (error) {
-        setModalConfig({
-          isOpen: true,
-          title: "Import Failure",
-          message: "Error parsing save file or invalid JSON.",
-          confirmText: "Close",
-          type: "danger",
-          isAlert: true
-        });
-        console.error(error);
-      }
-    };
-    reader.readAsText(file);
   };
 
   const resetPushState = async () => {
@@ -1112,84 +1010,6 @@ export const GeneralSettings = ({ state, setState, setShowClearConfirm }: { stat
         </div>
       </div>
 
-      <div id="setting-data-management" className="space-y-6 pt-6 border-t border-slate-800">
-        <div className="flex items-center gap-2.5 text-blue-400 mb-6 pb-2">
-          <Database size={20} />
-          <h4 className="text-lg font-bold uppercase tracking-widest pr-1">Data Management</h4>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between text-white font-bold">
-              <div className="flex items-center gap-3">
-                <Download size={20} className="text-blue-400" />
-                Export Data
-              </div>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Save your progress to a file. <b>Safe Export</b> removes sync passwords and your device nickname.
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleExport(false)}
-                className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 group"
-              >
-                <ShieldCheck size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                Safe Export
-              </button>
-              <button
-                onClick={() => handleExport(true)}
-                className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 group"
-              >
-                <Database size={14} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                Full Export
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center gap-3 text-white font-bold">
-              <Upload size={20} className="text-blue-400" />
-              Import Data
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Restore your progress from a previously exported file.
-            </p>
-            <input
-              type="file"
-              accept=".json,application/json"
-              onChange={handleImport}
-              className="hidden"
-              id="import-data"
-            />
-            <label
-              htmlFor="import-data"
-              className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all text-sm cursor-pointer flex items-center justify-center"
-            >
-              Import JSON
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6 pt-6 border-t border-slate-800">
-        <div className="flex items-center gap-2.5 text-red-400 mb-6 pb-2">
-          <AlertTriangle size={20} />
-          <h4 className="text-lg font-bold uppercase tracking-widest pr-1">Danger Zone</h4>
-        </div>
-        <div className="space-y-4">
-          <p className="text-xs text-slate-400 leading-relaxed font-medium">
-            Clearing all data will reset your progress, inventory, and settings. This action is irreversible.
-          </p>
-          <button
-            onClick={() => setShowClearConfirm(true)}
-            className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-          >
-            <Trash2 size={16} />
-            Clear All Data
-          </button>
-        </div>
-      </div>
       <ConfirmModal 
         isOpen={modalConfig.isOpen}
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}

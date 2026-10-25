@@ -20,10 +20,13 @@ export function CloudHistoryModal({ onClose, state, onRestore }: CloudHistoryMod
     setLoading(true);
     setError(null);
     try {
-      if (state.syncProvider === 'Redis' && state.secretCode) {
+      if ((state.syncProvider === 'Redis' || !state.syncProvider) && (state.account?.token || state.secretCode)) {
         const res = await fetch('/api/sync/history', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+          },
           body: JSON.stringify({ secretCode: state.secretCode })
         });
         const data = await res.json();

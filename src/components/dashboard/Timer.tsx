@@ -33,6 +33,7 @@ interface TimerProps {
   setShowCoinRain: (show: boolean) => void;
   isFullscreen?: boolean;
   secretCode?: string;
+  authToken?: string;
   userName?: string;
   pushEnabled?: boolean;
   _onTogglePip?: () => void;
@@ -87,6 +88,7 @@ export const Timer = React.memo<TimerProps>(({
   setShowCoinRain,
   isFullscreen = false,
   secretCode,
+  authToken,
   userName,
   pushEnabled,
   _onTogglePip: __onTogglePip,
@@ -166,14 +168,19 @@ export const Timer = React.memo<TimerProps>(({
 
   // Push Notification Scheduling
   useEffect(() => {
-    if (!pushEnabled || !secretCode) return;
+    if (!pushEnabled || (!secretCode && !authToken)) return;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+    };
 
     if (isActive && endTime) {
       const delayMinutes = (endTime - Date.now()) / (60 * 1000);
       if (delayMinutes > 0.1) { // Only schedule if more than 6 seconds left
         fetch('/api/push/schedule', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             secretCode,
             delayMinutes,
@@ -186,11 +193,11 @@ export const Timer = React.memo<TimerProps>(({
     } else {
       fetch('/api/push/cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ secretCode })
       }).catch(err => console.debug('Push cancel skipped or failed:', err));
     }
-  }, [isActive, endTime, pushEnabled, secretCode, isResting]);
+  }, [isActive, endTime, pushEnabled, secretCode, authToken, isResting]);
 
   const handleRewardSelection = useCallback((card: RewardCard | null, session: StudySession) => {
     if (card) {

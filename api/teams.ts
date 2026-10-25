@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { verifyBearerToken } from './auth';
 
 function safeJsonParse<T>(value: any, fallback: T): T {
   if (!value) return fallback;
@@ -191,17 +192,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userBio = req.body?.userBio || decodeHeader(req.headers['x-user-bio']) || req.query?.userBio || '';
     const userTitle = req.body?.userTitle || decodeHeader(req.headers['x-user-title']) || req.query?.userTitle || '';
 
-    // Auth & Identity: Support either secretCode or permanent userUniqueId
-    const secretCode = req.body?.secretCode || req.headers['x-secret-code'] || req.query?.secretCode;
-    const identitySeed = (secretCode as string) || (userUniqueId as string) || "";
-    if (!identitySeed && method !== 'GET') {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // Auth & Identity: Require authenticated Scholar Passport session for all guild actions
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    if (!verifiedSession && method !== 'GET') {
+      return res.status(401).json({ error: 'Authentication required. Please sign in to Scholar Passport to access guild features.' });
     }
-    
-    // Hash the identity seed to get a public userId
-    let userId = "";
-    if (identitySeed) {
-      userId = crypto.createHash('sha256').update(identitySeed).digest('hex').substring(0, 16);
+
+    let userId = verifiedSession ? verifiedSession.userId : "";
+    if (!userId && (req.headers['x-secret-code'] || req.body?.secretCode)) {
+      const fallbackCode = (req.headers['x-secret-code'] || req.body?.secretCode) as string;
+      if (fallbackCode.startsWith('usr_')) {
+        userId = fallbackCode;
+      }
     }
     
     // Parse userLevel ensuring it is a valid positive number
@@ -409,6 +411,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        };
        
        await client.hSet(`scholar_team:${teamId}:members`, userId, JSON.stringify(captain));
+       if (userId.startsWith('usr_')) {
+         await client.hSet(`scholar_user:${userId}`, 'teamId', teamId);
+       }
        
        return res.json({ success: true, teamId });
     }
@@ -467,6 +472,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        
        await client.hSet(`scholar_team:${teamId}:members`, userId, JSON.stringify(member));
        await client.hIncrBy(`scholar_team:${teamId}`, 'memberCount', 1);
+       if (userId.startsWith('usr_')) {
+         await client.hSet(`scholar_user:${userId}`, 'teamId', teamId);
+       }
        
        // Log event
        const event = {
@@ -778,11 +786,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await client.del(`scholar_team:${teamId}:messages`);
           await client.del(`scholar_team:${teamId}:events`);
           await client.del(`scholar_team:${teamId}:proposal`);
+          if (userId.startsWith('usr_')) {
+             await client.hSet(`scholar_user:${userId}`, 'teamId', '');
+          }
           return res.json({ success: true, disbanded: true });
        }
        
        await client.hDel(`scholar_team:${teamId}:members`, userId);
        await client.hIncrBy(`scholar_team:${teamId}`, 'memberCount', -1);
+       if (userId.startsWith('usr_')) {
+          await client.hSet(`scholar_user:${userId}`, 'teamId', '');
+       }
        
        // Clean up if it was the last non-captain member (though captain can't leave without disbanding, so this is just general cleanup)
        await client.lPush(`scholar_team:${teamId}:events`, JSON.stringify({

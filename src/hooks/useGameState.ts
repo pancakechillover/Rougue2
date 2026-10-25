@@ -580,7 +580,8 @@ export function useGameState() {
       activeGachaPoolId: 'standard_gacha',
       activeIchibanPoolId: 'ichiban_1',
       sagePrompts: DEFAULT_SAGE_PROMPTS,
-      workstationLocations: ['Home', 'Lab', 'Library']
+      workstationLocations: ['Home', 'Lab', 'Library'],
+      account: null
     };
 
     const { parsed } = parseSave(saved);
@@ -1483,9 +1484,9 @@ useCallback((amount: number) => {
     }
 
     // Broadcast focus session to Guild Team
-    if (state.teamId && (state.secretCode || state.userUniqueId)) {
+    if (state.teamId && (state.account?.userId || state.secretCode || state.userUniqueId)) {
       const finalDuration = Math.max(1, Math.round(sessionDurationVal));
-      let identityCode = state.secretCode;
+      let identityCode = state.account?.userId || state.secretCode;
       if (!identityCode && typeof window !== 'undefined') {
         try {
           identityCode = localStorage.getItem('team_identity_code') || '';
@@ -1506,6 +1507,7 @@ useCallback((amount: number) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {}),
           'x-secret-code': identityCode || '',
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',

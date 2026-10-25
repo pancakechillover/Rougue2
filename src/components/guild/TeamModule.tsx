@@ -13,6 +13,7 @@ import { getTeamCycleState, calculateUserTotalFocus, calculateUserCycleFocus, ge
 interface TeamModuleProps {
   state: AppState;
   setState: React.Dispatch<React.SetStateAction<AppState>>;
+  onRequirePassportAuth?: (message?: string) => void;
 }
 
 export const renderAvatar = (avatarValue: string | undefined, size: number = 14) => {
@@ -102,7 +103,7 @@ export const isSameChatDay = (ts1: number, ts2: number): boolean => {
     d1.getDate() === d2.getDate();
 };
 
-export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
+export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequirePassportAuth }) => {
   const [view, setView] = useState<'lobby' | 'team'>(state.teamId ? 'team' : 'lobby');
   const [lobbyTeams, setLobbyTeams] = useState<any[]>([]);
   const [team, setTeam] = useState<Team | null>(state.lastTeamData?.team || null);
@@ -272,7 +273,8 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
 
       const res = await fetch(`/api/teams?id=${state.teamId}`, {
         headers: {
-          'x-secret-code': state.secretCode || '',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {}),
+          'x-secret-code': state.account?.userId || state.secretCode || '',
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',
           'x-user-bio': encodeURIComponent(state.userBio || ''),
@@ -314,6 +316,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
   }, [state.teamId]);
 
   const getOrGenerateIdentity = () => {
+    if (state.account?.userId) return state.account.userId;
     if (state.secretCode) return state.secretCode;
     let newCode;
     try {
@@ -325,7 +328,27 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     return newCode;
   };
 
+  const getTeamAuthHeaders = (): Record<string, string> => ({
+    'Content-Type': 'application/json',
+    ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+  });
+
+  const isAuthenticated = Boolean(state.account?.token && state.account?.userId);
+
+  const ensurePassportAuth = (promptMsg: string): boolean => {
+    if (isAuthenticated) return true;
+    if (onRequirePassportAuth) {
+      onRequirePassportAuth(promptMsg);
+    } else {
+      customAlert(promptMsg, 'Scholar Passport Required');
+    }
+    return false;
+  };
+
   const joinTeam = async (id: string) => {
+    if (!ensurePassportAuth('Please sign in to your Scholar Passport first to join a guild.')) {
+      return;
+    }
     const identityCode = getOrGenerateIdentity();
     const targetType = 'total_time';
     const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
@@ -336,7 +359,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     try {
       const res = await fetch('/api/teams?action=join', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: id, 
           secretCode: identityCode,
@@ -374,7 +397,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     try {
       const res = await fetch('/api/teams?action=handle_applicant', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getTeamAuthHeaders(),
         body: JSON.stringify({
           teamId: state.teamId,
           secretCode: identityCode,
@@ -421,7 +444,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     try {
       const res = await fetch('/api/teams?action=message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: state.teamId, 
           secretCode: identityCode,
@@ -461,7 +484,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
     try {
       const res = await fetch('/api/teams?action=settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: state.teamId, 
           secretCode: identityCode,
@@ -485,7 +508,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
      try {
        await fetch('/api/teams?action=vote', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: getTeamAuthHeaders(),
          body: JSON.stringify({ 
            teamId: state.teamId, 
            secretCode: identityCode, 
@@ -512,18 +535,22 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
         </button>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
-            onClick={() => setShowJoin(true)}
+            onClick={() => {
+              if (!ensurePassportAuth('Please sign in to your Scholar Passport first to join a guild.')) {
+                return;
+              }
+              setShowJoin(true);
+            }}
             className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
           >
             <LogIn size={14} /> Join Guild
           </button>
           <button 
             onClick={() => {
-              if (!state.isRedisUnlocked) {
-                setShowUnlockModal(true);
-              } else {
-                setShowCreate(true);
+              if (!ensurePassportAuth('Please sign in to your Scholar Passport first to create a guild.')) {
+                return;
               }
+              setShowCreate(true);
             }}
             className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
           >
@@ -745,10 +772,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                            onClick={(e) => {
                               e.stopPropagation();
                               customConfirm("Are you sure you want to banish this member from the guild? Their stats will immediately be removed from today's Goal statistics.", async () => {
-                                 const identityCode = state.secretCode || getOrGenerateIdentity();
+                                 const identityCode = getOrGenerateIdentity();
                                  await fetch('/api/teams?action=kick', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: getTeamAuthHeaders(),
                                     body: JSON.stringify({ 
                                       teamId: team.id, 
                                       secretCode: identityCode, 
@@ -1066,7 +1093,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
                 const identityCode = getOrGenerateIdentity();
                 await fetch('/api/teams?action=leave', {
                   method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
+                  headers: getTeamAuthHeaders(),
                   body: JSON.stringify({ teamId: team.id, secretCode: identityCode, userName: state.userName || 'Scholar', userUniqueId: state.userUniqueId || '' })
                 });
                 setState(s => ({ ...s, teamId: undefined }));
@@ -1142,7 +1169,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
 
              const res = await fetch('/api/teams?action=create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getTeamAuthHeaders(),
                 body: JSON.stringify({
                    name: cfg.name,
                    description: cfg.description,
@@ -1187,10 +1214,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
            isTargetSelf={viewingProfile === team.myUserId || (!!state.userUniqueId && team.members.find(m => m.userId === viewingProfile)?.uniqueId === state.userUniqueId)}
            onTransferCaptain={(targetId) => {
               customConfirm("Are you sure you want to transfer guild leadership? You will become a regular member.", async () => {
-                 const identityCode = state.secretCode || getOrGenerateIdentity();
+                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=transfer', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
                       secretCode: identityCode, 
@@ -1204,10 +1231,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
            }}
            onKickMember={(targetId) => {
               customConfirm("Are you sure you want to banish this member from the guild?", async () => {
-                 const identityCode = state.secretCode || getOrGenerateIdentity();
+                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=kick', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
                       secretCode: identityCode, 
@@ -1224,10 +1251,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState }) => {
            currentUserName={state.userName || 'Scholar'}
            onReclaimCaptain={(_targetId) => {
               customConfirm("Are you sure this is your old account? Claiming it will restore your captaincy and delete the old duplicate entity.", async () => {
-                 const identityCode = state.secretCode || getOrGenerateIdentity();
+                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=reclaim', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
                       secretCode: identityCode,
@@ -1329,36 +1356,36 @@ const CreateTeamModal = ({ onClose, onCreate }: any) => {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-900 border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.15)] rounded-3xl p-6 sm:p-8 max-w-2xl w-full relative overflow-hidden my-auto"
+        className="bg-slate-900 border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.15)] rounded-3xl p-5 sm:p-7 max-w-lg md:max-w-3xl w-full relative overflow-hidden my-auto"
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors bg-slate-800/50 p-2 rounded-full z-20">
+        <button onClick={onClose} className="absolute top-5 right-5 text-slate-500 hover:text-white transition-colors bg-slate-800/50 p-2 rounded-full z-20">
           <X size={20}/>
         </button>
         
-        <div className="flex items-center gap-4 mb-6 relative z-10">
-          <div className="w-14 h-14 bg-slate-950 text-indigo-400 flex items-center justify-center rounded-2xl border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.3)] shrink-0">
-            <Landmark size={28} />
+        <div className="flex items-center gap-3.5 mb-5 relative z-10">
+          <div className="w-12 h-12 bg-slate-950 text-indigo-400 flex items-center justify-center rounded-2xl border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.3)] shrink-0">
+            <Landmark size={24} />
           </div>
           <div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Found a Guild</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter">Found a Guild</h3>
             <p className="text-xs text-slate-400 font-medium tracking-tight mt-0.5">Gather scholars under one banner and forge your legacy.</p>
           </div>
         </div>
          
         {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-sm flex items-start gap-3">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs flex items-start gap-2.5">
+            <AlertCircle size={15} className="shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
           {/* Left Column: Identity */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <h4 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
               <Landmark size={16} className="text-indigo-400" /> Guild Identity
             </h4>
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-1 block">Guild Icon</label>
                 <div className="flex flex-wrap gap-2">
@@ -1477,10 +1504,10 @@ const CreateTeamModal = ({ onClose, onCreate }: any) => {
           </div>
         </div>
         
-        <div className="mt-10 relative z-10 flex gap-4 xl:w-1/2 xl:ml-auto">
+        <div className="mt-6 pt-4 border-t border-slate-800/80 relative z-10 flex gap-3 md:w-1/2 md:ml-auto">
           <button 
              onClick={onClose} 
-             className="w-1/3 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors tracking-widest text-sm"
+             className="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors tracking-widest text-xs"
           >
             CANCEL
           </button>
@@ -1604,27 +1631,27 @@ const SettingsModal = ({ team, onClose, onSave, isCaptain, onLeave }: any) => {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-       <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-6 sm:p-8 max-w-4xl w-full relative my-auto">
-         <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full transition-colors z-20"><X size={20}/></button>
+       <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-5 sm:p-7 max-w-lg md:max-w-4xl w-full relative my-auto">
+         <button onClick={onClose} className="absolute top-5 right-5 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full transition-colors z-20"><X size={20}/></button>
          
-         <div className="flex items-center gap-4 mb-8">
-           <div className="w-14 h-14 bg-slate-800 text-slate-300 flex items-center justify-center rounded-2xl border-2 border-slate-700 shrink-0">
-             <Settings size={28} />
+         <div className="flex items-center gap-3.5 mb-5">
+           <div className="w-12 h-12 bg-slate-800 text-slate-300 flex items-center justify-center rounded-2xl border-2 border-slate-700 shrink-0">
+             <Settings size={24} />
            </div>
            <div>
-             <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Guild Settings</h3>
-             <p className="text-sm text-slate-400 font-medium tracking-tight mt-1">Manage configuration, policy, and goals.</p>
+             <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter">Guild Settings</h3>
+             <p className="text-xs text-slate-400 font-medium tracking-tight mt-0.5">Manage configuration, policy, and goals.</p>
            </div>
          </div>
          
-         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative z-10">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
            {/* Left Column: Identity & Access */}
-           <div className="space-y-6">
+           <div className="space-y-4">
              <h4 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
                <Landmark size={16} className="text-indigo-400" /> Identity & Access
              </h4>
              
-             <div className="space-y-4">
+             <div className="space-y-3.5">
                {isCaptain && (
                  <div>
                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-1 block">Guild Icon</label>
@@ -1691,12 +1718,12 @@ const SettingsModal = ({ team, onClose, onSave, isCaptain, onLeave }: any) => {
            </div>
 
            {/* Right Column: Goals & Authority */}
-           <div className="space-y-6">
+           <div className="space-y-4">
              <h4 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
-               <Target size={16} className="text-emerald-400" /> Goal Configuration
+               <Target size={16} className="text-indigo-400" /> Goal Configuration
              </h4>
              
-             <div className="space-y-4">
+             <div className="space-y-3.5">
                <div>
                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-1 block">Goal Setting Authority</label>
                  <select 
@@ -1781,23 +1808,23 @@ const SettingsModal = ({ team, onClose, onSave, isCaptain, onLeave }: any) => {
            </div>
          </div>
          
-         <div className="mt-10 flex flex-col xl:flex-row gap-4 items-center justify-between border-t border-slate-800 pt-6">
+         <div className="mt-6 flex flex-col md:flex-row gap-3 items-center justify-between border-t border-slate-800 pt-4">
            <button 
              onClick={() => onLeave(isCaptain)}
-             className="w-full xl:w-auto py-3 px-6 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 font-bold text-xs rounded-xl transition-colors border border-rose-500/20 flex items-center justify-center gap-2 font-sans tracking-widest uppercase"
+             className="w-full md:w-auto py-2.5 px-5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 font-bold text-xs rounded-xl transition-colors border border-rose-500/20 flex items-center justify-center gap-2 font-sans tracking-widest uppercase"
            >
              <LogIn size={14} className="rotate-180" />
              {isCaptain ? "Disband Guild" : "Leave Guild"}
            </button>
 
-           <div className="flex gap-4 w-full xl:w-auto">
-             <button onClick={onClose} className="w-1/3 xl:w-auto xl:px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm tracking-widest overflow-hidden">
+           <div className="flex gap-3 w-full md:w-auto">
+             <button onClick={onClose} className="w-1/3 md:w-auto md:px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-xs tracking-widest overflow-hidden">
                {(!isCaptain && team.config.permission !== 'unanimous') ? "CLOSE" : "CANCEL"}
              </button>
              {(isCaptain || team.config.permission === 'unanimous') && (
                <button onClick={() => onSave(cfg)} className={cn(
-                 "w-2/3 xl:w-auto xl:px-8 py-3 text-white font-bold rounded-xl transition-colors font-sans text-sm tracking-widest whitespace-nowrap shadow-lg",
-                 isCaptain ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30" : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30"
+                 "w-2/3 md:w-auto md:px-6 py-2.5 text-white font-bold rounded-xl transition-colors font-sans text-xs tracking-widest whitespace-nowrap shadow-lg",
+                 "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
                )}>
                  {isCaptain ? "SAVE ALL CHANGES" : "PROPOSE CHANGES"}
                </button>
