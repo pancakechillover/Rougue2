@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import webpush from "web-push";
 import crypto from "crypto";
 import { isValidOrigin } from "./api/oauthUtils";
+import authHandler, { verifyBearerToken } from "./api/auth";
 import teamsHandler from "./api/teams";
 import sageHandler from "./api/sage";
 import webdavHandler from "./api/webdav/proxy";
@@ -76,6 +77,9 @@ app.get("/api/stats", async (_req, res) => {
     if (expiredUsers.length > 0) {
       for (const user of expiredUsers) {
         await client.del(`scholar_sync_${user}`);
+        await client.del(`scholar_sync_${user}_history`);
+        await client.del(`scholar_user:${user}:save`);
+        await client.del(`scholar_user:${user}:save_history`);
         await client.del(`scholar_push_subs_${user}`);
         await client.del(`scholar_push_sub_${user}`); // legacy
       }
@@ -110,10 +114,23 @@ app.get("/api/stats", async (_req, res) => {
 
 // ── Sync input validation & rate limiting ────────────────────────────────
 
-/** Accepts the legacy base36 codes (26 chars) and the new UUID codes (36 chars). */
-const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+/** Accepts legacy base36 codes, UUID codes, and unified usr_<uuid> IDs. */
+const SECRET_CODE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const isValidSecretCode = (value: unknown): value is string =>
   typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
+
+const getStorageKeys = (identity: string, isUnifiedUser: boolean): { saveKey: string; historyKey: string } => {
+  if (isUnifiedUser || identity.startsWith('usr_')) {
+    return {
+      saveKey: `scholar_user:${identity}:save`,
+      historyKey: `scholar_user:${identity}:save_history`,
+    };
+  }
+  return {
+    saveKey: `scholar_sync_${identity}`,
+    historyKey: `scholar_sync_${identity}_history`,
+  };
+};
 
 const RATE_LIMIT_WINDOW_S = 60;
 const RATE_LIMIT_MAX = 20;
@@ -137,9 +154,6 @@ async function isRateLimited(client: any, req: express.Request): Promise<boolean
 // Sync API Handler
 const syncHandler = async (req: express.Request, res: express.Response) => {
   try {
-    const { secretCode, localData } = req.body;
-    if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
-    
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Cloud sync is not configured." });
 
@@ -147,26 +161,33 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
       return res.status(429).json({ error: "Too many requests. Please try again later." });
     }
 
-    const key = `scholar_sync_${secretCode}`;
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const { secretCode, localData } = req.body || {};
+    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
+    if (!isValidSecretCode(activeIdentity)) {
+      return res.status(400).json({ error: "Authentication or valid secret code required" });
+    }
+    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
     
     // Prune expired BEFORE check
     const fifteenDaysAgoMs = Date.now() - 15 * 24 * 3600 * 1000;
     await client.zRemRangeByScore('scholar_active_users', 0, fifteenDaysAgoMs);
 
     // Track user active
-    await client.zAdd('scholar_active_users', { score: Date.now(), value: secretCode });
+    await client.zAdd('scholar_active_users', { score: Date.now(), value: activeIdentity });
 
     // Enforce 300 users limit
     const userCount = await client.zCard('scholar_active_users');
     if (userCount > 300) {
-      const rank = await client.zRank('scholar_active_users', secretCode);
-      if (rank >= 300) {
-        await client.zRem('scholar_active_users', secretCode);
+      const rank = await client.zRank('scholar_active_users', activeIdentity);
+      if (rank !== null && rank >= 300) {
+        await client.zRem('scholar_active_users', activeIdentity);
         return res.status(403).json({ error: "Capacity Full: Multi-device sync is capped at 300 registered users in the free tier quota. Try again later when inactive slots clear up." });
       }
     }
 
-    const cloudDataRaw = await client.get(key);
+    const cloudDataRaw = await client.get(saveKey);
     const cloudData = cloudDataRaw ? JSON.parse(cloudDataRaw.toString()) : null;
 
     if (!localData) return res.json({ cloudData });
@@ -189,7 +210,6 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
     
     // Save backup history (up to 3 recent copies)
     if (cloudData && cloudData.lastUpdated && cloudData.lastUpdated !== localData.lastUpdated) {
-        const historyKey = `${key}_history`;
         const historyRaw = await client.get(historyKey);
         let historyList = historyRaw ? JSON.parse(historyRaw.toString()) : [];
         // Insert at beginning
@@ -199,7 +219,7 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
         await client.set(historyKey, JSON.stringify(historyList));
     }
 
-    await client.set(key, JSON.stringify(localData));
+    await client.set(saveKey, JSON.stringify(localData));
     res.json({ success: true, cloudData: localData });
   } catch (error) {
     console.error("Sync error:", error);
@@ -209,18 +229,24 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
 
 const deleteHandler = async (req: express.Request, res: express.Response) => {
   try {
-    const { secretCode } = req.body;
-    if (!isValidSecretCode(secretCode)) return res.status(400).json({ error: "Invalid secret code format" });
-    
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Cloud sync is not configured." });
 
     if (await isRateLimited(client, req)) {
       return res.status(429).json({ error: "Too many requests. Please try again later." });
     }
+
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const { secretCode } = req.body || {};
+    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
+    if (!isValidSecretCode(activeIdentity)) {
+      return res.status(400).json({ error: "Authentication or valid secret code required" });
+    }
+    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
     
-    const key = `scholar_sync_${secretCode}`;
-    await client.del(key);
+    await client.del(saveKey);
+    await client.del(historyKey);
     res.json({ success: true });
   } catch (error) {
     console.error("Delete error:", error);
@@ -230,13 +256,18 @@ const deleteHandler = async (req: express.Request, res: express.Response) => {
 
 const historyHandler = async (req: express.Request, res: express.Response) => {
   try {
-    const { secretCode } = req.body;
-    if (!secretCode) return res.status(400).json({ error: "Secret code is required" });
-    
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Cloud sync is not configured." });
 
-    const historyKey = `scholar_sync_${secretCode}_history`;
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const { secretCode } = req.body || {};
+    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
+    if (!isValidSecretCode(activeIdentity)) {
+      return res.status(400).json({ error: "Authentication or secret code is required" });
+    }
+    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const { historyKey } = getStorageKeys(activeIdentity, isUnified);
+
     const historyRaw = await client.get(historyKey);
     const historyList = historyRaw ? JSON.parse(historyRaw.toString()) : [];
     
@@ -287,17 +318,20 @@ app.get("/api/push/vapid-public-key", (_req, res) => {
 
 app.post("/api/push/subscribe", async (req, res) => {
   try {
-    const { secretCode, subscription } = req.body;
+    const { secretCode, subscription } = req.body || {};
     const client = await getRedisClient();
-    if (!secretCode || !client) return res.status(400).json({ error: "Invalid request" });
+    if (!client) return res.status(500).json({ error: "Redis not configured" });
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const targetIdentity = verifiedSession?.userId || secretCode;
+    if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
     
     // Key for sets of subscriptions for this user
-    const key = `scholar_push_subs_${secretCode}`;
+    const key = `scholar_push_subs_${targetIdentity}`;
     
     if (subscription === null) {
       await client.del(key);
       // Also clear legacy format
-      await client.del(`scholar_push_sub_${secretCode}`);
+      await client.del(`scholar_push_sub_${targetIdentity}`);
       return res.json({ success: true, message: "All subscriptions cleared" });
     }
     
@@ -335,20 +369,23 @@ app.post("/api/push/subscribe", async (req, res) => {
 
 app.post("/api/push/schedule", async (req, res) => {
   try {
-    const { secretCode, delayMinutes, title, body, type } = req.body;
+    const { secretCode, delayMinutes, title, body, type } = req.body || {};
     const client = await getRedisClient();
-    if (!secretCode || delayMinutes === undefined || !client) return res.status(400).json({ error: "Invalid request" });
+    if (!client) return res.status(500).json({ error: "Redis not configured" });
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const targetIdentity = verifiedSession?.userId || secretCode;
+    if (!targetIdentity || delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
     const targetTime = Date.now() + (delayMinutes * 60 * 1000);
-    const task = { secretCode, title, body, type, targetTime };
+    const task = { secretCode: targetIdentity, title, body, type, targetTime };
     const taskStr = JSON.stringify(task);
     
     // Store quick ref for cancellation and clean up previous
-    const oldTaskStr = await client.get(`scholar_push_task_ref_${secretCode}`);
+    const oldTaskStr = await client.get(`scholar_push_task_ref_${targetIdentity}`);
     if (oldTaskStr) {
       await client.zRem('scholar_push_tasks', oldTaskStr);
     }
     
-    await client.set(`scholar_push_task_ref_${secretCode}`, taskStr, { EX: 3600 });
+    await client.set(`scholar_push_task_ref_${targetIdentity}`, taskStr, { EX: 3600 });
     await client.zAdd('scholar_push_tasks', { score: targetTime, value: taskStr });
     
     res.json({ success: true, targetTime });
@@ -360,21 +397,24 @@ app.post("/api/push/schedule", async (req, res) => {
 
 app.post("/api/push/cancel", async (req, res) => {
   try {
-    const { secretCode } = req.body;
+    const { secretCode } = req.body || {};
     const client = await getRedisClient();
-    if (!secretCode || !client) return res.status(400).json({ error: "Invalid request" });
+    if (!client) return res.status(500).json({ error: "Redis not configured" });
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    const targetIdentity = verifiedSession?.userId || secretCode;
+    if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
     
     // 1. Try quick reference cancel
-    const taskStr = await client.get(`scholar_push_task_ref_${secretCode}`);
+    const taskStr = await client.get(`scholar_push_task_ref_${targetIdentity}`);
     if (taskStr) {
       await client.zRem('scholar_push_tasks', taskStr);
-      await client.del(`scholar_push_task_ref_${secretCode}`);
+      await client.del(`scholar_push_task_ref_${targetIdentity}`);
     } else {
       // 2. Fallback scan (Legacy/Emergency)
       const tasks = await client.zRange('scholar_push_tasks', 0, -1);
       for (const tStr of tasks) {
         const task = JSON.parse(tStr.toString());
-        if (task.secretCode === secretCode) {
+        if (task.secretCode === targetIdentity) {
           await client.zRem('scholar_push_tasks', tStr.toString());
         }
       }
@@ -547,6 +587,11 @@ app.get('/api/auth/google/url', (req, res) => {
 });
 
 // WebDAV and API Proxies for local development
+app.all('/api/auth', async (req, res) => {
+  // Mock Vercel Request for Express
+  await authHandler(req as any, res as any);
+});
+
 app.all('/api/teams', async (req, res) => {
   // Mock Vercel Request for Express
   await teamsHandler(req as any, res as any);

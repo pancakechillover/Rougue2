@@ -39,11 +39,12 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
   }>({ isOpen: false, title: '', message: '' });
 
   const handleTestNotification = async () => {
-    if (!state.isRedisUnlocked) {
+    const pushIdentity = state.account?.userId || state.secretCode;
+    if (!state.account?.token && !state.isRedisUnlocked) {
       setModalConfig({
         isOpen: true,
         title: "Developer Access Required",
-        message: "You need to unlock Developer Access in the Data Management section.",
+        message: "You need to unlock Developer Access or sign in with a Scholar Account first.",
         confirmText: "Got it",
         type: "warning",
         isAlert: true
@@ -51,11 +52,11 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
       return;
     }
 
-    if (!state.secretCode) {
+    if (!pushIdentity) {
       setModalConfig({
         isOpen: true,
         title: "Sync Required",
-        message: "Please link your account with a Secret Code first.",
+        message: "Please sign in with a Scholar Account or link a Secret Code first.",
         confirmText: "Got it",
         type: "warning",
         isAlert: true
@@ -68,9 +69,12 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
       if (import.meta.env.DEV) console.log('Testing: Scheduling notification (expired)...');
       const scheduleRes = await fetch('/api/push/schedule', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+        },
         body: JSON.stringify({
-          secretCode: state.secretCode,
+          secretCode: pushIdentity,
           delayMinutes: -1,
           title: testNotificationTitle,
           body: testNotificationBody,
@@ -88,7 +92,7 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
       if (import.meta.env.DEV) console.log('Push Check Results (Detailed):', checkData);
       
       if (checkData.success) {
-        const myResult = checkData.results?.find((r: any) => r.secretCode === state.secretCode);
+        const myResult = checkData.results?.find((r: any) => r.secretCode === pushIdentity);
         const debug = checkData.debug || {};
         
         if (import.meta.env.DEV) console.log(`[Debug Info] Queue Count: ${debug.totalPendingInQueue}, Server Time: ${debug.serverTime}`);
@@ -425,11 +429,12 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
               </button>
               <button
                 onClick={async () => {
-                  if (!state.secretCode) {
+                  const pushIdentity = state.account?.userId || state.secretCode;
+                  if (!pushIdentity) {
                     setModalConfig({
                       isOpen: true,
-                      title: "Secret Code Required",
-                      message: "Please link your account with a Secret Code first.",
+                      title: "Account Required",
+                      message: "Please sign in with a Scholar Account or link a Secret Code first.",
                       confirmText: "Got it",
                       type: "warning",
                       isAlert: true
@@ -446,9 +451,12 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
                       try {
                         const res = await fetch('/api/push/subscribe', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+                          },
                           body: JSON.stringify({
-                            secretCode: state.secretCode,
+                            secretCode: pushIdentity,
                             subscription: null
                           })
                         });

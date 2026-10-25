@@ -405,7 +405,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         onComplete={(duration, fDur, rDur, distractions) => {
           const result = completeSession(state.currentDungeonId || null, duration, fDur, rDur, undefined, distractions);
           playSound('success', state.soundVolume, state.soundEnabled);
-          if (result && state.secretCode) {
+          if (result && (state.account?.token || state.secretCode)) {
             syncToCloud(false, undefined, 'Manual');
           }
           
@@ -428,7 +428,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           useTimerStore.getState().setActiveRewardSession(null);
           selectReward(reward, sessionId);
           playSound('reward', state.soundVolume, state.soundEnabled);
-          if (state.secretCode) {
+          if (state.account?.token || state.secretCode) {
             syncToCloud(false, undefined, 'Manual');
           }
           setState(prev => ({
@@ -455,7 +455,8 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         setShowCoinRain={setShowCoinRain}
         isFullscreen={isFullscreenExplore}
         _pipWindow={pipWindow}
-        secretCode={state.secretCode}
+        secretCode={state.account?.userId || state.secretCode}
+        authToken={state.account?.token}
         userName={state.userName}
         pushEnabled={state.pushEnabled}
         _onTogglePip={togglePip}

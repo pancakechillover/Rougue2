@@ -1,104 +1,175 @@
-# Fellowship Chat Modernization Implementation Plan
+# Unified Scholar Account & Cloud-Guild Identity Architecture (Phase 1 & Phase 2)
 
-## Summary & Objectives
-Enhance the Fellowship Guild chat box in `src/components/guild/TeamModule.tsx` to match modern chat standards (WeChat / Discord style). The implementation will introduce:
-1. **Smart Date & Time Dividers:** Centered, subtle date headers (e.g. "Today", "Yesterday", or formatted dates) and smart interval time stamps when messages are sent >5 minutes apart.
-2. **Consecutive Message Clustering:** Seamless grouping of consecutive messages from the same user sent within a 5-minute window under a single avatar and sender title, reducing visual clutter.
-3. **Scroll Viewport Stabilization:** Refactor the chat message container from `flex-col-reverse` to standard top-to-bottom flow with robust bottom-docking logic (`isNearBottomRef`, `scrollHeight - scrollTop - clientHeight <= 80px`).
-4. **Floating Unread / Scroll-to-Bottom Pill:** A smooth animated pill floating above the message input box when scrolled up, displaying unread incoming count (e.g., `↓ 3 new messages`) or a quick scroll button (`↓ Scroll to bottom`) that smoothly glides down to the latest message.
+This milestone implements **Phase 1 (Backend Authentication & Complete Legacy Migration Engine)** and **Phase 2 (Frontend Account State & `useAuth` Hook)** of the Unified Scholar Account architecture. It unifies the three core server-backed subsystems—**Cloud Save**, **Fellowship Guild**, and **Web Push Notifications**—under a single permanent `userId` while keeping Guest Mode 100% functional offline.
+
+> [!NOTE]
+> **Terminology Clarification ("Dual-Core Cloud Services" vs. Multi-Cloud)**: The Chinese plan's "双核云端" refers to the two primary server-backed modules (**Cloud Save** and **Fellowship Guild**, alongside **Web Push**) sharing a unified account identity on Redis—not two separate cloud vendors. Phases 1 & 2 build the complete `/api/auth` service, legacy migration engine, and client `useAuth` hook; Phase 3 will switch `/api/sync`, `/api/teams`, and `/api/push` to read `Bearer` tokens directly; Phase 4 will introduce the `ScholarPassportModal` UI.
 
 ---
 
-## User Review & Confirmed Decisions
-Based on clarifying questions answered by the user:
-- **Date & Time Layout:** Centered date badges (e.g., subtle rounded pill with day separator) and smart time interval badges (>5 min elapsed between consecutive messages).
-- **Scroll & Unread Behavior:** Floating pill anchored at the bottom-center of the chat view when user is scrolled up >100px from the bottom; displays dynamic unread message count and scrolls smoothly to bottom on click.
-- **Message Grouping:** Group consecutive messages from the same member within 5 minutes under a single avatar/name header, with tighter bubble margins and subtle relative time on hover.
+## User Review & Critical Decisions
+
+> [!IMPORTANT]
+> All security and concurrency audit findings have been incorporated into the architecture below:
+
+- **Scope (Phase 1 & Phase 2 First)**: Deliver `/api/auth.ts`, Express/Vercel routing, `.env.example`, `AppState.account` schema, and `src/hooks/useAuth.ts` without breaking any existing guest or legacy flows.
+- **Fail-Closed Secret Validation (`REGISTRATION_SECRET` & `AUTH_TOKEN_SECRET`)**:
+  - Both secrets are strictly mandatory.
+  - Missing `AUTH_TOKEN_SECRET` (or `< 16` chars) causes all token-issuing and token-verifying endpoints to fail closed with HTTP `503` (`"Server authentication secret (AUTH_TOKEN_SECRET) is not configured."`). Never fallback to `undefined` or a default string.
+  - Missing `REGISTRATION_SECRET` causes `register` to fail closed with HTTP `503` (`"Server registration secret (REGISTRATION_SECRET) is not configured."`).
+- **Complete Legacy Migration (`migrate_legacy`) Across All 4 Redis Domains**:
+  1. **Cloud Save & History** (`scholar_sync_{code}` -> `scholar_user:{userId}:save`).
+  2. **Fellowship Guild Identity** (rewriting `sha256(secretCode).slice(0, 16)` across `members`, `applicants`, `proposal`, `messages`, and `events` without `KEYS`, using in-place `LSET` for chat/event lists and mandatory client `AppState.teamId` injection).
+  3. **Active User Quota ZSET** (`scholar_active_users` deduplication so migrated users never occupy ghost slots).
+  4. **Web Push Subscriptions & Queued Tasks** (migrating `scholar_push_subs_{code}`, rewriting pending tasks in `scholar_push_tasks`, and migrating `scholar_push_task_ref_{code}` TTLs with cron race protection).
 
 ---
 
-## Architecture & Technical Design
+## 1. Overview & Core Concept
 
-### 1. Chat Flow & Scroll Engine
+- **What It Does**: Replaces device-fragile random strings (`secretCode` and hashed guild seeds) with an invite-gated Scholar Account (`userId`, `username`, and revocable session token) backed by Redis, while preserving zero-friction local storage for unauthenticated guests.
+- **Target Audience / Persona**: Scholars who use multiple devices or PWAs, participate in Fellowship Guilds, and rely on Cloud Sync and Web Push timers without wanting to manually manage random secret codes or suffer `"403 Not a member"` guild lockouts after clearing browser cache.
+- **Key Value**: Permanent cross-device identity, strict invite-key protection for server/Redis quotas, and a lossless, idempotent migration bridge for existing users.
+
+---
+
+## 2. User Experience & Visual Design
+
+- **Key User Flows (Phase 1 & Phase 2 Foundation)**:
+  1. **Unauthenticated Guest Flow**: Users launch the app and use all local features immediately (`account` is `null`).
+  2. **Invite-Gated Registration Flow**: Submitting `username`, `password`, and `registrationKey` verifies server secrets, checks dedicated auth rate limits, hashes the password via async `crypto.scrypt`, atomically claims the username with rollback protection, and issues a signed session token.
+  3. **Sign-In & Auto-Renewal Flow**: Signing in or reopening the app validates the Bearer token against `GET /api/auth?action=me`, refreshes the 30-day sliding session TTL in Redis, and exposes the authoritative `userId`.
+  4. **Lossless Legacy Migration Flow**: Submitting an old `secretCode` (alongside the client's current `AppState.teamId` and `userUniqueId`) to `POST /api/auth?action=migrate_legacy` migrates the user's Cloud Save, Guild membership/captaincy/chat ownership, Active User quota slot, and pending Web Push tasks into their new `userId`.
+- **Visual Identity & Theme**:
+  - Phase 1 & Phase 2 operate at the API and state/hook layers; all server responses and hook error messages use 100% pure English copy ready for Phase 4 UI integration.
+
+---
+
+## 3. Key Product Decisions & Known Trade-Offs
+
+- **Decision 1: Asynchronous `crypto.scrypt` Password Hashing (No Event-Loop Blocking)**
+  - *Chosen Approach*: Strictly use Node's asynchronous `crypto.scrypt` (wrapped in `util.promisify`) and **forbid `crypto.scryptSync`** so Vercel Serverless functions never block the event loop.
+  - *Locked Parameters*:
+    - `N = 16384` (`2^14`), `r = 8`, `p = 1`, `keylen = 64` bytes (`maxmem = 32 * 1024 * 1024`).
+    - `salt`: 16 random bytes (`crypto.randomBytes(16)`) stored as a 32-char hex string.
+    - Storage format in `scholar_user:{userId}` hash: `passwordHash` (128-char hex), `salt` (32-char hex), and `kdf` (`"scrypt:16384:8:1:64"`).
+    - Verification uses `crypto.timingSafeEqual(derivedBuffer, storedHashBuffer)`.
+- **Decision 2: Signed & Revocable Redis Sessions**
+  - *Chosen Approach*: Token format is `<tokenId>.<hmacSha256(tokenId, AUTH_TOKEN_SECRET)>`, where `tokenId` is a 32-byte random hex string stored at `scholar_session:{tokenId}` with a 30-day sliding TTL (`2592000` seconds).
+  - *Why*: Combines tamper-proof HMAC verification with instant server-side revocation on logout.
+- **Decision 3: Dedicated Auth Rate Limiting & Registration Rollback**
+  - *Chosen Approach*: Separate auth rate-limit buckets (`scholar_auth_rate:{ip}`: max 10 requests per 300s for login/register; `scholar_auth_migrate_rate:{ip}`: max 5 requests per 300s for migration) isolated from `/api/sync.ts`'s `scholar_rate_{ip}`. Registration wraps post-`SETNX` writes in a `try/catch` that deletes `scholar_user_lookup:{username}` on failure, and heals orphaned lookup keys whose target `scholar_user:{userId}` hash does not exist.
+- **Known Trade-Offs (Explicitly Accepted for Phase 1 & 2)**:
+  1. **No Password Recovery Endpoint in Phase 1**: Because registration collects zero PII (no email/phone) and `REGISTRATION_SECRET` is shared among all invited users (making it unsuitable for admin authentication), Phase 1 intentionally exposes **no password reset API endpoint**. Forgetting a password has no in-app recovery path in Phase 1 (an administrator with direct Redis console access can manually delete or update `scholar_user:{userId}` if needed).
+  2. **`localStorage` Session Token in PWA / Cross-Origin Iframe**: Because the app runs both inside cross-origin preview iframes (where third-party `HttpOnly` cookies are blocked) and as an installed PWA, storing the session token in `localStorage` is a deliberate trade-off. Risk is mitigated by storing session state in Redis (`scholar_session:{tokenId}`) enabling immediate server-side revocation.
+  3. **Dormant Guild (>15 Days Inactive) Discovery Limit**: `scholar_active_teams` prunes guilds inactive for more than 15 days. While `useAuth.migrateLegacy` mitigates this by explicitly passing the client's local `AppState.teamId` (in addition to `cloudData.teamId` and `scholar_active_teams`), a residual edge case remains: if a guild has been inactive for >15 days, AND `cloudData` did not record `teamId`, AND the user migrates from a wiped browser with no local `AppState.teamId`, that dormant guild will not be discovered during `migrate_legacy`.
+
+---
+
+## 4. Technical Architecture & Data Strategy *(Technical Reference)*
+
+### Architecture & Component Diagram
+
 ```
-+-------------------------------------------------------------+
-| Fellowship Chat Viewport (Refactored to flex flex-col)     |
-|                                                             |
-|  [-- Today, Oct 24 --]              <- Centered Date Badge  |
-|                                                             |
-|  (Avatar) [ScholarA]: Hello everyone! (10:14)               |
-|           Working on algorithms today... (mt-1)             |
-|                                                             |
-|  [-- 10:25 AM --]                   <- 5+ Min Interval Pill |
-|                                                             |
-|  (Avatar) [ScholarB]: Good luck with your study session!    |
-|                                                             |
-|  ...................... (User scrolled up) ...............  |
-|                                                             |
-|           +---------------------------------+               |
-|           |   ↓ 3 new messages  (Click)     |               |  <- Floating Pill
-|           +---------------------------------+               |     (AnimatePresence)
-+-------------------------------------------------------------+
-| [ Message Input Field................... ] [ Send Button ]  |
-+-------------------------------------------------------------+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        Frontend Client (React SPA)                         │
+│                                                                            │
+│  ┌──────────────────────────────┐      ┌────────────────────────────────┐  │
+│  │    AppState & Storage        │      │         useAuth Hook           │  │
+│  │  - account: ScholarAccount   │◄────►│  - register(user, pass, key)   │  │
+│  │  - teamId / userUniqueId     │      │  - login(user, pass)           │  │
+│  │  - schemaVersion migration   │      │  - logout() / refreshSession() │  │
+│  └──────────────┬───────────────┘      │  - migrateLegacy(secretCode)   │  │
+│                 │                      │    [auto-injects local teamId] │  │
+└─────────────────┼──────────────────────┴───────────────┬────────────────┘  │
+                  │ Unified Identity (userId + Bearer)   │ HTTPS / JSON
+                  ▼                                      ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                   Backend API Layer (Express & Vercel)                     │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                  Authentication Service (/api/auth)                  │  │
+│  │  - Fail-closed check for AUTH_TOKEN_SECRET & REGISTRATION_SECRET     │  │
+│  │  - Dedicated Rate Limiters (scholar_auth_rate / migrate_rate)        │  │
+│  │  - POST ?action=register  (async scrypt + SETNX + rollback guard)    │  │
+│  │  - POST ?action=login     (timingSafeEqual + 30d Redis session)      │  │
+│  │  - GET  ?action=me        (HMAC verify + sliding TTL renewal)        │  │
+│  │  - POST ?action=logout    (DEL scholar_session:{tokenId})            │  │
+│  │  - POST ?action=migrate_legacy (4-domain atomic/idempotent migrator) │  │
+│  └──────┬───────────────────┬───────────────────────┬───────────────┬───┘  │
+└─────────┼───────────────────┼───────────────────────┼───────────────┼──────┘
+          │                   │                       │               │
+          ▼                   ▼                       ▼               ▼
+┌───────────────────┐ ┌────────────────────┐ ┌─────────────────┐ ┌───────────┐
+│   Account Store   │ │ Cloud Save & Quota │ │   Guild Store   │ │ Web Push  │
+│ - scholar_user:   │ │ - scholar_user:    │ │ - scholar_team: │ │ - push_   │
+│   {userId}        │ │   {userId}:save    │ │   {id}:members  │ │   subs_   │
+│ - user_lookup:    │ │ - scholar_active_  │ │ - applicants /  │ │ - push_   │
+│   {name_lower}    │ │   users (ZSET)     │ │   proposal /    │ │   tasks   │
+│ - session:{tokId} │ │   [zRem old code]  │ │   LSET messages │ │ - task_ref│
+└───────────────────┘ └────────────────────┘ └─────────────────┘ └───────────┘
 ```
 
-### 2. Message Preprocessing & Chronological Pipeline
-Before rendering `messages`:
-1. **Chronological Sort:** Guarantee messages are ordered ascending by `timestamp`.
-2. **Cluster & Divider Detection:**
-   - Compute `showDateDivider`: true if first message of chat or if `dateString(msg.timestamp) !== dateString(prevMsg.timestamp)`.
-   - Compute `showTimeDivider`: true if date didn't change, but `msg.timestamp - prevMsg.timestamp >= 5 * 60 * 1000` (5 minutes).
-   - Compute `isConsecutive`: true if same sender `msg.senderId === prevMsg.senderId`, same day, and time gap `< 5 minutes`.
-3. **Date Label Formatting:**
-   - If today: `"Today"`
-   - If yesterday: `"Yesterday"`
-   - If same year: `"MMM d"` (e.g., `Oct 24`)
-   - Else: `"MMM d, yyyy"` (e.g., `Oct 24, 2025`)
-   - Strictly in English per CSS & UI Standards.
+### Data Model & Redis Schemas
 
-### 3. Scroll & Unread State Engine
-- **State & Refs:**
-  - `scrollContainerRef`: Reference to the scrollable `div`.
-  - `isAtBottom`: Boolean state tracking if user is within `60px` of the bottom.
-  - `unreadCount`: Tracks incoming messages received via polling or socket while `!isAtBottom`.
-  - `lastSeenMessageId`: ID of the message at the bottom when user scrolled away.
-- **Scroll Event Listener:**
-  - Computes `const distanceFromBottom = scrollHeight - scrollTop - clientHeight`.
-  - If `distanceFromBottom <= 60`:
-    - `setIsAtBottom(true)`
-    - Reset `unreadCount` to 0.
-  - If `distanceFromBottom > 60`:
-    - `setIsAtBottom(false)`
-- **New Message Arrival:**
-  - If `isAtBottom`: Auto-scroll to bottom using `element.scrollTo({ top: scrollHeight, behavior: 'smooth' })`.
-  - If `!isAtBottom`: Increment `unreadCount` for every new incoming message.
-- **Floating Button Action:**
-  - On click: Smoothly scrolls to bottom `element.scrollTo({ top: scrollHeight, behavior: 'smooth' })`, resets `unreadCount = 0`, sets `isAtBottom = true`.
+| Redis Key | Type | Description |
+| :--- | :--- | :--- |
+| `scholar_user:{userId}` | Hash | `userId`, `username`, `displayName`, `passwordHash`, `salt`, `kdf`, `createdAt`, `lastLoginAt`, `teamId`, `boundOldCode` |
+| `scholar_user_lookup:{username_lower}` | String | Case-insensitive username -> `userId` index |
+| `scholar_session:{tokenId}` | String | JSON `{ userId, username, issuedAt, expiresAt }` with 30-day sliding TTL |
+| `scholar_auth_rate:{ip}` | String | Fixed-window counter (300s TTL, max 10) for `register` / `login` |
+| `scholar_auth_migrate_rate:{ip}` | String | Fixed-window counter (300s TTL, max 5) for `migrate_legacy` |
+| `scholar_user:{userId}:save` | String | Account-bound JSON cloud save payload |
+| `scholar_user:{userId}:save_history` | String | JSON array of up to 3 recent save snapshots |
 
----
+### Detailed Legacy Migration Specification (`POST /api/auth?action=migrate_legacy`)
 
-## Detailed Implementation Steps
+When an authenticated user (`newUserId`) invokes `useAuth.migrateLegacy(secretCode)`, the hook automatically reads `state.teamId` and `state.userUniqueId` from `AppState` and submits `{ secretCode, teamId: state.teamId, userUniqueId: state.userUniqueId }`:
 
-### Step 1: Update `src/components/guild/TeamModule.tsx`
-- Replace inverted scroll layout (`flex flex-col-reverse` with reversed array) with direct forward layout (`flex flex-col`).
-- Implement `renderMessageList()` with:
-  - Date dividers (`px-3 py-1 text-[11px] font-medium text-slate-400 bg-slate-800/60 rounded-full border border-slate-700/50`).
-  - Time dividers (`text-[10px] text-slate-500 font-mono tracking-wide`).
-  - Clustered message items:
-    - First message in cluster: Full avatar, sender name, guild title/badge, and timestamp.
-    - Subsequent messages in cluster: Indented margin matching avatar width (`ml-10`), tighter vertical padding (`mt-1`), hover-to-reveal exact timestamp.
-- Add Floating Scroll-to-Bottom Pill with Lucide icon `ArrowDown`:
-  - Position: `absolute bottom-20 left-1/2 -translate-x-1/2 z-20`
-  - Style: Theme-aware dark pill (`bg-slate-800/95 hover:bg-slate-700/95 text-indigo-400 border border-indigo-500/30 shadow-lg backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95`).
-  - Text: Unread count > 0 ? `↓ {unreadCount} new messages` : `↓ Scroll to bottom`.
+1. **Pre-Flight & Idempotency Check**:
+   - Validate `secretCode` against `^[A-Za-z0-9-]{8,64}$`.
+   - Derive `oldGuildKey = crypto.createHash('sha256').update(secretCode).digest('hex').substring(0, 16)` (and `oldUniqueKey = userUniqueId ? sha256(userUniqueId).slice(0, 16) : null`).
+   - All 4 domain steps below are **idempotent**: re-running `migrate_legacy` with the same `secretCode` safely converges without duplicating records or throwing errors.
 
-### Step 2: Theme & Strict English UI Compliance
-- Ensure all labels, date formats, and tooltips are 100% English:
-  - `"Today"`, `"Yesterday"`, `"new message"`, `"new messages"`, `"Scroll to bottom"`.
-- Use theme-aware classes (`indigo-400`, `indigo-500`, neutral slate backgrounds with alpha) so it renders flawlessly across Night, Forest, Ocean, Daylight, Warm Sun, and Candy.
+2. **Domain A — Cloud Save & History Migration**:
+   - Read `scholar_sync_${secretCode}` and `scholar_sync_${secretCode}_history`.
+   - If `scholar_sync_${secretCode}` exists and `scholar_user:${newUserId}:save` does not exist (or `forceOverwrite` is passed), write the payload to `scholar_user:${newUserId}:save` and history to `scholar_user:${newUserId}:save_history`.
+   - Retain `scholar_sync_${secretCode}` untouched as a read-only backup.
 
-### Step 3: Verification & Version Tracking
-- Run `compile_applet` to ensure TypeScript and Vite build compile with zero errors.
-- Preview update bump to `v9.3.39` in `src/version.ts`.
-- Update `AGENTS.md` and `TaskHistory.md`.
+3. **Domain B — Active User Quota ZSET (`scholar_active_users`)**:
+   - Remove the legacy slot and register the unified account slot:
+     - `zRem('scholar_active_users', secretCode)`
+     - `zAdd('scholar_active_users', { score: Date.now(), value: newUserId })`
+   - **Coexistence Rule**: `scholar_active_users` holds 1 entry per active user (`userId` for registered accounts, `secretCode` for unmigrated legacy users). Removing `secretCode` on migration prevents ghost entries and double-counting.
+
+4. **Domain C — Fellowship Guild Identity Migration (Zero `KEYS`, In-Place `LSET`)**:
+   - **Team Discovery (Mandatory Client Fallback + Bounded Index)**: Build the deduplicated set of candidate `teamId`s from:
+     1. `req.body.teamId` (mandatory fallback automatically injected from client `AppState.teamId` by `useAuth`)
+     2. `cloudData?.teamId` (extracted from the migrated save payload)
+     3. `userHash.teamId` (if previously recorded on the user hash)
+     4. `await client.zRange('scholar_active_teams', 0, -1)` (bounded ZSET of active teams within the last 15 days, max 50).
+   - **Per-Team Member & Applicant Migration (`scholar_team:{teamId}:members` & `:applicants`)**:
+     - Inspect `hGet(membersKey, oldGuildKey)` (and `oldUniqueKey` if present) alongside `hGet(membersKey, newUserId)`.
+     - If a legacy member record exists:
+       - Construct migrated member object: set `userId = newUserId`, preserve `isCaptain`, `joinedAt`, and if `newUserId` already existed, merge by taking `Math.max(old.totalFocusTime, current.totalFocusTime)` and `Math.max(old.cycleFocusTime, current.cycleFocusTime)`.
+       - **Write-First Rollback Safety**: Execute `await client.hSet(membersKey, newUserId, JSON.stringify(migratedMember))` **before** `await client.hDel(membersKey, oldGuildKey)`. If `hSet` fails, `oldGuildKey` remains untouched.
+     - Repeat the same write-first-then-delete key replacement on `scholar_team:{teamId}:applicants`.
+   - **Active Proposal Migration (`scholar_team:{teamId}:proposal`)**:
+     - If a proposal JSON exists, rewrite `proposerId` from `oldGuildKey` to `newUserId`, and if `votes[oldGuildKey] !== undefined`, copy `votes[newUserId] = votes[oldGuildKey]` and `delete votes[oldGuildKey]`.
+   - **Chat Messages & Events Ownership via In-Place `LSET` (No `DEL + RPUSH` Race)**:
+     - Never delete or recreate the list (`DEL + RPUSH` would wipe any concurrent message `LPUSH`ed by another guild member between read and write).
+     - Instead, read `lRange(listKey, 0, -1)` (bounded at max 100 items) and for each index `i` where `item.userId === oldGuildKey` (or `oldUniqueKey`), verify `await client.lIndex(listKey, i) === rawItem` (or adjust index offset if a concurrent `LPUSH` shifted the list by `k` positions) and update in-place via `await client.lSet(listKey, targetIdx, JSON.stringify(updatedItem))`.
+
+5. **Domain D — Web Push Subscriptions & Pending Task Queue Migration**:
+   - **Subscription Set**:
+     - Read all members of `scholar_push_subs_${secretCode}` (plus legacy `scholar_push_sub_${secretCode}`).
+     - If non-empty, `sAdd('scholar_push_subs_' + newUserId, ...subs)` and set a 24-hour grace TTL on the old key (`expire('scholar_push_subs_' + secretCode, 86400)`) instead of immediate deletion.
+   - **Cron Race Protection & Queued Tasks (`scholar_push_tasks`)**:
+     - If `/api/push/check` triggers mid-migration before a task in `scholar_push_tasks` is rewritten, the 24h grace TTL on `scholar_push_subs_${secretCode}` guarantees the notification is still delivered.
+     - Scan `await client.zRangeWithScores('scholar_push_tasks', 0, -1)`.
+     - For each task where `parsed.secretCode === secretCode`:
+       - Remove the old member first via `const removed = await client.zRem('scholar_push_tasks', rawTaskStr)`.
+       - **Only if `removed === 1`** (meaning the cron worker did not already pop and fire it), insert the rewritten task `{ ...parsed, secretCode: newUserId }` at the original `score` (`targetTime`).
+   - **Quick-Cancel Reference (`scholar_push_task_ref_{code}`)**:
+     - Read `rawRef = await client.get('scholar_push_task_ref_' + secretCode)` and `pttl = await client.pTTL('scholar_push_task_ref_' + secretCode)`.
+     - If `rawRef` exists and `pttl > 0`, rewrite `secretCode: newUserId` inside the JSON, `set('scholar_push_task_ref_' + newUserId, newRefStr, { PX: pttl })`, and `del('scholar_push_task_ref_' + secretCode)`.

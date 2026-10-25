@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
-  Settings as SettingsIcon, 
   X, 
   Coins, 
   Zap,
@@ -17,7 +16,10 @@ import {
   Dog,
   Ghost,
   Bot,
-  Skull
+  Skull,
+  LogIn,
+  UserPlus,
+  LogOut
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { AppState } from '../../types';
@@ -48,6 +50,8 @@ interface ProfileModalProps {
   _getNextTalentLevel: (lvl: number, rewards?: any[]) => number;
   repairStreak: (dateStr: string) => void;
   openGuideBook?: (chapter: number) => void;
+  onOpenPassport?: (tab: 'login' | 'register') => void;
+  onLogout?: () => Promise<void>;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -64,21 +68,50 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   setEditAvatar,
   handleSaveProfile,
   _setShowCloudSync: __setShowCloudSync,
-  setActiveTab,
+  setActiveTab: _setActiveTab,
   isSyncing,
   hasUnsyncedChanges,
   triggerSyncCheck,
   _isTalentLevel: __isTalentLevel,
   _getNextTalentLevel: __getNextTalentLevel,
   repairStreak,
-  openGuideBook
+  openGuideBook,
+  onOpenPassport,
+  onLogout
 }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
+  const [isRetryingOnline, setIsRetryingOnline] = useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [_patchCandidate, _setPatchCandidate] = useState<string | null>(null);
   
   const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+
+  const isCloudActive = Boolean(
+    (state.account?.token && state.account?.userId) ||
+    (state.syncProvider === 'Google Drive' && state.googleDriveTokens) ||
+    (state.syncProvider === 'WebDAV' && state.webdavSettings?.url)
+  );
+
+  const handleRetryOnline = async () => {
+    setIsRetryingOnline(true);
+    try {
+      const res = await fetch(`/api/stats?_t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      if (res.ok || (typeof window !== 'undefined' && window.navigator.onLine)) {
+        setIsOnline(true);
+        triggerSyncCheck?.();
+      } else {
+        setIsOnline(false);
+      }
+    } catch {
+      setIsOnline(typeof window !== 'undefined' ? window.navigator.onLine : false);
+    } finally {
+      setIsRetryingOnline(false);
+    }
+  };
 
   // Reset nameError if they change editing state
   useEffect(() => {
@@ -377,29 +410,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <div className="p-4 sm:p-5 bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-800">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Cloud size={16} className={state.secretCode || state.syncProvider ? "text-indigo-400" : "text-slate-500"} />
+                    <Cloud size={16} className={isCloudActive ? "text-indigo-400" : "text-slate-500"} />
                     <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-widest">Cloud Sync Status</h4>
                   </div>
                   <div>
                     {!isOnline ? (
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-slate-700 w-max">
-                        <WifiOff size={10} /> Offline
-                      </span>
-                    ) : isSyncing ? (
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-amber-500/20 w-max">
-                        <RefreshCw size={10} className="animate-spin" /> Syncing
-                      </span>
-                    ) : (state.secretCode || state.syncProvider) ? (
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-emerald-500/20">
-                          <CheckCircle2 size={10} /> Active
-                        </span>
-                        {hasUnsyncedChanges && (
-                          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-rose-500/20 animate-pulse">
-                            Unsynced
-                          </span>
+                      <button
+                        type="button"
+                        onClick={() => void handleRetryOnline()}
+                        disabled={isRetryingOnline}
+                        title="Click to retry network connection"
+                        className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[9px] font-black uppercase tracking-widest rounded-md border border-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isRetryingOnline ? (
+                          <RefreshCw size={10} className="animate-spin text-indigo-400" />
+                        ) : (
+                          <WifiOff size={10} />
                         )}
-                      </div>
+                        Offline
+                      </button>
+                    ) : isCloudActive ? (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-emerald-500/20">
+                        <CheckCircle2 size={10} /> Active
+                      </span>
                     ) : (
                       <span className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-slate-700">
                         <X size={10} /> Inactive
@@ -411,13 +444,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="flex flex-col gap-2 mt-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-500 font-medium">Provider</span>
-                    <span className="text-slate-300 font-bold">{state.syncProvider || (state.secretCode ? 'Redis' : 'None')}</span>
+                    <span className="text-slate-300 font-bold">
+                      {state.account?.token
+                        ? 'Scholar Passport'
+                        : state.syncProvider === 'Google Drive' && state.googleDriveTokens
+                          ? 'Google Drive'
+                          : state.syncProvider === 'WebDAV' && state.webdavSettings?.url
+                            ? 'WebDAV'
+                            : 'None'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-500 font-medium">Save State</span>
-                    <span className={cn("font-bold", hasUnsyncedChanges ? "text-rose-500" : "text-emerald-400")}>
-                      {hasUnsyncedChanges ? 'Unsynced' : 'Up to Date'}
-                    </span>
+                    {isSyncing ? (
+                      <span className="font-bold text-amber-500 flex items-center gap-1.5">
+                        <RefreshCw size={11} className="animate-spin" /> Syncing
+                      </span>
+                    ) : hasUnsyncedChanges ? (
+                      <span className="font-bold text-rose-500">Unsynced</span>
+                    ) : (
+                      <span className="font-bold text-emerald-400">Up to Date</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-500 font-medium">Last Updated</span>
@@ -425,33 +472,57 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         {state.lastUpdated ? new Date(state.lastUpdated).toLocaleString() : 'Never'}
                     </span>
                   </div>
-                  {(state.secretCode || state.syncProvider) && triggerSyncCheck && (
-                    <button 
-                      onClick={() => triggerSyncCheck(true)}
-                      disabled={isSyncing}
-                      className="mt-2 w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 border border-indigo-500/20 active:scale-[0.98]"
-                    >
-                      <RefreshCw size={12} className={cn(isSyncing && "animate-spin")} /> 
-                      Verify & Compare Archives
-                    </button>
-                  )}
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 mt-2">
-                <button 
-                  onClick={() => { setActiveTab('settings'); onClose(); }}
-                  className="flex-1 py-3 sm:py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 border border-slate-800"
-                >
-                  <SettingsIcon size={16} />
-                  System Settings
-                </button>
-                <button 
-                  onClick={onClose}
-                  className="flex-1 py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all shadow-xl shadow-indigo-500/20"
-                >
-                  Return to Dungeon
-                </button>
+                {!state.account?.token ? (
+                  <>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        if (onOpenPassport) {
+                          onOpenPassport('login');
+                        } else {
+                          __setShowCloudSync(true);
+                        }
+                      }}
+                      className="flex-1 py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2"
+                    >
+                      <LogIn size={16} />
+                      Login
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        if (onOpenPassport) {
+                          onOpenPassport('register');
+                        } else {
+                          __setShowCloudSync(true);
+                        }
+                      }}
+                      className="flex-1 py-3 sm:py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 border border-slate-800"
+                    >
+                      <UserPlus size={16} />
+                      Signup
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      if (onLogout) {
+                        await onLogout();
+                      }
+                    }}
+                    className="w-full py-3 sm:py-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 border border-rose-500/20"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                )}
               </div>
             </div>
           </div>

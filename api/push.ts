@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import webpush from 'web-push';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyBearerToken } from './auth';
 
 // Configure Web Push
 // SECURITY NOTE: Please set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your Secrets for production.
@@ -60,16 +61,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const client = await getRedisClient();
   if (!client) return res.status(500).json({ error: "Redis connection failed" });
 
+  const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+
   if (path?.endsWith('/subscribe')) {
     try {
-      const { secretCode, subscription } = req.body;
-      if (!secretCode) return res.status(400).json({ error: "Invalid request" });
-      const key = `scholar_push_subs_${secretCode}`;
+      const { secretCode, subscription } = req.body || {};
+      const targetIdentity = verifiedSession?.userId || secretCode;
+      if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
+      const key = `scholar_push_subs_${targetIdentity}`;
       
       if (subscription === null) {
         await client.del(key);
         // Also clear legacy format
-        await client.del(`scholar_push_sub_${secretCode}`);
+        await client.del(`scholar_push_sub_${targetIdentity}`);
         return res.json({ success: true, message: "All subscriptions cleared" });
       }
       
@@ -105,14 +109,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (path?.endsWith('/schedule')) {
     try {
-      const { secretCode, delayMinutes, title, body, type } = req.body;
-      if (!secretCode || delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
+      const { secretCode, delayMinutes, title, body, type } = req.body || {};
+      const targetIdentity = verifiedSession?.userId || secretCode;
+      if (!targetIdentity || delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
       const targetTime = Date.now() + (delayMinutes * 60 * 1000);
-      const task = { secretCode, title, body, type, targetTime };
+      const task = { secretCode: targetIdentity, title, body, type, targetTime };
       const taskStr = JSON.stringify(task);
       
-      // Store the specific task string to allow quick removal later
-      await client.set(`scholar_push_task_ref_${secretCode}`, taskStr, { EX: 3600 }); // Expire in 1h
+      // Store the specific task string to allow quick removal later and clean up any prior task ref
+      const oldTaskStr = await client.get(`scholar_push_task_ref_${targetIdentity}`);
+      if (oldTaskStr) {
+        await client.zRem('scholar_push_tasks', oldTaskStr);
+      }
+
+      await client.set(`scholar_push_task_ref_${targetIdentity}`, taskStr, { EX: 3600 }); // Expire in 1h
       await client.zAdd('scholar_push_tasks', { score: targetTime, value: taskStr });
       
       return res.json({ success: true, targetTime });
@@ -123,21 +133,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (path?.endsWith('/cancel')) {
     try {
-      const { secretCode } = req.body;
-      if (!secretCode) return res.status(400).json({ error: "Invalid request" });
+      const { secretCode } = req.body || {};
+      const targetIdentity = verifiedSession?.userId || secretCode;
+      if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
       
       // Get the last scheduled task for this user
-      const taskStr = await client.get(`scholar_push_task_ref_${secretCode}`);
+      const taskStr = await client.get(`scholar_push_task_ref_${targetIdentity}`);
       if (taskStr) {
         await client.zRem('scholar_push_tasks', taskStr);
-        await client.del(`scholar_push_task_ref_${secretCode}`);
+        await client.del(`scholar_push_task_ref_${targetIdentity}`);
       } else {
         // Fallback: If ref is missing, clear all tasks for this user (Legacy/Fallback)
         // This is O(N) but only happens if the ref was lost
         const tasks = await client.zRange('scholar_push_tasks', 0, -1);
         for (const tStr of tasks) {
           const t = JSON.parse(tStr.toString());
-          if (t.secretCode === secretCode) {
+          if (t.secretCode === targetIdentity) {
             await client.zRem('scholar_push_tasks', tStr.toString());
           }
         }
