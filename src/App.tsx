@@ -47,8 +47,6 @@ import { Dungeon, MajorDungeon, DungeonReward, AppState, ActiveWorkstationSessio
 import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
-import { PipResponsiveLayout } from './components/dashboard/PipResponsiveLayout';
-import { PipWorkstationPanel } from './components/workstation/PipWorkstationPanel';
 import { UpdateChecker } from './components/common/UpdateChecker';
 import { useHistoryRoute } from './hooks/useHistoryRoute';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -438,11 +436,24 @@ function App() {
   const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);
   const isHandlingWorkstationTimeoutRef = useRef(false);
 
-  const { closeTimedOutSession } = useWorkstation({
+  const { closeTimedOutSession, active: pipWsActive, punchIn: pipPunchIn, punchOut: pipPunchOut } = useWorkstation({
     state,
     setState,
     syncToCloud,
   });
+
+  const handlePipWsToggle = React.useCallback(async () => {
+    if (pipWsActive) {
+      await pipPunchOut({});
+      return;
+    }
+    let loc = 'Home';
+    try {
+      const saved = localStorage.getItem('scholars_last_ws_location');
+      if (saved) loc = saved;
+    } catch { /* private mode */ }
+    await pipPunchIn({ location: loc });
+  }, [pipWsActive, pipPunchIn, pipPunchOut]);
 
   useEffect(() => {
     const active = state.activeWorkstationSession;
@@ -1260,10 +1271,6 @@ function App() {
       </AnimatePresence>
 
       {pipWindow && createPortal(
-        <PipResponsiveLayout
-          pipWindow={pipWindow}
-          side={<PipWorkstationPanel state={state} setState={setState} syncToCloud={syncToCloud} />}
-        >
         <CompactTimer 
           endTime={timerEndTime}
           isActive={isTimerActive}
@@ -1300,8 +1307,10 @@ function App() {
             setIsTimerActive(true);
             setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
           }}
-        />
-        </PipResponsiveLayout>,
+          wsActive={!!pipWsActive}
+          wsStartedAt={state.activeWorkstationSession?.startTime}
+          onWsToggle={handlePipWsToggle}
+        />,
         pipWindow.document.body
       )}
 
@@ -1336,7 +1345,7 @@ function App() {
           </div>
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors"
+            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors shrink-0"
           >
             {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronRight size={18} className="rotate-180" />}
           </button>
