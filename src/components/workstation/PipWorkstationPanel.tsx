@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { differenceInMinutes, parseISO, isValid } from 'date-fns';
+import { LogIn, LogOut } from 'lucide-react';
 import { AppState } from '../../types';
 import { useWorkstation } from '../../hooks/useWorkstation';
 import { getWorkstationLocations, getWorkstationTotalMinutes } from '../../lib/workstationUtils';
 import { getSettlementDay } from '../../lib/utils';
+import { LocationIcon } from './LocationIcon';
 
 interface PipWorkstationPanelProps {
   state: AppState;
@@ -18,12 +20,11 @@ const fmt = (mins: number) => {
 };
 
 /**
- * Compact vertical workstation panel for the wide PiP left column.
+ * Compact workstation panel for the wide PiP left column.
  *
- * Styled with INLINE STYLES only: Tailwind classes generated for the main
- * document are not guaranteed to exist inside the PiP document (styles are
- * copied by enumeration, so classes unused in the main document have no
- * rules there). Inline styles are immune to that.
+ * Inline styles with theme-aware CSS variables (--color-*), so colours
+ * follow the active theme. The location row uses the shared LocationIcon
+ * (preset lucide icon per location). No redundant captions.
  */
 export const PipWorkstationPanel: React.FC<PipWorkstationPanelProps> = ({
   state,
@@ -52,13 +53,14 @@ export const PipWorkstationPanel: React.FC<PipWorkstationPanelProps> = ({
   const todayTotalMinutes = getWorkstationTotalMinutes(todayStr, state, now);
 
   const running = state.activeWorkstationSession;
-  const runningLocation = running?.location || preferredLocation;
   const runningMinutes = useMemo(() => {
     if (!active || !running?.startTime) return 0;
     const start = parseISO(running.startTime);
     if (!isValid(start)) return 0;
     return Math.max(0, differenceInMinutes(now, start));
   }, [active, running?.startTime, now]);
+
+  const displayLocation = active?.location || preferredLocation;
 
   const handleToggle = async () => {
     if (active) {
@@ -68,52 +70,42 @@ export const PipWorkstationPanel: React.FC<PipWorkstationPanelProps> = ({
     }
   };
 
-  const accent = active ? '#818cf8' : '#94a3b8';
-  const btnBg = active ? 'rgba(244,63,94,0.15)' : 'rgba(99,102,241,0.18)';
-  const btnBorder = active ? 'rgba(244,63,94,0.45)' : 'rgba(99,102,241,0.45)';
-  const btnColor = active ? '#fda4af' : '#a5b4fc';
-
   return (
-    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, height: '100%', overflowY: 'auto', color: '#e2e8f0' }}>
-      <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1.5, color: '#64748b' }}>DUTY</div>
+    <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 10, height: '100%', overflowY: 'auto', color: 'var(--color-slate-100, #e2e8f0)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        <LocationIcon locName={displayLocation} size={15} />
+        <span
+          style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          title={displayLocation}
+        >
+          {displayLocation}
+        </span>
+      </div>
 
-      {active ? (
-        <>
-          <div style={{ fontSize: 11, fontWeight: 600, color: accent, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={runningLocation}>
-            {runningLocation}
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-            {fmt(runningMinutes)}
-          </div>
-          <div style={{ fontSize: 9, color: '#64748b' }}>on duty now</div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize: 11, fontWeight: 600, color: accent }}>Off duty</div>
-          <div style={{ fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-            {fmt(todayTotalMinutes)}
-          </div>
-          <div style={{ fontSize: 9, color: '#64748b' }}>today total</div>
-        </>
-      )}
+      <div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: 'var(--color-indigo-500, #6366f1)' }}>
+        {fmt(active ? runningMinutes : todayTotalMinutes)}
+      </div>
 
       <button
         onClick={handleToggle}
         style={{
-          marginTop: 4,
+          marginTop: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
           width: '100%',
-          padding: '6px 0',
-          borderRadius: 8,
-          fontSize: 9,
+          padding: '7px 0',
+          borderRadius: 10,
+          fontSize: 10,
           fontWeight: 700,
-          letterSpacing: 1,
-          textTransform: 'uppercase',
-          background: btnBg,
-          border: `1px solid ${btnBorder}`,
-          color: btnColor,
+          background: active ? 'var(--color-slate-800, #1e293b)' : 'var(--color-indigo-600, #4f46e5)',
+          color: active ? 'var(--color-slate-300, #cbd5e1)' : '#ffffff',
+          border: 'none',
           cursor: 'pointer',
         }}
       >
+        {active ? <LogOut size={11} /> : <LogIn size={11} />}
         {active ? 'Check Out' : 'Check In'}
       </button>
     </div>

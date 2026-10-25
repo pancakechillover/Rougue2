@@ -81,8 +81,8 @@ export const PipResponsiveLayout: React.FC<PipResponsiveLayoutProps> = ({
               bottom: 0,
               width: 118,
               zIndex: 10,
-              borderRight: '1px solid rgba(30,41,59,0.9)',
-              background: 'rgba(15,23,42,0.92)',
+              borderRight: '1px solid var(--color-slate-800, #1e293b)',
+              background: 'var(--color-slate-900, #1e293b)',
               overflowY: 'auto',
             }}
           >
