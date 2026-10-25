@@ -47,6 +47,7 @@ import { Dungeon, MajorDungeon, DungeonReward, AppState, ActiveWorkstationSessio
 import { CloudSyncModal } from './components/settings/CloudSyncModal';
 import { SplashScreen } from './components/common/SplashScreen';
 import { CompactTimer } from './components/dashboard/CompactTimer';
+import { PipDutyRail } from './components/workstation/PipDutyRail';
 import { UpdateChecker } from './components/common/UpdateChecker';
 import { useHistoryRoute } from './hooks/useHistoryRoute';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -436,33 +437,11 @@ function App() {
   const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);
   const isHandlingWorkstationTimeoutRef = useRef(false);
 
-  const { closeTimedOutSession, active: pipWsActive, punchIn: pipPunchIn, punchOut: pipPunchOut } = useWorkstation({
+  const { closeTimedOutSession } = useWorkstation({
     state,
     setState,
     syncToCloud,
   });
-
-  const pipWsLocation = useMemo(() => {
-    if (pipWsActive?.location) return pipWsActive.location;
-    try {
-      const saved = localStorage.getItem('scholars_last_ws_location');
-      if (saved) return saved;
-    } catch { /* private mode */ }
-    return 'Home';
-  }, [pipWsActive]);
-
-  const handlePipWsToggle = useCallback(async () => {
-    if (pipWsActive) {
-      await pipPunchOut({});
-      return;
-    }
-    let loc = 'Home';
-    try {
-      const saved = localStorage.getItem('scholars_last_ws_location');
-      if (saved) loc = saved;
-    } catch { /* private mode */ }
-    await pipPunchIn({ location: loc });
-  }, [pipWsActive, pipPunchIn, pipPunchOut]);
 
   useEffect(() => {
     const active = state.activeWorkstationSession;
@@ -1280,7 +1259,13 @@ function App() {
       </AnimatePresence>
 
       {pipWindow && createPortal(
-        <CompactTimer 
+        <PipDutyRail
+          pipWindow={pipWindow}
+          state={state}
+          setState={setState}
+          syncToCloud={syncToCloud}
+        >
+        <CompactTimer
           endTime={timerEndTime}
           isActive={isTimerActive}
           isResting={isResting}
@@ -1316,11 +1301,8 @@ function App() {
             setIsTimerActive(true);
             setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
           }}
-          wsActive={!!pipWsActive}
-          wsStartedAt={state.activeWorkstationSession?.startTime}
-          wsLocation={pipWsLocation}
-          onWsToggle={handlePipWsToggle}
-        />,
+        />
+        </PipDutyRail>,
         pipWindow.document.body
       )}
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package } from 'lucide-react';
-import { LocationIcon } from '../workstation/LocationIcon';
 import { cn } from '../../lib/utils';
 import { Dungeon, RewardCard, StudySession } from '../../types';
 import { useTimerStore } from '../../hooks/useTimerStore';
@@ -26,10 +25,6 @@ interface CompactTimerProps {
   onInventoryAdd?: (id: string) => void;
   onDeferReward?: (session: StudySession, choices: RewardCard[]) => void;
   onStartFocus?: () => void;
-  wsActive?: boolean;
-  wsStartedAt?: string;
-  wsLocation?: string;
-  onWsToggle?: () => void;
 }
 
 const PIP_STYLE = `
@@ -185,11 +180,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   onRewardSelect,
   onInventoryAdd,
   onDeferReward,
-  onStartFocus,
-  wsActive,
-  wsStartedAt,
-  wsLocation,
-  onWsToggle
+  onStartFocus
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const { timeLeft, distractions, _setDistractions: __setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
@@ -203,26 +194,6 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   React.useEffect(() => {
     setDisplayTime(timeLeft);
   }, [timeLeft]); // Sync when main thread ticks or prop changes
-
-  // PiP width gate: the 4th (workstation) button joins the distraction rows
-  // only when the window is wider than 280px.
-  const [pipWide, setPipWide] = React.useState(false);
-  React.useEffect(() => {
-    const w = containerRef.current?.ownerDocument.defaultView || null;
-    if (!w || w === window) { setPipWide(false); return; }
-    const measure = () => setPipWide((w.document.documentElement.clientWidth || 0) > 340);
-    measure();
-    w.addEventListener('resize', measure);
-    return () => w.removeEventListener('resize', measure);
-  }, []);
-
-  // Workstation minutes, ticking along with the countdown's 1s renders
-  const wsMinutes = React.useMemo(() => {
-    if (!wsActive || !wsStartedAt) return null;
-    const t = new Date(wsStartedAt).getTime();
-    if (isNaN(t)) return null;
-    return Math.max(0, Math.floor((Date.now() - t) / 60000));
-  }, [wsActive, wsStartedAt, timeLeft]);
 
   // Handle Reward Summary Transient State for auto-pick/skip modes
   React.useEffect(() => {
@@ -710,10 +681,7 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </div>
 
         {/* Controls (Ultra-Minimalist Strip Mode - Center / Middle) */}
-        <div
-          className="pip-controls-minimal items-center justify-center shrink-0"
-          style={pipWide ? { position: 'absolute', left: '50%', transform: 'translateX(-50%)' } : undefined}
-        >
+        <div className="pip-controls-minimal items-center justify-center shrink-0">
           <button
             onClick={toggleTimer}
             className={cn(
@@ -819,25 +787,6 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
               )}>{distractions.unavoidable}</span>
             )}
           </button>
-          {pipWide && onWsToggle && (
-            <button
-              onClick={onWsToggle}
-              className={cn(
-                "pip-distract-btn w-8.5 h-8.5 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-                wsActive
-                  ? "bg-indigo-500/20 border border-indigo-500/60 cursor-pointer"
-                  : "bg-slate-800 border border-slate-800 text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 active:scale-95 cursor-pointer"
-              )}
-              title={wsActive ? "Check out of workstation" : "Check in to workstation"}
-            >
-              <LocationIcon locName={wsLocation} size={17} />
-              {wsActive && wsMinutes !== null && (
-                <span className={cn(
-                  "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none bg-indigo-500 text-white-pure"
-                )}>{wsMinutes}</span>
-              )}
-            </button>
-          )}
         </div>
       </div>
 
@@ -925,26 +874,6 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
             </div>
             {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure")}>{distractions.unavoidable}</span>}
           </button>
-          {pipWide && onWsToggle && (
-            <button
-              onClick={onWsToggle}
-              className={cn(
-                "flex-1 py-1.5 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none cursor-pointer",
-                wsActive
-                  ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/50"
-                  : "bg-slate-800 text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 border border-slate-800"
-              )}
-              title={wsActive ? "Check out of workstation" : "Check in to workstation"}
-            >
-              <div className="flex items-center gap-1">
-                <span className="flex items-center"><LocationIcon locName={wsLocation} size={11} /></span>
-                <span className="font-bold">WS</span>
-              </div>
-              {wsActive && wsMinutes !== null && (
-                <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none bg-indigo-500 text-white-pure")}>{wsMinutes}m</span>
-              )}
-            </button>
-          )}
         </div>
       </motion.div>
 
