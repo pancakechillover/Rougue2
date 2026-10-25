@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '../../lib/utils';
+import { DurationText } from '../common/DurationText';
 import { AppState } from '../../types';
 import { useWorkstation } from '../../hooks/useWorkstation';
 import { getWorkstationLocations, getWorkstationTotalMinutes } from '../../lib/workstationUtils';
 import { getSettlementDay } from '../../lib/utils';
 import { LocationIcon } from '../workstation/LocationIcon';
-import { DurationText } from '../common/DurationText';
 
 interface PipDutyRailProps {
   pipWindow: Window | null;
@@ -37,7 +38,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
   syncToCloud,
   children,
   threshold = 340,
-  railWidth = 78,
+  railWidth = 56,
 }) => {
   const [wide, setWide] = useState(false);
   const { active, punchIn, punchOut } = useWorkstation({ state, setState, syncToCloud });
@@ -61,6 +62,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
   const todayStr = useMemo(() => getSettlementDay(new Date(), state.timeSettings), [state.timeSettings]);
   const todayTotalMinutes = getWorkstationTotalMinutes(todayStr, state, now);
 
+  const isRunning = Boolean(active);
   const displayLocation = active?.location || preferredLocation;
 
   const handleToggle = async (ev: React.MouseEvent) => {
@@ -115,7 +117,7 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
         zIndex: 10,
         cursor: 'pointer',
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
@@ -124,8 +126,19 @@ export const PipDutyRail: React.FC<PipDutyRailProps> = ({
         userSelect: 'none',
       }}
     >
-      <LocationIcon locName={displayLocation} size={20} />
-      <div style={{ fontSize: 15, lineHeight: 1, color: active ? 'var(--color-slate-100, #e2e8f0)' : 'var(--color-slate-400, #94a3b8)' }}>
+      <LocationIcon
+        locName={displayLocation}
+        customIcons={state.workstationLocationIcons}
+        size={20}
+        className={cn('transition-colors duration-300', !isRunning && 'text-slate-500')}
+      />
+      <div
+        style={{ fontSize: 13, lineHeight: 1 }}
+        className={cn(
+          'font-bold tabular-nums transition-colors duration-300',
+          isRunning ? 'text-emerald-500' : 'text-slate-500'
+        )}
+      >
         <DurationText minutes={todayTotalMinutes} />
       </div>
     </div>
