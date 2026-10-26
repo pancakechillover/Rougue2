@@ -12,9 +12,6 @@ import {
 import { format, parseISO, subDays, addDays, isToday } from 'date-fns';
 import { 
   Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
-  RotateCcw, 
   Brain, 
   Wind, 
   Zap, 
@@ -259,38 +256,23 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
         </div>
 
         <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full sm:w-auto shrink-0">
-          <button 
-            onClick={() => handleDailyDateChange(subDays(dailyDate, 1))} 
-            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
+          <DatePicker
+            value={format(dailyDate, 'yyyy-MM-dd')}
+            onChange={(val) => val && handleDailyDateChange(parseISO(val))}
+            indicators={dateIndicators}
+            className="text-[10px] sm:text-xs font-bold text-slate-300 min-w-[110px] text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
+            nav={{
+              onPrev: () => handleDailyDateChange(subDays(dailyDate, 1)),
+              onNext: () => handleDailyDateChange(addDays(dailyDate, 1)),
+              onToday: () => handleDailyDateChange(new Date()),
+              size: 'sm',
+            }}
           >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="relative flex items-center justify-center flex-1 sm:flex-none">
-            <DatePicker 
-              value={format(dailyDate, 'yyyy-MM-dd')}
-              onChange={(val) => val && handleDailyDateChange(parseISO(val))}
-              indicators={dateIndicators}
-              className="text-[10px] sm:text-xs font-bold text-slate-300 w-full sm:w-auto text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
-            >
-              <div className="flex items-center justify-center gap-1.5 px-2 py-0.5 hover:bg-slate-700/60 rounded transition-colors text-white font-bold">
-                <Calendar size={13} className="text-indigo-400" />
-                <span>{isToday(dailyDate) ? 'Today' : format(dailyDate, 'MMM d, yyyy')}</span>
-              </div>
-            </DatePicker>
-          </div>
-          <button 
-            onClick={() => handleDailyDateChange(addDays(dailyDate, 1))} 
-            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button 
-            onClick={() => handleDailyDateChange(new Date())}
-            className="p-1 text-indigo-400 hover:bg-slate-700 hover:text-indigo-300 rounded transition-colors"
-            title="Return to Today"
-          >
-            <RotateCcw size={14} />
-          </button>
+            <div className="flex items-center justify-center gap-1.5 px-2 py-0.5 hover:bg-slate-700/60 rounded transition-colors text-white font-bold">
+              <Calendar size={13} className="text-indigo-400" />
+              <span>{isToday(dailyDate) ? 'Today' : format(dailyDate, 'MMM d, yyyy')}</span>
+            </div>
+          </DatePicker>
         </div>
       </div>
 

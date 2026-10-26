@@ -1,8 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay, isToday } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { createPortal } from 'react-dom';
+
+/**
+ * Optional stepper rendered around the trigger.
+ *
+ * Deliberately callback-driven rather than date-driven: callers own the step
+ * size and side effects. The Journal needs to play a page-turn sound and set an
+ * animation direction, the Sleep/Heatmap views step by a week or a month, and
+ * the Workstation view disables "next" once it reaches today. Passing `onPrev` /
+ * `onNext` keeps all of that in the caller while the button markup lives here.
+ *
+ * Container styling (background, border, rounded corners) stays with the caller
+ * so existing layouts keep working unchanged.
+ */
+export interface DatePickerNav {
+  onPrev: () => void;
+  onNext: () => void;
+  onToday?: () => void;
+  prevDisabled?: boolean;
+  nextDisabled?: boolean;
+  /** `md` for page headers (18px icons), `sm` for stat cards (16px). */
+  size?: 'md' | 'sm';
+}
 
 interface DatePickerProps {
   value: string; // YYYY-MM-DD
@@ -12,9 +34,10 @@ interface DatePickerProps {
   maxDate?: string;
   children?: React.ReactNode;
   indicators?: Record<string, { highlight?: boolean; star?: boolean }>;
+  nav?: DatePickerNav;
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, className, minDate, maxDate, children, indicators }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, className, minDate, maxDate, children, indicators, nav }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -132,23 +155,72 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => i);
 
+  const iconSize = nav?.size === 'md' ? 18 : 16;
+  const navBtnClass =
+    nav?.size === 'md'
+      ? 'w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+      : 'p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent';
+
+  const trigger = (
+    <div
+      ref={triggerRef}
+      onClick={toggleOpen}
+      className={children ? className : cn(
+        "w-full flex items-center justify-between bg-slate-950 border border-slate-800 text-slate-200 rounded-lg p-2 cursor-pointer hover:border-indigo-500 transition-colors",
+        className
+      )}
+    >
+      {children ? children : (
+        <>
+          <span>{value ? value : 'Select date'}</span>
+          <CalendarIcon size={16} className="text-slate-400" />
+        </>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <div 
-        ref={triggerRef}
-        onClick={toggleOpen}
-        className={children ? className : cn(
-          "w-full flex items-center justify-between bg-slate-950 border border-slate-800 text-slate-200 rounded-lg p-2 cursor-pointer hover:border-indigo-500 transition-colors",
-          className
-        )}
-      >
-        {children ? children : (
-          <>
-            <span>{value ? value : 'Select date'}</span>
-            <CalendarIcon size={16} className="text-slate-400" />
-          </>
-        )}
-      </div>
+      {nav ? (
+        // stopPropagation on every arrow: the trigger owns the click handler that
+        // opens the calendar, and the arrows sit inside the same flex row.
+        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); nav.onPrev(); }}
+            disabled={nav.prevDisabled}
+            title="Previous"
+            className={navBtnClass}
+          >
+            <ChevronLeft size={iconSize} />
+          </button>
+
+          {trigger}
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); nav.onNext(); }}
+            disabled={nav.nextDisabled}
+            title="Next"
+            className={navBtnClass}
+          >
+            <ChevronRight size={iconSize} />
+          </button>
+
+          {nav.onToday && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); nav.onToday?.(); }}
+              title="Return to Today"
+              className={navBtnClass}
+            >
+              <RotateCcw size={iconSize - 2} />
+            </button>
+          )}
+        </div>
+      ) : (
+        trigger
+      )}
 
       {isOpen && createPortal(
         <div 

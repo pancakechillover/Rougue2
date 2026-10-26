@@ -106,6 +106,11 @@ export const BulkSleepModal: React.FC<BulkSleepModalProps> = ({ state, onClose, 
                 onChange={(str) => setSelectedDate(new Date(str))}
                 className="w-full relative z-50"
               />
+              {existingLog?.sleepDurationMin ? (
+                <p className="text-[11px] font-bold text-amber-400 leading-relaxed">
+                  This date already has a record — saving replaces it.
+                </p>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -132,6 +137,32 @@ export const BulkSleepModal: React.FC<BulkSleepModalProps> = ({ state, onClose, 
                   className="w-full relative z-30"
                 />
               </div>
+            </div>
+
+            {/* Quick presets: most nights are one of a handful of patterns, so
+                filling both times with one tap beats opening two pickers. */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {([['23:00', '07:00'], ['00:00', '08:00'], ['22:30', '06:30']] as const).map(([from, to]) => {
+                const active = sleepTime === from && wakeTime === to;
+                return (
+                  <button
+                    key={`${from}-${to}`}
+                    type="button"
+                    onClick={() => {
+                      setSleepTime(from);
+                      setWakeTime(to);
+                    }}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-[11px] font-bold tabular-nums transition-colors border',
+                      active
+                        ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
+                    )}
+                  >
+                    {from} → {to}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="pt-4 border-t border-slate-800/50 flex flex-col items-center justify-center">

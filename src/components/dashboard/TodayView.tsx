@@ -8,8 +8,6 @@ import {
   Trash2, 
   Calendar, 
   Target, 
-  ChevronLeft, 
-  ChevronRight, 
   ListPlus,
   Layers,
   CalendarClock,
@@ -373,6 +371,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }).length;
   }, [todos, dungeonMap]);
 
+  // Dates that already carry a task, used to dot the calendar.
+  const datePickerIndicators = useMemo(() => {
+    const result: Record<string, { highlight?: boolean; star?: boolean }> = {};
+    allTodos.forEach(t => {
+      if (t.date) result[t.date] = { highlight: true };
+    });
+    return result;
+  }, [allTodos]);
+
 
   const handleAutoSortTodos = () => {
     if (todos.length <= 1) return;
@@ -469,38 +476,22 @@ export const TodayView: React.FC<TodayViewProps> = ({
             )}
 
             <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shrink-0 h-10">
-              <button 
-                onClick={() => setViewDate(prev => subDays(prev, 1))}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              
               <DatePicker
                 value={format(viewDate, 'yyyy-MM-dd')}
                 onChange={(newDateStr) => setViewDate(new Date(newDateStr))}
-                indicators={useMemo(() => {
-                  const result: Record<string, { highlight?: boolean; star?: boolean }> = {};
-                  allTodos.forEach(t => {
-                    if (t.date) {
-                      result[t.date] = { highlight: true };
-                    }
-                  });
-                  return result;
-                }, [allTodos])}
+                indicators={datePickerIndicators}
+                nav={{
+                  onPrev: () => setViewDate(prev => subDays(prev, 1)),
+                  onNext: () => setViewDate(prev => addDays(prev, 1)),
+                  onToday: () => setViewDate(new Date()),
+                  size: 'md',
+                }}
               >
                 <div className="px-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
                   <Calendar size={13} className="text-indigo-400" />
                   <span>{isToday(baseDate) ? 'Today' : format(baseDate, 'MMM do')}</span>
                 </div>
               </DatePicker>
-
-              <button 
-                onClick={() => setViewDate(prev => addDays(prev, 1))}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <ChevronRight size={18} />
-              </button>
             </div>
 
             <button

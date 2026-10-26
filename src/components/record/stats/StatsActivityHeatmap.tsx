@@ -17,8 +17,6 @@ import {
 } from 'date-fns';
 import { 
   Flame, 
-  ChevronLeft, 
-  ChevronRight, 
   CalendarDays, 
   Clock, 
   Target, 
@@ -223,41 +221,34 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               </button>
             ))}
           </div>
-          <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-800/50 rounded-lg p-1 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                if (heatmapMode === '30days') setHeatmapDate(subDays(heatmapDate, 30));
-                else if (heatmapMode === 'month') setHeatmapDate(subMonths(heatmapDate, 1));
-                else setHeatmapDate(subYears(heatmapDate, 1));
+          <div className="bg-slate-800/50 rounded-lg p-1 w-full sm:w-auto">
+            <DatePicker
+              value={format(heatmapDate, 'yyyy-MM-dd')}
+              onChange={(val) => val && setHeatmapDate(parseISO(val))}
+              indicators={dateIndicators}
+              className="text-xs font-bold text-slate-300 w-full sm:w-36 text-center hover:text-indigo-400 transition-colors py-1 inline-block whitespace-nowrap cursor-pointer"
+              nav={{
+                // Step size follows the active mode: 30 days, one month, one year.
+                onPrev: () => {
+                  if (heatmapMode === '30days') setHeatmapDate(subDays(heatmapDate, 30));
+                  else if (heatmapMode === 'month') setHeatmapDate(subMonths(heatmapDate, 1));
+                  else setHeatmapDate(subYears(heatmapDate, 1));
+                },
+                onNext: () => {
+                  if (heatmapMode === '30days') setHeatmapDate(addDays(heatmapDate, 30));
+                  else if (heatmapMode === 'month') setHeatmapDate(addMonths(heatmapDate, 1));
+                  else setHeatmapDate(addYears(heatmapDate, 1));
+                },
+                onToday: () => setHeatmapDate(new Date()),
+                size: 'sm',
               }}
-              className="p-2 sm:p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
             >
-              <ChevronLeft size={16} />
-            </button>
-            <div className="relative flex items-center justify-center flex-1 sm:flex-none">
-              <DatePicker
-                value={format(heatmapDate, 'yyyy-MM-dd')}
-                onChange={(val) => val && setHeatmapDate(parseISO(val))}
-                indicators={dateIndicators}
-                className="text-xs font-bold text-slate-300 w-full sm:w-36 text-center hover:text-indigo-400 transition-colors py-1 inline-block whitespace-nowrap cursor-pointer"
-              >
-                {heatmapMode === '30days'
-                  ? `${format(subDays(heatmapDate, 29), 'MMM dd')} - ${format(heatmapDate, 'MMM dd')}`
-                  : heatmapMode === 'month'
-                  ? format(heatmapDate, 'MMM yyyy')
-                  : format(heatmapDate, 'yyyy')}
-              </DatePicker>
-            </div>
-            <button
-              onClick={() => {
-                if (heatmapMode === '30days') setHeatmapDate(addDays(heatmapDate, 30));
-                else if (heatmapMode === 'month') setHeatmapDate(addMonths(heatmapDate, 1));
-                else setHeatmapDate(addYears(heatmapDate, 1));
-              }}
-              className="p-2 sm:p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
-            >
-              <ChevronRight size={16} />
-            </button>
+              {heatmapMode === '30days'
+                ? `${format(subDays(heatmapDate, 29), 'MMM dd')} - ${format(heatmapDate, 'MMM dd')}`
+                : heatmapMode === 'month'
+                ? format(heatmapDate, 'MMM yyyy')
+                : format(heatmapDate, 'yyyy')}
+            </DatePicker>
           </div>
         </div>
       </div>

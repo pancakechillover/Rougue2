@@ -446,32 +446,24 @@ export const JournalView: React.FC<JournalViewProps> = ({
             <span className="hidden sm:inline">Export</span>
           </button>
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shrink-0 h-10 shadow-sm">
-            <button 
-              onClick={() => navigateDay('prev')}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              title="Previous Day"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            
             <DatePicker
               value={selectedDateStr}
               onChange={(val) => val && setSelectedDate(parseISO(val))}
               indicators={dateIndicators}
+              nav={{
+                // navigateDay also plays the page-turn sound and sets the flip
+                // direction, so the stepper must call it rather than set state.
+                onPrev: () => navigateDay('prev'),
+                onNext: () => navigateDay('next'),
+                onToday: () => setSelectedDate(new Date()),
+                size: 'md',
+              }}
             >
               <div className="px-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
                 <Calendar size={13} className="text-indigo-400" />
                 <span>{isToday(selectedDate) ? 'Today' : format(selectedDate, 'MMM do')}</span>
               </div>
             </DatePicker>
-
-            <button 
-              onClick={() => navigateDay('next')}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              title="Next Day"
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
 
           <button

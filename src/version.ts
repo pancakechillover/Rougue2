@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.3';
+export const APP_VERSION = 'v9.4.4';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '00:20:00';
+export const LAST_UPDATE_TIME = '01:10:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,20 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.4',
+    date: '2026-10-27',
+    time: '01:10:00',
+    title: 'Version 9.4.4: Sleep Charts Split, Unified Date Stepper & Gacha Fixes',
+    items: [
+      { category: 'Sleep Tracker', description: 'Split into two charts that answer different questions: when you slept (two lines for bedtime and wake time) and how much you slept (one bar per night). They share a single date control, sit side by side on wide screens and stack on narrow ones, and the block no longer carries a border.' },
+      { category: 'Calendar Markers', description: 'Days with sleep but no study session showed nothing in the date picker, because only study sessions and reflections fed the markers. Sleep now counts as activity too.' },
+      { category: 'Date Navigation', description: 'Every date control in Record, Today, Workstation and Journal now uses one stepper component: previous / next / back-to-today. The Heatmap had no back-to-today at all and now has one; Today, Workstation and Journal gained it for consistency. Step sizes stay with each page, so a week, a month or a year still moves by a week, a month or a year.' },
+      { category: 'Sleep Entry', description: 'The entry dialog now warns when a date already has a record, and offers three one-tap presets for the most common bedtime/wake patterns.' },
+      { category: 'Gacha Reliability', description: 'Roll results are computed before the state update instead of being collected inside it, so a deferred update can no longer return an empty result list. Charging is now tied to pulls that actually produce an item, which fixes a case where hitting an unconfigured rarity counted as a pull but cost nothing.' },
+      { category: 'Gacha Pools', description: 'Multiple items can now share one rarity and all of them are reachable; previously only the first configured entry could ever be drawn.' }
+    ]
+  },
   {
     version: 'v9.4.3',
     date: '2026-10-27',

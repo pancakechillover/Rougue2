@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, Dungeon, StudySession, RewardCard, MajorDungeon, RewardHistoryItem, DungeonReward, Quest } from '../types';
 import { TALENTS, INITIAL_REWARD_POOL, DEFAULT_QUESTS, DEFAULT_SAGE_PROMPTS } from '../constants';
 import { format, parseISO, differenceInDays, subDays } from 'date-fns';
+import { computeGachaPull } from '../lib/gacha';
 
 import { getXPForLevel, getDefaultRewardForLevel, getDeviceType, getDeviceCode, getSettlementDay, getSessionSettlementDate, getSessionEffectiveMinutes } from '../lib/utils';
 import { calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey } from '../lib/teamUtils';
@@ -1671,138 +1672,40 @@ useCallback((amount: number) => {
   }, [dungeons, majorDungeons, setState, addRewardToHistory, getNow]);
 
   const drawGacha = useCallback((poolId: string, amount: number = 1) => {
-    let pullResults: { item: string; rarity: string; poolType: 'gacha' | 'ichiban', color?: string }[] = [];
+    const pool = state.gachaPools.find((p) => p.id === poolId);
+    if (!pool) return [];
 
-    setState(prev => {
-      const pool = prev.gachaPools.find(p => p.id === poolId);
-      if (!pool || prev.coins < pool.cost * amount) return prev;
+    const computed = computeGachaPull(pool, amount, state.coins);
+    if (!computed || computed.results.length === 0) return [];
 
-      let newCoins = prev.coins;
-      let newPools = [...prev.gachaPools];
-      let currentPool = { ...pool, items: pool.items.map(i => ({ ...i })) };
-      const results: { item: string; rarity: string; poolType: 'gacha' | 'ichiban', color?: string }[] = [];
-      
-      for (let pull = 0; pull < amount; pull++) {
-        if (currentPool.type === 'gacha') {
-          const rarities = currentPool.rarities || [
-            { id: 'SSR', name: 'SSR', color: 'amber', weight: currentPool.weights?.SSR || 5 },
-            { id: 'SR', name: 'SR', color: 'purple', weight: currentPool.weights?.SR || 15 },
-            { id: 'R', name: 'R', color: 'blue', weight: currentPool.weights?.R || 80 },
-          ];
-          const totalWeight = rarities.reduce((sum, r) => sum + r.weight, 0);
-          const rand = Math.random() * totalWeight;
-
-          let current = 0;
-          let selectedRarity = rarities[0];
-          for (const r of rarities) {
-            current += r.weight;
-            if (rand < current) {
-              selectedRarity = r;
-              break;
-            }
-          }
-
-          const itemEntry = currentPool.items.find(i => i.rarity === selectedRarity.id);
-          if (!itemEntry) continue;
-
-          const itemList = itemEntry.name.split('/').map(s => s.trim()).filter(s => s.length > 0);
-          if (itemList.length === 0) continue;
-
-          const selectedItem = itemList[Math.floor(Math.random() * itemList.length)];
-          newCoins -= currentPool.cost;
-          results.push({ item: selectedItem, rarity: selectedRarity.name, poolType: pool.type, color: selectedRarity.color });
-          
-        } else if (currentPool.type === 'ichiban') {
-          const availableItems = currentPool.items.filter(i => (i.count || 0) > 0 && i.rarity !== 'LastOne');
-          const totalAvailable = availableItems.reduce((acc, i) => acc + (i.count || 0), 0);
-          
-          if (totalAvailable === 0) break; // Pool empty
-
-          const rand = Math.floor(Math.random() * totalAvailable);
-          let current = 0;
-          let selectedEntry = availableItems[0];
-
-          for (const item of availableItems) {
-            current += (item.count || 0);
-            if (rand < current) {
-              selectedEntry = item;
-              break;
-            }
-          }
-
-          newCoins -= currentPool.cost;
-          
-          // Update counts
-          currentPool.items = currentPool.items.map(i => {
-            if (i.rarity === selectedEntry.rarity && i.name === selectedEntry.name) {
-              return { ...i, count: (i.count || 0) - 1 };
-            }
-            return i;
-          });
-
-          const subItems = selectedEntry.name.split('/').map(s => s.trim()).filter(s => s.length > 0);
-          const finalItemName = subItems.length > 0 ? subItems[Math.floor(Math.random() * subItems.length)] : selectedEntry.name;
-
-          results.push({ item: finalItemName, rarity: selectedEntry.rarity, poolType: pool.type, color: selectedEntry.color });
-
-          // Check if LastOne should be awarded
-          const remaining = currentPool.items.filter(i => i.rarity !== 'LastOne').reduce((acc, i) => acc + (i.count || 0), 0);
-          if (remaining === 0) {
-            const lastOne = currentPool.items.find(i => i.rarity === 'LastOne');
-            if (lastOne && (lastOne.count || 0) > 0) {
-              const lastOneSubItems = lastOne.name.split('/').map(s => s.trim()).filter(s => s.length > 0);
-              const lastOneColor = lastOne.color || 'rose';
-              
-              if (lastOneSubItems.length > 1) {
-                // Award all sub-items
-                lastOneSubItems.forEach(subItem => {
-                  results.push({ item: subItem, rarity: 'LastOne', poolType: pool.type, color: lastOneColor });
-                });
-              } else {
-                results.push({ item: lastOne.name, rarity: 'LastOne', poolType: pool.type, color: lastOneColor });
-              }
-
-              // Mark LastOne as taken
-              currentPool.items = currentPool.items.map(i => 
-                i.rarity === 'LastOne' ? { ...i, count: 0 } : i
-              );
-            }
-          }
-        }
-      }
-
-      newPools = newPools.map(p => p.id === poolId ? currentPool : p);
-      pullResults = results;
-
-      const expectedCost = prev.coins - newCoins;
-
-      const newState = processTransaction(prev, 'coins', -expectedCost, `Gacha Roll (${amount}x)`);
-
+    setState((prev) => {
+      const withTx = processTransaction(
+        prev,
+        'coins',
+        -computed.spent,
+        `Gacha Roll (${amount}x)`
+      );
       return {
-        ...newState,
-        coins: newCoins,
-        gachaPools: newPools
+        ...withTx,
+        coins: prev.coins - computed.spent,
+        gachaPools: prev.gachaPools.map((p) => (p.id === poolId ? computed.newPool : p)),
       };
     });
 
-    // We need to return the results. Since setState callback is usually synchronous in event handlers, 
-    // pullResults should be populated. If not, we might need a different approach, but for now 
-    // let's ensure we process history if success is true.
-    
-    if (pullResults.length > 0) {
-      pullResults.forEach(res => {
-        addRewardToHistory({
-          name: res.item,
-          rarity: res.rarity as any, // using as any since rarity text is arbitrary now
-          color: res.color,
-          source: 'Gacha',
-          type: 'text',
-        });
+    // Results are known before the state write, so history no longer depends on
+    // the updater having run.
+    computed.results.forEach((res) => {
+      addRewardToHistory({
+        name: res.item,
+        rarity: res.rarity as any,
+        color: res.color,
+        source: 'Gacha',
+        type: 'text',
       });
-    }
+    });
 
-    return pullResults;
-  }, [addRewardToHistory]);
+    return computed.results;
+  }, [state.gachaPools, state.coins, addRewardToHistory]);
 
   const resetIchibanPool = useCallback((poolId: string) => {
     setState(prev => ({

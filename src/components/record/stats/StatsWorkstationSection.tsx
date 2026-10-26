@@ -5,13 +5,10 @@ import {
   ArrowRight,
   Building2,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Edit3,
   MapPin,
   Plus,
-  RotateCcw,
   Sparkles,
   Square,
   Trash2,
@@ -412,47 +409,27 @@ export const StatsWorkstationSection: React.FC<StatsWorkstationSectionProps> = (
         </div>
 
         <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto">
-          <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 flex-1 sm:flex-none">
-            <button
-              type="button"
-              onClick={() => goDay(-1)}
-              className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
-              title="Previous day"
+          <div className="bg-slate-800/50 rounded-lg p-0.5 sm:p-1 flex-1 sm:flex-none">
+            <DatePicker
+              value={dateStr}
+              onChange={(val) => val && setDateStr(val)}
+              indicators={mergedDateIndicators}
+              className="text-[10px] sm:text-xs font-bold text-slate-300 min-w-[110px] text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
+              nav={{
+                onPrev: () => goDay(-1),
+                onNext: () => goDay(1),
+                onToday: () => setDateStr(todayStr),
+                nextDisabled: dateStr >= todayStr,
+                size: 'sm',
+              }}
             >
-              <ChevronLeft size={16} />
-            </button>
-            <div className="relative flex items-center justify-center flex-1 sm:flex-none">
-              <DatePicker
-                value={dateStr}
-                onChange={(val) => val && setDateStr(val)}
-                indicators={mergedDateIndicators}
-                className="text-[10px] sm:text-xs font-bold text-slate-300 w-full sm:w-auto text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
-              >
-                <div className="flex items-center justify-center gap-1.5 px-2 py-0.5 hover:bg-slate-700/60 rounded transition-colors text-white font-bold">
-                  <Calendar size={13} className="text-indigo-400" />
-                  <span>
-                    {dateStr === todayStr ? 'Today' : format(parseISO(dateStr), 'MMM d, yyyy')}
-                  </span>
-                </div>
-              </DatePicker>
-            </div>
-            <button
-              type="button"
-              onClick={() => goDay(1)}
-              disabled={dateStr >= todayStr}
-              className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 disabled:opacity-30"
-              title="Next day"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateStr(todayStr)}
-              className="p-1 text-indigo-400 hover:bg-slate-700 hover:text-indigo-300 rounded transition-colors"
-              title="Return to Today"
-            >
-              <RotateCcw size={14} />
-            </button>
+              <div className="flex items-center justify-center gap-1.5 px-2 py-0.5 hover:bg-slate-700/60 rounded transition-colors text-white font-bold">
+                <Calendar size={13} className="text-indigo-400" />
+                <span>
+                  {dateStr === todayStr ? 'Today' : format(parseISO(dateStr), 'MMM d, yyyy')}
+                </span>
+              </div>
+            </DatePicker>
           </div>
 
           <button

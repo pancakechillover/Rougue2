@@ -8,8 +8,6 @@ import {
   Trash2, 
   Edit3, 
   Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
   Sparkles, 
   Percent, 
   Square,
@@ -378,32 +376,22 @@ export const WorkstationView: React.FC<WorkstationViewProps> = ({
 
           {/* Date Navigator Block */}
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shrink-0 h-10 shadow-sm">
-            <button 
-              onClick={() => navigateDay('prev')}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              title="Previous Day"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            
             <DatePicker
               value={selectedDate}
               onChange={(val) => val && setSelectedDate(val)}
               indicators={dateIndicators}
+              nav={{
+                onPrev: () => navigateDay('prev'),
+                onNext: () => navigateDay('next'),
+                onToday: () => setSelectedDate(todayStr),
+                size: 'md',
+              }}
             >
               <div className="px-3 text-xs sm:text-sm font-bold text-slate-100 whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
                 <Calendar size={13} className="text-indigo-400" />
                 <span>{selectedDate === todayStr ? 'Today' : format(parseISO(selectedDate), 'MMM do')}</span>
               </div>
             </DatePicker>
-
-            <button 
-              onClick={() => navigateDay('next')}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              title="Next Day"
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
 
           {/* Back Button */}

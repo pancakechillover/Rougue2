@@ -14,8 +14,6 @@ import {
 import { format, parseISO, subDays, addDays } from 'date-fns';
 import { 
   CalendarDays, 
-  ChevronLeft, 
-  ChevronRight, 
   RotateCcw, 
   Brain, 
   Wind, 
@@ -380,35 +378,20 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
         </div>
 
         <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full md:w-auto shrink-0">
-          <button 
-            onClick={() => setWeeklyDate(subDays(weeklyDate, 7))} 
-            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
+          <DatePicker
+            value={format(weeklyDate, 'yyyy-MM-dd')}
+            onChange={(val) => val && setWeeklyDate(parseISO(val))}
+            indicators={dateIndicators}
+            className="text-[10px] sm:text-xs font-bold text-slate-300 w-[90px] sm:w-28 text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
+            nav={{
+              onPrev: () => setWeeklyDate(subDays(weeklyDate, 7)),
+              onNext: () => setWeeklyDate(addDays(weeklyDate, 7)),
+              onToday: () => setWeeklyDate(new Date()),
+              size: 'sm',
+            }}
           >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="relative flex items-center justify-center flex-1 sm:flex-none">
-            <DatePicker 
-              value={format(weeklyDate, 'yyyy-MM-dd')}
-              onChange={(val) => val && setWeeklyDate(parseISO(val))}
-              indicators={dateIndicators}
-              className="text-[10px] sm:text-xs font-bold text-slate-300 w-[90px] sm:w-28 text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
-            >
-              {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}
-            </DatePicker>
-          </div>
-          <button 
-            onClick={() => setWeeklyDate(addDays(weeklyDate, 7))} 
-            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button 
-            onClick={() => setWeeklyDate(new Date())}
-            className="p-1 text-indigo-400 hover:bg-slate-700 hover:text-indigo-300 rounded transition-colors"
-            title="Return to Today"
-          >
-            <RotateCcw size={14} />
-          </button>
+            {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}
+          </DatePicker>
         </div>
       </div>
 

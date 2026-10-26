@@ -275,7 +275,7 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     weeklyLine: Date.now() + 2,
     sleep: Date.now() + 3
   });
-  const [activeChart, setActiveChart] = useState<'daily' | 'weeklyBar' | 'weeklyLine' | 'sleep' | null>(null);
+  const [activeChart, setActiveChart] = useState<'daily' | 'weeklyBar' | 'weeklyLine' | 'sleepTimes' | 'sleepDuration' | null>(null);
 
   /**
    * Mirror of `activeChart` for the document-level dismiss handler.
@@ -304,16 +304,24 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     }
     if (state.dailyLogs) {
       for (const [dateStr, log] of Object.entries(state.dailyLogs)) {
-        if (log && log.reflection) {
+        if (!log) continue;
+        if (log.reflection) {
           if (!res[dateStr]) res[dateStr] = {};
           res[dateStr].star = true;
+        }
+        // A day with sleep logged but no study session used to show nothing in
+        // the calendar, because only `state.history` and reflections fed this
+        // map. Sleep counts as activity too.
+        if (log.sleepDurationMin) {
+          if (!res[dateStr]) res[dateStr] = {};
+          res[dateStr].highlight = true;
         }
       }
     }
     return res;
   }, [state.history, state.dailyLogs]);
 
-  const handleChartClick = (chartState: any, chart: 'daily' | 'weeklyBar' | 'weeklyLine' | 'sleep') => {
+  const handleChartClick = (chartState: any, chart: 'daily' | 'weeklyBar' | 'weeklyLine' | 'sleepTimes' | 'sleepDuration') => {
     const hasTarget = chartState && (
       chartState.activeTooltipIndex !== undefined || 
       chartState.activeLabel !== undefined ||
@@ -331,11 +339,14 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     } else {
       setActiveChart(chart);
       // Keep only the clicked chart active; force-reset all other charts to close their popovers
+      // Both sleep charts share one key: they read the same dataset and never
+      // show two popovers at once, so remounting them together is correct.
+      const isSleepChart = chart === 'sleepTimes' || chart === 'sleepDuration';
       setChartKeys(prev => ({
         daily: chart === 'daily' ? prev.daily : Date.now() + Math.random(),
         weeklyBar: chart === 'weeklyBar' ? prev.weeklyBar : Date.now() + Math.random(),
         weeklyLine: chart === 'weeklyLine' ? prev.weeklyLine : Date.now() + Math.random(),
-        sleep: chart === 'sleep' ? prev.sleep : Date.now() + Math.random()
+        sleep: isSleepChart ? prev.sleep : Date.now() + Math.random()
       }));
     }
   };
