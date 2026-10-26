@@ -1112,7 +1112,11 @@ function App() {
         checkCloudSync(false, true);
       }
     }
-  }, [appReady, state.syncProvider, !!state.account?.token, !!state.secretCode]);
+    // secretCode is intentionally not a dependency: it changes as a side effect
+    // of resolving a conflict, and re-running the check at that moment reopened
+    // the comparison modal right after the user closed it. Whenever a legacy
+    // code actually enables sync, syncProvider changes too, which still triggers.
+  }, [appReady, state.syncProvider, !!state.account?.token]);
 
   useEffect(() => {
     // Check and reset routine major dungeons
@@ -2169,7 +2173,7 @@ function App() {
 
       {/* Scholar Passport Modal (Primary Unified Account & Cloud Sync UI) */}
       <AnimatePresence>
-        {(showCloudSync || ((!!syncCheckResult || !!syncError) && !showLegacyCloudModal && state.syncProvider !== 'Google Drive' && state.syncProvider !== 'WebDAV')) && (
+        {(showCloudSync || (!!syncCheckResult && !showLegacyCloudModal && state.syncProvider !== 'Google Drive' && state.syncProvider !== 'WebDAV')) && (
           <ScholarPassportModal
             isOpen={true}
             onClose={() => {

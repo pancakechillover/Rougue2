@@ -27,6 +27,15 @@ export function useCloudSync(
   const activeSyncRequestRef = useRef<number>(0);
   const activeCheckRequestRef = useRef<number>(0);
 
+  /**
+   * After the user picks a side in a conflict the state changes (account token,
+   * syncProvider, secretCode), which re-runs the startup check. That second pass
+   * compares a save against a copy of itself taken seconds earlier and can land
+   * on "different" by a hair, popping the comparison modal again right after the
+   * user just finished resolving it. Suppress automatic checks for a moment.
+   */
+  const suppressAutoCheckUntilRef = useRef<number>(0);
+
   const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
   const stripVolatile = useCallback((dataObj: any) => {
@@ -608,10 +617,11 @@ export function useCloudSync(
             isRedisUnlocked: state.isRedisUnlocked || syncCheckResult.cloudData.state.isRedisUnlocked
         };
 
-        const newDeviceCode = syncCheckResult.cloudData.state?.deviceCode || syncCheckResult.cloudData?.savedByDeviceCode;
-        if (newDeviceCode) {
-            localStorage.setItem('scholars_dungeon_device_code', newDeviceCode);
-        }
+        // Deliberately NOT copying cloudData.deviceCode into local storage here.
+        // The device code is this browser's identity; overwriting it made Chrome
+        // and Edge share one code after either of them restored a cloud save,
+        // which then made conflict detection believe both browsers were the same
+        // device and let one silently clobber the other's save.
 
         setState(mergedState);
         setDungeons(syncCheckResult.cloudData.dungeons);
@@ -634,6 +644,8 @@ export function useCloudSync(
       }
       setSyncCheckResult(null);
       setIsInitialSyncCheckDone(true);
+      // Give the state writes above time to settle before any automatic check.
+      suppressAutoCheckUntilRef.current = Date.now() + 8000;
     } finally {
       setIsSyncing(false);
     }
@@ -797,6 +809,10 @@ export function useCloudSync(
   }, [state, logSyncEvent, stripVolatile, setState, isCooledDown, isInitialSyncCheckDone, isSyncing, isVerifying]);
 
   const checkCloudSync = useCallback(async (forceModal = false, isStartup = false) => {
+    // A conflict was just resolved; don't immediately re-open the comparison.
+    // Explicit user actions (forceModal) still go through.
+    if (!forceModal && Date.now() < suppressAutoCheckUntilRef.current) return;
+
     const isGoogleDrive = state.syncProvider === 'Google Drive';
     const isWebDav = state.syncProvider === 'WebDAV';
     const hasRedisAuth = Boolean(state.account?.token && state.account?.userId);

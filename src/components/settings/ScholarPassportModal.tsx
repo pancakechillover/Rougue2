@@ -26,7 +26,7 @@ import {
   FileText
 } from 'lucide-react';
 import { AppState } from '../../types';
-import { cn, getDeviceCode } from '../../lib/utils';
+import { cn, getDeviceCode, getBrowserEnvLabel } from '../../lib/utils';
 
 const USER_AGREEMENT_SECTIONS = [
   {
@@ -486,6 +486,16 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     ? new Date(state.lastUpdated).toLocaleString()
     : 'Unsaved';
 
+  // Which browser/device each side came from. Chrome and Edge on one machine have
+  // separate saves, so the browser name is appended to keep them distinguishable.
+  const localDeviceLabel = `${state.deviceNickname || state.deviceType || 'This device'} · ${getBrowserEnvLabel()}`;
+  const cloudDeviceLabel =
+    cloudState?.deviceNickname ||
+    syncCheckResult?.cloudData?.savedBy ||
+    (syncCheckResult?.cloudData?.savedByDeviceCode
+      ? `Device ${String(syncCheckResult.cloudData.savedByDeviceCode).slice(0, 6)}`
+      : 'Unknown');
+
   return createPortal(
     <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
       <motion.div
@@ -689,12 +699,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                     <span className="text-center text-indigo-400">Cloud Archive</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs items-center">
-                    <span className="text-slate-400">Level</span>
+                    <span className="text-slate-400">Level / XP</span>
                     <span className="text-center font-mono font-bold text-white">
-                      Lv. {state.level || 1}
+                      Lv. {state.level || 1} · {(state.xp || 0).toLocaleString()}
                     </span>
                     <span className="text-center font-mono font-bold text-indigo-300">
-                      Lv. {cloudState?.level ?? 1}
+                      Lv. {cloudState?.level ?? 1} · {(cloudState?.xp ?? 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs items-center">
@@ -722,6 +732,15 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                     </span>
                     <span className="text-center font-mono text-indigo-400 truncate" title={cloudTimeStr}>
                       {cloudTimeStr}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] items-center">
+                    <span className="text-slate-500">Saved By</span>
+                    <span className="text-center font-mono text-slate-400 truncate" title={localDeviceLabel}>
+                      {localDeviceLabel}
+                    </span>
+                    <span className="text-center font-mono text-indigo-400 truncate" title={cloudDeviceLabel}>
+                      {cloudDeviceLabel}
                     </span>
                   </div>
                 </div>
@@ -777,7 +796,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                 onClick={onCancelConflict}
                 className="w-full py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
               >
-                Dismiss Comparison
+                {syncCheckResult.status === 'no_save' ? 'Not Now' : 'Dismiss Comparison'}
               </button>
             </div>
           ) : !isAuthenticated ? (
@@ -1183,7 +1202,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                       Device Sequence
                     </span>
                     <span className="text-slate-300 font-mono text-[11px]">
-                      {state.deviceNickname || state.deviceType || 'PC'} ({getDeviceCode().slice(0, 6)})
+                      {state.deviceNickname || state.deviceType || 'PC'} · {getBrowserEnvLabel()} ({getDeviceCode().slice(0, 6)})
                     </span>
                   </div>
                 </div>

@@ -523,13 +523,56 @@ export function getDungeonHierarchyStats(
   };
 }
 
+/**
+ * Stable per-browser identity.
+ *
+ * Chrome and Edge on the same machine keep completely separate localStorage, so
+ * they hold separate saves and must not be treated as one device. The random
+ * suffix already guaranteed that, but it told you nothing about which browser
+ * you were looking at, and a sync used to overwrite it with the cloud copy
+ * (both browsers ended up sharing one code). New codes therefore carry a
+ * browser prefix; existing codes are never regenerated, because re-issuing them
+ * would make every device look brand new and trigger a conflict modal each time.
+ */
+export function getBrowserEnvLabel(): string {
+  if (typeof navigator === 'undefined') return 'Web';
+  const ua = navigator.userAgent;
+  if (ua.includes('Edg/')) return 'Edge';
+  if (ua.includes('OPR/') || ua.includes('Opera')) return 'Opera';
+  if (ua.includes('Firefox/')) return 'Firefox';
+  if (ua.includes('Chrome/')) return 'Chrome';
+  if (ua.includes('Safari/')) return 'Safari';
+  return 'Web';
+}
+
+function getBrowserEnvPrefix(): string {
+  switch (getBrowserEnvLabel()) {
+    case 'Edge': return 'edg';
+    case 'Opera': return 'opr';
+    case 'Firefox': return 'ffx';
+    case 'Chrome': return 'chr';
+    case 'Safari': return 'saf';
+    default: return 'web';
+  }
+}
+
+/** Accepts legacy 8-char codes as well as prefixed ones like `edg3f9a2c`. */
+const DEVICE_CODE_PATTERN = /^[a-z0-9]{1,12}$/i;
+
 export function getDeviceCode(): string {
   if (typeof localStorage === 'undefined') return 'server';
-  let code = localStorage.getItem('scholars_dungeon_device_code');
-  if (!code || code.length > 8) {
-    code = code ? code.substring(0, 8) : Math.random().toString(36).substring(2, 10);
-    localStorage.setItem('scholars_dungeon_device_code', code);
-  }
+  const stored = localStorage.getItem('scholars_dungeon_device_code');
+  if (stored && DEVICE_CODE_PATTERN.test(stored)) return stored;
+  const code = getBrowserEnvPrefix() + Math.random().toString(36).substring(2, 8);
+  localStorage.setItem('scholars_dungeon_device_code', code);
+  return code;
+}
+
+/** Forces a new identity, e.g. after a sync copied another browser's code over. */
+export function resetDeviceCode(): string {
+  if (typeof localStorage === 'undefined') return 'server';
+  const code = getBrowserEnvPrefix() + Math.random().toString(36).substring(2, 8);
+  localStorage.setItem('scholars_dungeon_device_code', code);
   return code;
 }
 
