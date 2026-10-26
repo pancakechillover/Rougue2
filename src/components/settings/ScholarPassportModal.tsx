@@ -26,7 +26,7 @@ import {
   FileText
 } from 'lucide-react';
 import { AppState } from '../../types';
-import { cn, getDeviceCode, getBrowserEnvLabel } from '../../lib/utils';
+import { cn, getDeviceCode, getBrowserEnvLabel, resetDeviceCode } from '../../lib/utils';
 
 const USER_AGREEMENT_SECTIONS = [
   {
@@ -1201,8 +1201,30 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">
                       Device Sequence
                     </span>
-                    <span className="text-slate-300 font-mono text-[11px]">
-                      {state.deviceNickname || state.deviceType || 'PC'} · {getBrowserEnvLabel()} ({getDeviceCode().slice(0, 6)})
+                    <span className="flex items-center gap-1.5 text-slate-300 font-mono text-[11px]">
+                      <span className="truncate">
+                        {state.deviceNickname || state.deviceType || 'PC'} · {getBrowserEnvLabel()} ({getDeviceCode().slice(0, 6)})
+                      </span>
+                      <button
+                        type="button"
+                        title="Reset this browser's device identity"
+                        onClick={() =>
+                          setConfirmAction({
+                            title: 'Reset Device Identity?',
+                            message:
+                              'This browser will be registered as a new device. Only do this if another browser on the same computer shows the same device code, which makes sync treat them as one machine.',
+                            confirmLabel: 'Reset Identity',
+                            onConfirm: () => {
+                              resetDeviceCode();
+                              setConfirmAction(null);
+                              window.location.reload();
+                            }
+                          })
+                        }
+                        className="shrink-0 p-1 rounded-md text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                      >
+                        <RefreshCw size={11} />
+                      </button>
                     </span>
                   </div>
                 </div>
