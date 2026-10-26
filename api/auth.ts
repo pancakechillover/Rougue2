@@ -519,6 +519,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // ── 0b. GET /api/auth?action=check_username (Real-time duplicate detection) ──
+    if (method === 'GET' && action === 'check_username') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      const rawUsername = typeof req.query?.username === 'string' ? req.query.username : '';
+      const cleanUsername = rawUsername.trim();
+      if (!isValidUsername(cleanUsername)) {
+        return res.status(200).json({
+          success: true,
+          valid: false,
+          available: false,
+          message: 'Username must be 3–20 characters using only letters, numbers, or underscores.',
+        });
+      }
+
+      const client = await getRedisClient();
+      if (!client) {
+        return res.status(200).json({
+          success: true,
+          valid: true,
+          available: true,
+          unchecked: true,
+          username: cleanUsername,
+          message: `Username "@${cleanUsername}" is available.`,
+        });
+      }
+
+      const ip = getClientIp(req);
+      if (await checkRateLimitBucket(client, 'scholar_username_check_rate', ip, 60, 45)) {
+        return res.status(429).json({
+          success: false,
+          error: 'Too many username checks. Please wait a moment.',
+        });
+      }
+
+      const normalizedUsername = cleanUsername.toLowerCase();
+      const lookupKey = `scholar_user_lookup:${normalizedUsername}`;
+      const existingUserId = await client.get(lookupKey);
+
+      if (existingUserId) {
+        const userHashExists = await client.exists(`scholar_user:${existingUserId}`);
+        if (userHashExists) {
+          return res.status(200).json({
+            success: true,
+            valid: true,
+            available: false,
+            username: cleanUsername,
+            message: `Username "@${cleanUsername}" is already taken.`,
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        valid: true,
+        available: true,
+        username: cleanUsername,
+        message: `Username "@${cleanUsername}" is available.`,
+      });
+    }
+
     // Parse body if string
     let body = req.body;
     if (typeof body === 'string') {

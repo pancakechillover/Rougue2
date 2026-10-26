@@ -7,8 +7,9 @@ To keep context lean and focused, this file maintains at most the 3 most recent 
 
 ## Recent Task History (Latest 3)
 
-- **v9.4.1 (2026-10-26):** Scholar Passport Modal Bug Fixes, Post-Registration State Fix & Theme-Aware Error Boundary
+- **v9.4.1 (2026-10-26):** Scholar Passport Modal Bug Fixes, Real-Time Username Duplicate Detection, Post-Registration State Fix & Theme-Aware Error Boundary
   - *Post-Registration Crash Fix (`useAuth.ts`, `App.tsx`, `useGameState.ts`):* Fixed `syncAccountState` and `useAuth`'s `onUpdateState` callback so account registration/login merges `{ account }` into the existing `AppState` rather than overwriting `state` with a partial object (which previously caused `state.activeTalents.includes` to throw `Cannot read properties of undefined (reading 'includes')`). Added automatic recovery from `scholars_dungeon_state__backup_raw` and array guards.
+  - *Real-Time Username Duplicate Detection (`/api/auth.ts`, `ScholarPassportModal.tsx`):* Added a rate-limited `GET /api/auth?action=check_username` endpoint (case-insensitive check against `scholar_user_lookup:{username}` with orphan-lookup verification) alongside the atomic `SETNX` registration guard, and wired debounced live availability feedback (`Checking...` / `Available` / `Already Taken` / `Invalid Format`) into the Sign Up form.
   - *Theme-Adaptive Error Boundary (`ErrorBoundary.tsx`, `App.tsx`):* Redesigned the crash fallback screen to automatically detect and apply the active theme (`night`, `forest`, `ocean`, `daylight`, `warm`, `candy`) from `data-theme` or `localStorage`, styled with theme-aware `indigo` and `slate` tokens, ambient glow, and one-click diagnostic log copying.
   - *Scholar Passport Terminology & Verification Code (`ScholarPassportModal.tsx`, `CloudSettingsSection.tsx`, `ProfileModal.tsx`, `/api/auth.ts`, `src/index.css`):* Standardized "Log In" / "Sign Up" labels, replaced `svg-captcha` with a zero-filesystem SVG generator, and hid duplicate native browser password eye icons.
 

@@ -196,6 +196,10 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
   const [captchaInput, setCaptchaInput] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showUserAgreement, setShowUserAgreement] = useState(false);
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+  >('idle');
+  const [usernameCheckMsg, setUsernameCheckMsg] = useState<string | null>(null);
 
   const refreshCaptcha = useCallback(async () => {
     setCaptchaLoading(true);
@@ -257,6 +261,76 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     }
   }, [isOpen, refreshCaptcha, state.account?.token, state.account?.userId]);
 
+  // Real-time debounced username duplicate check during Sign Up
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'register' || (state.account?.token && state.account?.userId)) {
+      setUsernameCheckStatus('idle');
+      setUsernameCheckMsg(null);
+      return;
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+      setUsernameCheckStatus('idle');
+      setUsernameCheckMsg(null);
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmed)) {
+      setUsernameCheckStatus('invalid');
+      setUsernameCheckMsg('Must be 3–20 characters (letters, numbers, or underscores only).');
+      return;
+    }
+
+    setUsernameCheckStatus('checking');
+    setUsernameCheckMsg('Checking username availability...');
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/auth?action=check_username&username=${encodeURIComponent(trimmed)}&_t=${Date.now()}`,
+          {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+            signal: controller.signal
+          }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (controller.signal.aborted) return;
+
+        if (res.ok && data?.success) {
+          if (data.valid === false) {
+            setUsernameCheckStatus('invalid');
+            setUsernameCheckMsg(
+              data.message || 'Must be 3–20 characters (letters, numbers, or underscores only).'
+            );
+          } else if (data.available === false) {
+            setUsernameCheckStatus('taken');
+            setUsernameCheckMsg(data.message || `Username "@${trimmed}" is already taken.`);
+          } else {
+            setUsernameCheckStatus('available');
+            setUsernameCheckMsg(data.message || `Username "@${trimmed}" is available.`);
+          }
+        } else {
+          setUsernameCheckStatus('idle');
+          setUsernameCheckMsg(null);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setUsernameCheckStatus('idle');
+          setUsernameCheckMsg(null);
+        }
+      }
+    }, 320);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [isOpen, activeTab, username, state.account?.token, state.account?.userId]);
+
   if (!isOpen) return null;
 
   const account = state.account;
@@ -279,6 +353,13 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmedUser)) {
       setLocalFormError(
         `${prefix}: Username "${trimmedUser}" is invalid. Must be 3–20 characters using only letters, numbers, or underscores.`
+      );
+      return;
+    }
+
+    if (activeTab === 'register' && usernameCheckStatus === 'taken') {
+      setLocalFormError(
+        `Sign-up failed: Username "@${trimmedUser}" is already taken. Please choose another username or switch to Log In.`
       );
       return;
     }
@@ -343,6 +424,10 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
         setCaptchaInput('');
         setTimeout(() => onVerify(), 150);
       } else {
+        if (typeof res.error === 'string' && res.error.toLowerCase().includes('already taken')) {
+          setUsernameCheckStatus('taken');
+          setUsernameCheckMsg(`Username "@${trimmedUser}" is already taken.`);
+        }
         setLocalFormError(
           res.error || 'Sign-up failed: Unable to sign up. Please check your inputs and try again.'
         );
@@ -744,18 +829,87 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
 
               <form onSubmit={handleAuthSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <User size={12} className="text-indigo-400" />
-                    Scholar Username
-                  </label>
-                  <input
-                    type="text"
-                    autoComplete="username"
-                    placeholder="3-20 letters, numbers, or _"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors"
-                  />
+                  <div className="flex items-center justify-between ml-1 mr-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <User size={12} className="text-indigo-400" />
+                      Scholar Username
+                    </label>
+                    {activeTab === 'register' && usernameCheckStatus === 'checking' && (
+                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                        <RefreshCw size={10} className="animate-spin text-indigo-400" />
+                        Checking...
+                      </span>
+                    )}
+                    {activeTab === 'register' && usernameCheckStatus === 'available' && (
+                      <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1">
+                        <CheckCircle2 size={11} />
+                        Available
+                      </span>
+                    )}
+                    {activeTab === 'register' && usernameCheckStatus === 'taken' && (
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1">
+                        <AlertTriangle size={11} />
+                        Already Taken
+                      </span>
+                    )}
+                    {activeTab === 'register' && usernameCheckStatus === 'invalid' && (
+                      <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                        <AlertTriangle size={11} />
+                        Invalid Format
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      placeholder="3-20 letters, numbers, or _"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className={cn(
+                        'w-full px-4 py-3 bg-slate-950 border rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors',
+                        activeTab === 'register' && usernameCheckStatus === 'taken'
+                          ? 'border-rose-500/60 focus:border-rose-500 pr-10'
+                          : activeTab === 'register' && usernameCheckStatus === 'invalid'
+                            ? 'border-amber-500/60 focus:border-amber-500 pr-10'
+                            : activeTab === 'register' && usernameCheckStatus === 'available'
+                              ? 'border-indigo-500/60 focus:border-indigo-500 pr-10'
+                              : 'border-slate-800 focus:border-indigo-500'
+                      )}
+                    />
+                    {activeTab === 'register' && usernameCheckStatus !== 'idle' && (
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
+                        {usernameCheckStatus === 'checking' && (
+                          <RefreshCw size={15} className="animate-spin text-indigo-400" />
+                        )}
+                        {usernameCheckStatus === 'available' && (
+                          <CheckCircle2 size={16} className="text-indigo-400" />
+                        )}
+                        {usernameCheckStatus === 'taken' && (
+                          <AlertTriangle size={16} className="text-rose-400" />
+                        )}
+                        {usernameCheckStatus === 'invalid' && (
+                          <AlertTriangle size={16} className="text-amber-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {activeTab === 'register' && usernameCheckMsg && (
+                    <p
+                      className={cn(
+                        'text-[11px] font-medium ml-1 leading-relaxed',
+                        usernameCheckStatus === 'taken'
+                          ? 'text-rose-400'
+                          : usernameCheckStatus === 'invalid'
+                            ? 'text-amber-400'
+                            : usernameCheckStatus === 'available'
+                              ? 'text-indigo-400'
+                              : 'text-slate-400'
+                      )}
+                    >
+                      {usernameCheckMsg}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -954,7 +1108,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
 
                 <button
                   type="submit"
-                  disabled={authLoading || isSyncing}
+                  disabled={
+                    authLoading ||
+                    isSyncing ||
+                    (activeTab === 'register' &&
+                      (usernameCheckStatus === 'taken' || usernameCheckStatus === 'invalid'))
+                  }
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                 >
                   {authLoading ? (
