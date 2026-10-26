@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 import webpush from 'web-push';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyBearerToken } from './auth';
+import { verifyBearerToken } from './_shared/auth.js';
 
 // Configure Web Push
 // SECURITY NOTE: Please set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your Secrets for production.

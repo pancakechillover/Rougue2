@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { isValidOrigin } from '../oauthUtils';
+import { isValidOrigin } from '../oauthUtils.js';
 import crypto from 'crypto';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {

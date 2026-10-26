@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { isValidOrigin } from '../oauthUtils';
+import { isValidOrigin } from '../oauthUtils.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!process.env.OAUTH_CLIENT_ID || !process.env.OAUTH_CLIENT_SECRET) {

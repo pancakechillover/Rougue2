@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyBearerToken } from './auth';
+import { verifyBearerToken } from './_shared/auth.js';
 
 // Initialize Redis client lazily to reuse connection in serverless environment
 let redisClient: any = null;
