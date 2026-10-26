@@ -9,6 +9,7 @@ import { useTimerStore } from './useTimerStore';
 
 import {
   CURRENT_SCHEMA_VERSION,
+  PRE_MIGRATION_BACKUP_KEY,
   backupBeforeMigration,
   getSaveVersion,
   parseSave,
@@ -584,19 +585,45 @@ export function useGameState() {
       account: null
     };
 
-    const { parsed } = parseSave(saved);
-    const fromVersion = getSaveVersion(parsed);
+    let { parsed } = parseSave(saved);
 
     if (!parsed) {
       return { ...defaultState, schemaVersion: CURRENT_SCHEMA_VERSION };
     }
 
-    backupBeforeMigration(saved, fromVersion);
+    // Recover if a previous partial update accidentally persisted only `{ account }` without core state fields
+    const isWipedPartialSave =
+      typeof parsed.level !== 'number' &&
+      !Array.isArray(parsed.quests) &&
+      !Array.isArray(parsed.history);
+
+    if (isWipedPartialSave) {
+      const backupRawStr = localStorage.getItem(PRE_MIGRATION_BACKUP_KEY);
+      const { parsed: backupParsed } = parseSave(backupRawStr);
+      if (
+        backupParsed &&
+        (typeof backupParsed.level === 'number' || Array.isArray(backupParsed.quests))
+      ) {
+        parsed = {
+          ...backupParsed,
+          ...parsed,
+          account: parsed.account ?? backupParsed.account ?? null,
+        };
+      }
+    } else {
+      const fromVersion = getSaveVersion(parsed);
+      backupBeforeMigration(saved, fromVersion);
+    }
 
     const migrated = applyLegacyMigrations(parsed, defaultState);
     return {
       ...defaultState,
       ...migrated,
+      unlockedTalents: Array.isArray(migrated.unlockedTalents) ? migrated.unlockedTalents : defaultState.unlockedTalents,
+      activeTalents: Array.isArray(migrated.activeTalents) ? migrated.activeTalents : defaultState.activeTalents,
+      history: Array.isArray(migrated.history) ? migrated.history : defaultState.history,
+      quests: Array.isArray(migrated.quests) ? migrated.quests : defaultState.quests,
+      inventory: Array.isArray(migrated.inventory) ? migrated.inventory : defaultState.inventory,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       deviceCode: getDeviceCode(),
     };
@@ -676,7 +703,9 @@ export function useGameState() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (state && typeof state.level === 'number' && Array.isArray(state.quests)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
   }, [state]);
 
   useEffect(() => {

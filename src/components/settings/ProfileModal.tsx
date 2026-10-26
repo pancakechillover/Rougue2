@@ -491,7 +491,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       className="flex-1 py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2"
                     >
                       <LogIn size={16} />
-                      Login
+                      Log In
                     </button>
                     <button 
                       type="button"
@@ -506,7 +506,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       className="flex-1 py-3 sm:py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 border border-slate-800"
                     >
                       <UserPlus size={16} />
-                      Signup
+                      Sign Up
                     </button>
                   </>
                 ) : (
@@ -520,7 +520,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     className="w-full py-3 sm:py-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 border border-rose-500/20"
                   >
                     <LogOut size={16} />
-                    Logout
+                    Log Out
                   </button>
                 )}
               </div>

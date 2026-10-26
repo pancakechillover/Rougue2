@@ -362,7 +362,14 @@ function App() {
     login,
     logout,
     migrateLegacy
-  } = useAuth({ state, onUpdateState: setState });
+  } = useAuth({
+    state,
+    onUpdateState: (updates) =>
+      setState((prev) => {
+        const resolved = typeof updates === 'function' ? updates(prev) : updates;
+        return { ...prev, ...resolved };
+      })
+  });
 
   const {
     isSyncing,
@@ -709,16 +716,10 @@ function App() {
   }, [hasUnsyncedChanges, state.account?.token, state.secretCode, state.syncProvider, syncToCloud, isInitialSyncCheckDone, checkCloudSync]);
 
   React.useEffect(() => {
-    if (state.theme) {
-      document.documentElement.setAttribute('data-theme', state.theme);
-      if (pipWindow) {
-        pipWindow.document.documentElement.setAttribute('data-theme', state.theme);
-      }
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      if (pipWindow) {
-        pipWindow.document.documentElement.removeAttribute('data-theme');
-      }
+    const activeTheme = state.theme || 'daylight';
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    if (pipWindow) {
+      pipWindow.document.documentElement.setAttribute('data-theme', activeTheme);
     }
     
     // Dynamically update theme-color meta tag for PWA status bar with raw HEX colors (iOS parses rgb poorly)
@@ -731,7 +732,7 @@ function App() {
         warm: '#fffbeb',
         candy: '#fdf2f8',
       };
-      const hexColor = themeColors[state.theme] || '#020617';
+      const hexColor = themeColors[activeTheme] || '#020617';
       
       let metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (!metaThemeColor) {
@@ -914,18 +915,19 @@ function App() {
       coinEffect: minCoins === maxCoins ? `+${minCoins}` : `+${minCoins}-${maxCoins}` 
     });
 
-    if (state.activeTalents.includes('a1')) {
+    const activeTalents = state.activeTalents || [];
+    if (activeTalents.includes('a1')) {
       xp *= 1.1; // only accurately shown if fixed, but display is abstract enough
       minXP *= 1.1;
       maxXP *= 1.1;
       breakdown.push({ source: 'Talent: Mind Lubrication', xpEffect: '+10%' });
     }
-    if (state.activeTalents.includes('b1')) {
+    if (activeTalents.includes('b1')) {
       minCoins *= 1.15;
       maxCoins *= 1.15;
       breakdown.push({ source: 'Talent: Alchemy', coinEffect: '+15%' });
     }
-    if (state.activeTalents.includes('c3')) {
+    if (activeTalents.includes('c3')) {
       const critChance = state.devModeEnabled ? (state.devCritChance ?? 0.05) : 0.05;
       const critMult = state.devModeEnabled ? (state.devCritMultiplier ?? 5) : 5;
       breakdown.push({ source: 'Talent: Critical Intuition', coinEffect: `${critChance * 100}% chance for x${critMult}` });
@@ -1090,8 +1092,8 @@ function App() {
   };
 
 
-  const unclaimedQuestsCount = state.quests.filter(q => !q.isAchievement && q.completed && !q.claimed).length;
-  const unclaimedAchievementsCount = state.quests.filter(q => q.isAchievement && q.completed && !q.claimed).length;
+  const unclaimedQuestsCount = (state.quests || []).filter(q => !q.isAchievement && q.completed && !q.claimed).length;
+  const unclaimedAchievementsCount = (state.quests || []).filter(q => q.isAchievement && q.completed && !q.claimed).length;
 
   const navItems = [
     { id: 'dashboard', label: 'Sanctum', icon: LayoutDashboard },

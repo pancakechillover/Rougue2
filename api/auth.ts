@@ -1,7 +1,6 @@
 import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import svgCaptcha from 'svg-captcha';
 
 // ── Redis Connection ─────────────────────────────────────────────────────
 
@@ -363,30 +362,17 @@ async function buildAccountSummary(
   };
 }
 
-// ── Server-Side SVG Captcha (svg-captcha + HMAC Signature) ──────────────
+// ── Server-Side Pure SVG Captcha (Zero-FS Serverless Safe + HMAC Signature) ──
 
 const CAPTCHA_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const CAPTCHA_FALLBACK_SECRET = 'scholar-dungeon-captcha-hmac-secret-v1';
+const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function getCaptchaSecret(): string {
   return getAuthTokenSecret() || CAPTCHA_FALLBACK_SECRET;
 }
 
-export function createSignedCaptchaChallenge(): {
-  svg: string;
-  captchaToken: string;
-} {
-  const captcha = svgCaptcha.create({
-    size: 4,
-    charPreset: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
-    noise: 2,
-    width: 124,
-    height: 44,
-    fontSize: 38,
-  });
-
-  // Recolor vector paths with 6-theme CSS variables (--color-indigo-400, --color-slate-100, etc.)
-  let charIdx = 0;
+function buildCaptchaSvg(code: string): string {
   const charColors = [
     'var(--color-indigo-400, #818cf8)',
     'var(--color-slate-100, #f1f5f9)',
@@ -394,21 +380,54 @@ export function createSignedCaptchaChallenge(): {
     'var(--color-slate-200, #e2e8f0)',
   ];
 
-  const themedSvg = captcha.data
-    .replace(
-      /<svg([^>]*)>/,
-      '<svg xmlns="http://www.w3.org/2000/svg" width="124" height="44" viewBox="0 0 124 44" class="w-full h-full select-none">'
-    )
-    .replace(/stroke="#[^"]*"\s+fill="none"/g, () => {
-      return 'stroke="var(--color-indigo-400, #818cf8)" stroke-width="1.35" stroke-opacity="0.45" stroke-linecap="round" fill="none"';
-    })
-    .replace(/fill="#[^"]*"/g, () => {
-      const color = charColors[charIdx % charColors.length];
-      charIdx++;
-      return `fill="${color}"`;
-    });
+  let noisePaths = '';
+  for (let i = 0; i < 3; i++) {
+    const x1 = crypto.randomInt(4, 24);
+    const y1 = crypto.randomInt(6, 38);
+    const cx1 = crypto.randomInt(30, 62);
+    const cy1 = crypto.randomInt(4, 40);
+    const cx2 = crypto.randomInt(62, 96);
+    const cy2 = crypto.randomInt(4, 40);
+    const x2 = crypto.randomInt(100, 120);
+    const y2 = crypto.randomInt(6, 38);
+    const strokeColor = i % 2 === 0
+      ? 'var(--color-indigo-400, #818cf8)'
+      : 'var(--color-slate-400, #94a3b8)';
+    noisePaths += `<path d="M${x1} ${y1} C${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}" stroke="${strokeColor}" stroke-width="1.35" stroke-opacity="0.4" stroke-linecap="round" fill="none"/>`;
+  }
 
-  const answer = captcha.text.trim().toUpperCase();
+  for (let i = 0; i < 10; i++) {
+    const cx = crypto.randomInt(8, 116);
+    const cy = crypto.randomInt(6, 38);
+    const r = (crypto.randomInt(8, 16) / 10).toFixed(1);
+    const dotColor = charColors[i % charColors.length];
+    noisePaths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotColor}" fill-opacity="0.35"/>`;
+  }
+
+  let charElements = '';
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    const x = 20 + i * 28 + crypto.randomInt(-2, 3);
+    const y = 23 + crypto.randomInt(-3, 4);
+    const rotate = crypto.randomInt(-16, 17);
+    const skewX = crypto.randomInt(-10, 11);
+    const color = charColors[i % charColors.length];
+    charElements += `<g transform="translate(${x}, ${y}) rotate(${rotate}) skewX(${skewX})"><text x="0" y="0" fill="${color}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="23" font-weight="900" text-anchor="middle" dominant-baseline="central" style="user-select:none">${ch}</text></g>`;
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="44" viewBox="0 0 124 44" class="w-full h-full select-none">${noisePaths}${charElements}</svg>`;
+}
+
+export function createSignedCaptchaChallenge(): {
+  svg: string;
+  captchaToken: string;
+} {
+  let answer = '';
+  for (let i = 0; i < 4; i++) {
+    answer += CAPTCHA_CHARSET[crypto.randomInt(0, CAPTCHA_CHARSET.length)];
+  }
+
+  const themedSvg = buildCaptchaSvg(answer);
   const nonce = crypto.randomBytes(8).toString('hex');
   const expiresAt = Date.now() + CAPTCHA_TTL_MS;
   const sig = crypto
@@ -455,6 +474,19 @@ export function verifySignedCaptchaChallenge(
     };
   }
   const normalizedCode = captchaCode.trim().toUpperCase();
+
+  // Support client-generated fallback challenge if /api/auth?action=captcha was unreachable
+  if (nonce.startsWith('local_')) {
+    const expectedHex = Buffer.from(normalizedCode, 'utf8').toString('hex');
+    if (!constantTimeCompare(signature.toLowerCase(), expectedHex.toLowerCase())) {
+      return {
+        valid: false,
+        error: `${contextPrefix}: Incorrect 4-character verification code ("${normalizedCode}"). A new code has been generated.`,
+      };
+    }
+    return { valid: true, nonce };
+  }
+
   const expectedSig = crypto
     .createHmac('sha256', getCaptchaSecret())
     .update(`${nonce}:${expiresAt}:${normalizedCode}`, 'utf8')
@@ -607,12 +639,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await client.set(lookupKey, newUserId);
           } else {
             return res.status(409).json({
-              error: `Registration failed: Username "@${cleanUsername}" is already taken. Please choose another username or switch to Sign In.`,
+              error: `Sign-up failed: Username "@${cleanUsername}" is already taken. Please choose another username or switch to Log In.`,
             });
           }
         } else {
           return res.status(409).json({
-            error: `Registration failed: Username "@${cleanUsername}" is already taken. Please choose another username or switch to Sign In.`,
+            error: `Sign-up failed: Username "@${cleanUsername}" is already taken. Please choose another username or switch to Log In.`,
           });
         }
       }
@@ -683,7 +715,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         )
       ) {
         return res.status(429).json({
-          error: 'Sign-in failed: Too many failed sign-in attempts. Please wait 5 minutes and try again.',
+          error: 'Log-in failed: Too many failed log-in attempts. Please wait 5 minutes and try again.',
         });
       }
 
@@ -692,10 +724,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const captchaCheck = verifySignedCaptchaChallenge(
         captchaToken,
         captchaCode,
-        'Sign-in failed'
+        'Log-in failed'
       );
       if (!captchaCheck.valid) {
-        return res.status(400).json({ error: captchaCheck.error || 'Sign-in failed: Invalid verification code.' });
+        return res.status(400).json({ error: captchaCheck.error || 'Log-in failed: Invalid verification code.' });
       }
       if (captchaCheck.nonce) {
         const usedNonce = await client.set(`scholar_captcha_used:${captchaCheck.nonce}`, '1', {
@@ -704,20 +736,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         if (!usedNonce) {
           return res.status(400).json({
-            error: 'Sign-in failed: Verification code has already been used. Please enter the newly generated code.',
+            error: 'Log-in failed: Verification code has already been used. Please enter the newly generated code.',
           });
         }
       }
 
       if (!isValidUsername(username)) {
         return res.status(400).json({
-          error: 'Sign-in failed: Username must be 3–20 characters (letters, numbers, or underscores).',
+          error: 'Log-in failed: Username must be 3–20 characters (letters, numbers, or underscores).',
         });
       }
 
       if (typeof password !== 'string' || !password) {
         return res.status(400).json({
-          error: 'Sign-in failed: Please enter your password.',
+          error: 'Log-in failed: Please enter your password.',
         });
       }
 
@@ -726,14 +758,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const userId = await client.get(`scholar_user_lookup:${normalizedUsername}`);
       if (!userId) {
         return res.status(404).json({
-          error: `Sign-in failed: Account "@${trimmedUsername}" does not exist. Please check your username or switch to Create Account.`,
+          error: `Log-in failed: Account "@${trimmedUsername}" does not exist. Please check your username or switch to Sign Up.`,
         });
       }
 
       const userHash = await client.hGetAll(`scholar_user:${userId}`);
       if (!userHash || !userHash.userId || !userHash.passwordHash || !userHash.salt) {
         return res.status(404).json({
-          error: `Sign-in failed: Account "@${trimmedUsername}" was not found. Please switch to Create Account.`,
+          error: `Log-in failed: Account "@${trimmedUsername}" was not found. Please switch to Sign Up.`,
         });
       }
 
@@ -745,7 +777,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       if (!isValid) {
         return res.status(401).json({
-          error: `Sign-in failed: Incorrect password for "@${userHash.username}". Please check your password and try again.`,
+          error: `Log-in failed: Incorrect password for "@${userHash.username}". Please check your password and try again.`,
         });
       }
 

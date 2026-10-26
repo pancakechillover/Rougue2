@@ -114,9 +114,10 @@ export function useAuth(options: UseAuthOptions = {}) {
     if (onUpdateStateRef.current) {
       onUpdateStateRef.current((prev) => {
         const updates: Partial<AppState> = {
+          ...(prev || {}),
           account: nextAccount,
         };
-        if (nextAccount?.teamId && !prev.teamId) {
+        if (nextAccount?.teamId && !prev?.teamId) {
           updates.teamId = nextAccount.teamId;
         }
         return updates;

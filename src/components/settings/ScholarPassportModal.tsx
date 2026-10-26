@@ -51,6 +51,70 @@ const USER_AGREEMENT_SECTIONS = [
   }
 ];
 
+const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function createClientFallbackCaptcha(): { svg: string; captchaToken: string } {
+  const charColors = [
+    'var(--color-indigo-400, #818cf8)',
+    'var(--color-slate-100, #f1f5f9)',
+    'var(--color-indigo-500, #6366f1)',
+    'var(--color-slate-200, #e2e8f0)'
+  ];
+  const randInt = (min: number, max: number) =>
+    Math.floor(Math.random() * (max - min)) + min;
+
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += CAPTCHA_CHARSET[randInt(0, CAPTCHA_CHARSET.length)];
+  }
+
+  let noisePaths = '';
+  for (let i = 0; i < 3; i++) {
+    const x1 = randInt(4, 24);
+    const y1 = randInt(6, 38);
+    const cx1 = randInt(30, 62);
+    const cy1 = randInt(4, 40);
+    const cx2 = randInt(62, 96);
+    const cy2 = randInt(4, 40);
+    const x2 = randInt(100, 120);
+    const y2 = randInt(6, 38);
+    const strokeColor =
+      i % 2 === 0 ? 'var(--color-indigo-400, #818cf8)' : 'var(--color-slate-400, #94a3b8)';
+    noisePaths += `<path d="M${x1} ${y1} C${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}" stroke="${strokeColor}" stroke-width="1.35" stroke-opacity="0.4" stroke-linecap="round" fill="none"/>`;
+  }
+
+  for (let i = 0; i < 10; i++) {
+    const cx = randInt(8, 116);
+    const cy = randInt(6, 38);
+    const r = (randInt(8, 16) / 10).toFixed(1);
+    const dotColor = charColors[i % charColors.length];
+    noisePaths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotColor}" fill-opacity="0.35"/>`;
+  }
+
+  let charElements = '';
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    const x = 20 + i * 28 + randInt(-2, 3);
+    const y = 23 + randInt(-3, 4);
+    const rotate = randInt(-16, 17);
+    const skewX = randInt(-10, 11);
+    const color = charColors[i % charColors.length];
+    charElements += `<g transform="translate(${x}, ${y}) rotate(${rotate}) skewX(${skewX})"><text x="0" y="0" fill="${color}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="23" font-weight="900" text-anchor="middle" dominant-baseline="central" style="user-select:none">${ch}</text></g>`;
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="44" viewBox="0 0 124 44" class="w-full h-full select-none">${noisePaths}${charElements}</svg>`;
+  const nonce = `local_${Math.random().toString(16).slice(2, 10)}`;
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  const codeHex = Array.from(code)
+    .map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('');
+
+  return {
+    svg,
+    captchaToken: `${nonce}.${expiresAt}.${codeHex}`
+  };
+}
+
 interface ScholarPassportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -139,18 +203,24 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     try {
       const res = await fetch(`/api/auth?action=captcha&_t=${Date.now()}`, {
         method: 'GET',
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.success && typeof data.svg === 'string' && typeof data.captchaToken === 'string') {
         setCaptchaSvg(data.svg);
         setCaptchaToken(data.captchaToken);
+        return;
       }
     } catch {
-      // Ignore network hiccup on captcha fetch
+      // Fallback to client-generated SVG challenge below if server is unreachable
     } finally {
       setCaptchaLoading(false);
     }
+
+    const fallback = createClientFallbackCaptcha();
+    setCaptchaSvg(fallback.svg);
+    setCaptchaToken(fallback.captchaToken);
   }, []);
 
   // Migration state
@@ -198,7 +268,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     setAuthError?.(null);
     setSyncError?.(null);
 
-    const prefix = activeTab === 'register' ? 'Registration failed' : 'Sign-in failed';
+    const prefix = activeTab === 'register' ? 'Sign-up failed' : 'Log-in failed';
     const trimmedUser = username.trim();
 
     if (!trimmedUser) {
@@ -227,20 +297,20 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
 
     if (activeTab === 'register') {
       if (!confirmPassword) {
-        setLocalFormError('Registration failed: Please confirm your password.');
+        setLocalFormError('Sign-up failed: Please confirm your password.');
         return;
       }
       if (password !== confirmPassword) {
-        setLocalFormError('Registration failed: Confirm Password does not match your password.');
+        setLocalFormError('Sign-up failed: Confirm Password does not match your password.');
         return;
       }
       if (!registrationSecret.trim()) {
-        setLocalFormError('Registration failed: Please enter the Registration Invite Key.');
+        setLocalFormError('Sign-up failed: Please enter the Registration Invite Key.');
         return;
       }
       if (!agreedToTerms) {
         setLocalFormError(
-          'Registration failed: You must read and agree to the Scholar Passport User Agreement before creating an account.'
+          'Sign-up failed: You must read and agree to the Scholar Passport User Agreement before signing up.'
         );
         return;
       }
@@ -274,7 +344,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
         setTimeout(() => onVerify(), 150);
       } else {
         setLocalFormError(
-          res.error || 'Registration failed: Unable to create account. Please check your inputs and try again.'
+          res.error || 'Sign-up failed: Unable to sign up. Please check your inputs and try again.'
         );
         void refreshCaptcha();
       }
@@ -291,7 +361,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
         setTimeout(() => onVerify(), 150);
       } else {
         setLocalFormError(
-          res.error || 'Sign-in failed: Unable to sign in. Please check your username and password.'
+          res.error || 'Log-in failed: Unable to log in. Please check your username and password.'
         );
         void refreshCaptcha();
       }
@@ -626,7 +696,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
               </button>
             </div>
           ) : !isAuthenticated ? (
-            /* Unauthenticated View: Sign In / Create Account */
+            /* Unauthenticated View: Log In / Sign Up */
             <div className="space-y-5">
               {/* Segmented Tabs */}
               <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
@@ -648,7 +718,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                   )}
                 >
                   <LogIn size={14} />
-                  Sign In
+                  Log In
                 </button>
                 <button
                   type="button"
@@ -668,7 +738,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                   )}
                 >
                   <UserPlus size={14} />
-                  Create Account
+                  Sign Up
                 </button>
               </div>
 
@@ -700,12 +770,13 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                       placeholder="6-64 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors"
+                      className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -726,7 +797,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                           placeholder="Re-enter your password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors"
+                          className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-medium focus:outline-none transition-colors [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                         />
                         <button
                           type="button"
@@ -747,10 +818,11 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                       <div className="relative">
                         <input
                           type={showRegistrationSecret ? 'text' : 'password'}
+                          autoComplete="off"
                           placeholder="Enter server invite key"
                           value={registrationSecret}
                           onChange={(e) => setRegistrationSecret(e.target.value)}
-                          className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-mono focus:outline-none transition-colors"
+                          className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-sm font-mono focus:outline-none transition-colors [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                         />
                         <button
                           type="button"
@@ -848,7 +920,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-                    <span>By signing in, you accept our covenant.</span>
+                    <span>By logging in, you accept our covenant.</span>
                     <button
                       type="button"
                       onClick={() => setShowUserAgreement(true)}
@@ -893,12 +965,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                   ) : activeTab === 'login' ? (
                     <>
                       <LogIn size={15} />
-                      Sign In to Passport
+                      Log In to Passport
                     </>
                   ) : (
                     <>
                       <Sparkles size={15} />
-                      Create Scholar Account
+                      Sign Up for Passport
                     </>
                   )}
                 </button>

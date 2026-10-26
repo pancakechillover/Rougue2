@@ -603,7 +603,7 @@ export const CloudSettingsSection: React.FC<CloudSettingsSectionProps> = ({
                       : 'text-indigo-400'
                   )}
                 >
-                  <span>{state.account?.token ? 'Manage Passport' : 'Sign In / Register'}</span>
+                  <span>{state.account?.token ? 'Manage Passport' : 'Log In / Sign Up'}</span>
                   <ChevronRight size={16} />
                 </div>
               </div>
