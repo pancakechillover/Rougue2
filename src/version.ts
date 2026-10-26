@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.2';
-export const LAST_UPDATE_DATE = '2026-10-26';
-export const LAST_UPDATE_TIME = '23:59:00';
+export const APP_VERSION = 'v9.4.3';
+export const LAST_UPDATE_DATE = '2026-10-27';
+export const LAST_UPDATE_TIME = '00:20:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,19 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.3',
+    date: '2026-10-27',
+    time: '00:20:00',
+    title: 'Version 9.4.3: Account Rule Consistency & Enumeration Hardening',
+    items: [
+      { category: 'Sign-Up Validation', description: 'The client accepted usernames up to 20 characters and passwords up to 64, while the server allowed 24 and 128. Accounts created through the API with the longer values could never sign in from the web form, which rejected them outright. Both sides now share one set of limits (3–20 / 6–64) defined in a single module, and a test asserts the two ends agree on the boundaries so they cannot drift apart again.' },
+      { category: 'Sign-In Tolerance', description: 'Sign-in deliberately checks the username more loosely than sign-up (length floor and character set only). Tightening the server to 20 would otherwise have locked out any account that already used 21–24 characters.' },
+      { category: 'Enumeration', description: 'The live username-availability lookup could be polled without limit to discover which names exist. The per-IP budget is now tighter; the lookup itself is kept because it is the only way to tell a user their name is taken before they submit.' },
+      { category: 'Sign-In Errors', description: 'A missing account and a wrong password now return the same status and message, so the response no longer reveals whether a name is registered.' },
+      { category: 'Rate Limiting', description: 'Registration and sign-in no longer share one budget. Failing to sign in ten times used to block creating a new account for five minutes; the two flows now have separate limits.' }
+    ]
+  },
   {
     version: 'v9.4.2',
     date: '2026-10-26',

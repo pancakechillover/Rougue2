@@ -27,6 +27,15 @@ import {
 } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getDeviceCode, getBrowserEnvLabel, resetDeviceCode } from '../../lib/utils';
+import {
+  isValidUsernameForSignUp,
+  isValidUsernameForSignIn,
+  isValidPassword,
+  USERNAME_MIN,
+  USERNAME_MAX,
+  PASSWORD_MIN,
+  PASSWORD_MAX,
+} from '../../lib/authRules';
 
 const USER_AGREEMENT_SECTIONS = [
   {
@@ -222,9 +231,11 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmed)) {
+    if (!isValidUsernameForSignUp(trimmed)) {
       setUsernameCheckStatus('invalid');
-      setUsernameCheckMsg('Must be 3–20 characters (letters, numbers, or underscores only).');
+      setUsernameCheckMsg(
+        `Must be ${USERNAME_MIN}–${USERNAME_MAX} characters (letters, numbers, or underscores only).`
+      );
       return;
     }
 
@@ -296,9 +307,18 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmedUser)) {
+    // Sign-up is strict; sign-in only checks the floor and character set, so an
+    // account created before the rules were unified can still get in.
+    const usernameAcceptable =
+      activeTab === 'register'
+        ? isValidUsernameForSignUp(trimmedUser)
+        : isValidUsernameForSignIn(trimmedUser);
+
+    if (!usernameAcceptable) {
       setLocalFormError(
-        `${prefix}: Username "${trimmedUser}" is invalid. Must be 3–20 characters using only letters, numbers, or underscores.`
+        activeTab === 'register'
+          ? `${prefix}: Username "${trimmedUser}" is invalid. Must be ${USERNAME_MIN}–${USERNAME_MAX} characters using only letters, numbers, or underscores.`
+          : `${prefix}: Username "${trimmedUser}" is invalid. Must be at least ${USERNAME_MIN} characters using only letters, numbers, or underscores.`
       );
       return;
     }
@@ -315,9 +335,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
       return;
     }
 
-    if (password.length < 6 || password.length > 64) {
+    // Captured before the guard below: isValidPassword is a type predicate, so
+    // inside its failure branch TypeScript narrows `password` to never.
+    const passwordLength = password.length;
+    if (!isValidPassword(password)) {
       setLocalFormError(
-        `${prefix}: Password length must be between 6 and 64 characters (currently ${password.length}).`
+        `${prefix}: Password length must be between ${PASSWORD_MIN} and ${PASSWORD_MAX} characters (currently ${passwordLength}).`
       );
       return;
     }

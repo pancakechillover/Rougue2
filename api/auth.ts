@@ -1,6 +1,11 @@
 import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import {
+  isValidUsernameForSignUp,
+  isValidUsernameForSignIn,
+  isValidPassword,
+} from '../src/lib/authRules.js';
 
 // ── Redis Connection ─────────────────────────────────────────────────────
 
@@ -23,13 +28,16 @@ const getRedisClient = async () => {
 
 // ── Constants & Validation Patterns ──────────────────────────────────────
 
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,24}$/;
 const SECRET_CODE_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 const TOKEN_ID_PATTERN = /^[a-f0-9]{64}$/;
 
 const SESSION_TTL_SECONDS = 30 * 24 * 3600; // 30 days sliding TTL
-const AUTH_RATE_WINDOW_S = 300; // 5 minutes
-const AUTH_RATE_MAX_ATTEMPTS = 10;
+const LOGIN_RATE_WINDOW_S = 300; // 5 minutes
+const LOGIN_RATE_MAX_ATTEMPTS = 10;
+// Registration is deliberately stricter and on its own budget, so a burst of
+// failed sign-ins can no longer lock out account creation.
+const REGISTER_RATE_WINDOW_S = 600; // 10 minutes
+const REGISTER_RATE_MAX_ATTEMPTS = 5;
 const MIGRATE_RATE_WINDOW_S = 300; // 5 minutes
 const MIGRATE_RATE_MAX_ATTEMPTS = 5;
 
@@ -39,14 +47,6 @@ const SCRYPT_P = 1;
 const SCRYPT_KEYLEN = 64;
 const SCRYPT_MAXMEM = 32 * 1024 * 1024;
 const KDF_SPEC = `scrypt:${SCRYPT_N}:${SCRYPT_R}:${SCRYPT_P}:${SCRYPT_KEYLEN}`;
-
-export function isValidUsername(value: unknown): value is string {
-  return typeof value === 'string' && USERNAME_PATTERN.test(value.trim());
-}
-
-export function isValidPassword(value: unknown): value is string {
-  return typeof value === 'string' && value.length >= 6 && value.length <= 128;
-}
 
 export function isValidSecretCode(value: unknown): value is string {
   return typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
@@ -595,7 +595,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const rawUsername = typeof req.query?.username === 'string' ? req.query.username : '';
       const cleanUsername = rawUsername.trim();
-      if (!isValidUsername(cleanUsername)) {
+      if (!isValidUsernameForSignUp(cleanUsername)) {
         return res.status(200).json({
           success: true,
           valid: false,
@@ -617,7 +617,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const ip = getClientIp(req);
-      if (await checkRateLimitBucket(client, 'scholar_username_check_rate', ip, 60, 45)) {
+      if (await checkRateLimitBucket(client, 'scholar_username_check_rate', ip, 60, 25)) {
         return res.status(429).json({
           success: false,
           error: 'Too many username checks. Please wait a moment.',
@@ -687,14 +687,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (
         await checkRateLimitBucket(
           client,
-          'scholar_auth_rate',
+          'scholar_register_rate',
           ip,
-          AUTH_RATE_WINDOW_S,
-          AUTH_RATE_MAX_ATTEMPTS
+          REGISTER_RATE_WINDOW_S,
+          REGISTER_RATE_MAX_ATTEMPTS
         )
       ) {
         return res.status(429).json({
-          error: 'Registration failed: Too many attempts from your IP. Please wait 5 minutes and try again.',
+          error: 'Registration failed: Too many attempts from your IP. Please wait 10 minutes and try again.',
         });
       }
 
@@ -732,7 +732,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      if (!isValidUsername(username)) {
+      if (!isValidUsernameForSignUp(username)) {
         return res.status(400).json({
           error: 'Registration failed: Username must be 3–20 characters using only letters, numbers, or underscores.',
         });
@@ -839,10 +839,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (
         await checkRateLimitBucket(
           client,
-          'scholar_auth_rate',
+          'scholar_login_rate',
           ip,
-          AUTH_RATE_WINDOW_S,
-          AUTH_RATE_MAX_ATTEMPTS
+          LOGIN_RATE_WINDOW_S,
+          LOGIN_RATE_MAX_ATTEMPTS
         )
       ) {
         return res.status(429).json({
@@ -872,9 +872,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      if (!isValidUsername(username)) {
+      // Sign-in stays tolerant of the upper bound: accounts registered before
+      // the limits were unified may carry 21–24 character names.
+      if (!isValidUsernameForSignIn(username)) {
         return res.status(400).json({
-          error: 'Log-in failed: Username must be 3–20 characters (letters, numbers, or underscores).',
+          error: 'Log-in failed: Username must be at least 3 characters (letters, numbers, or underscores).',
         });
       }
 
@@ -887,17 +889,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const trimmedUsername = username.trim();
       const normalizedUsername = trimmedUsername.toLowerCase();
       const userId = await client.get(`scholar_user_lookup:${normalizedUsername}`);
-      if (!userId) {
-        return res.status(404).json({
-          error: `Log-in failed: Account "@${trimmedUsername}" does not exist. Please check your username or switch to Sign Up.`,
-        });
-      }
+
+      // One response for every failure mode. A missing account used to return
+      // 404 "does not exist" while a wrong password returned 401 "Incorrect
+      // password", so a caller could confirm which names are registered and then
+      // aim password guesses at those only.
+      const invalidCredentials = () =>
+        res.status(401).json({ error: 'Log-in failed: Incorrect username or password.' });
+
+      if (!userId) return invalidCredentials();
 
       const userHash = await client.hGetAll(`scholar_user:${userId}`);
       if (!userHash || !userHash.userId || !userHash.passwordHash || !userHash.salt) {
-        return res.status(404).json({
-          error: `Log-in failed: Account "@${trimmedUsername}" was not found. Please switch to Sign Up.`,
-        });
+        return invalidCredentials();
       }
 
       const isValid = await verifyPasswordAsync(
@@ -906,11 +910,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         userHash.salt,
         userHash.kdf
       );
-      if (!isValid) {
-        return res.status(401).json({
-          error: `Log-in failed: Incorrect password for "@${userHash.username}". Please check your password and try again.`,
-        });
-      }
+      if (!isValid) return invalidCredentials();
 
       const nowIso = new Date().toISOString();
       const nowMs = Date.now();
