@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package } from 'lucide-react';
+import { Sword, Coffee, Play, Pause, RotateCcw, SkipForward, Trophy, Zap, Coins, Brain, Wind, Package, PenLine } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Dungeon, RewardCard, StudySession } from '../../types';
 import { useTimerStore } from '../../hooks/useTimerStore';
@@ -21,6 +21,8 @@ interface CompactTimerProps {
   lastCompletionRewards?: any | null;
   pipVictorySummary?: { xp: number, coins: number, ts: number } | null;
   standardSessionMinutes?: number;
+  history?: StudySession[];
+  onSaveNote?: (sessionId: string, timestamp: number, duration: number, dungeonName: string, text: string) => void;
   onRewardSelect?: (reward: RewardCard, sessionId: string) => void;
   onInventoryAdd?: (id: string) => void;
   onDeferReward?: (session: StudySession, choices: RewardCard[]) => void;
@@ -92,6 +94,7 @@ const PIP_STYLE = `
     .pip-distractions-minimal { display: flex; padding: 0.3125rem; gap: 0.375rem; border-radius: 0.875rem; }
     .pip-distract-btn { width: 2.125rem !important; height: 2.125rem !important; border-radius: 0.625rem !important; }
     .pip-distract-btn svg { width: 17px !important; height: 17px !important; }
+    .pip-note-btn-minimal { height: 2.125rem !important; border-radius: 0.625rem !important; width: 6.75rem !important; }
     .pip-overlay-standard { display: none; }
     .pip-overlay-condensed { display: none; }
     .pip-overlay-minimal { display: flex; }
@@ -107,6 +110,7 @@ const PIP_STYLE = `
     .pip-distractions-minimal { padding: 0.2rem; gap: 0.2rem; border-radius: 0.5rem; }
     .pip-distract-btn { width: 1.625rem !important; height: 1.625rem !important; border-radius: 0.375rem !important; }
     .pip-distract-btn svg { width: 12px !important; height: 12px !important; }
+    .pip-note-btn-minimal { height: 1.625rem !important; border-radius: 0.375rem !important; width: 5.25rem !important; }
   }
 `;
 
@@ -177,15 +181,45 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
   lastCompletionRewards,
   pipVictorySummary,
   standardSessionMinutes,
+  history,
+  onSaveNote,
   onRewardSelect,
   onInventoryAdd,
   onDeferReward,
   onStartFocus
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const { timeLeft, distractions, _setDistractions: __setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt } = useTimerStore();
+  const { timeLeft, distractions, _setDistractions: __setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt, setShowFocusPrompt, studyNote, setStudyNote } = useTimerStore();
   const [displayTime, setDisplayTime] = React.useState(timeLeft);
   const [showTransientSummary, setShowTransientSummary] = React.useState(false);
+  const [isEditingStandardNote, setIsEditingStandardNote] = React.useState(false);
+  const [isEditingMinimalNote, setIsEditingMinimalNote] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isResting) {
+      setIsEditingStandardNote(false);
+      setIsEditingMinimalNote(false);
+    }
+  }, [isResting]);
+
+  const handleNoteChange = React.useCallback((newNote: string) => {
+    setStudyNote(newNote);
+    if (!onSaveNote) return;
+
+    const target = useTimerStore.getState().lastCompletedSession;
+    if (target) {
+      onSaveNote(target.id, target.timestamp, target.duration, target.dungeonName, newNote);
+    } else if (history && history.length > 0) {
+      const latest = history[history.length - 1];
+      onSaveNote(
+        latest.id,
+        new Date(latest.timestamp).getTime(),
+        latest.duration,
+        currentDungeon?.name || 'Free Study',
+        newNote
+      );
+    }
+  }, [setStudyNote, onSaveNote, history, currentDungeon?.name]);
 
   const internalDistraction = useDistractionButton('internal', 'click');
   const externalDistraction = useDistractionButton('external', 'pop');
@@ -731,62 +765,82 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
           </button>
         </div>
 
-        {/* Ultra-Minimalist Mode Distractions (Right Side in Shortest Height) */}
-        <div className={cn(
-          "pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 shrink-0 select-none transition-opacity",
-          isResting && "opacity-50"
-        )}>
-          <button 
-            {...(isResting ? {} : internalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 active:scale-95 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Internal Distraction (Hold 0.8s to decrease)"}
-          >
-            <Brain size={17} className={isResting ? "text-slate-500" : "text-indigo-400"} />
-            {distractions.internal > 0 && (
+        {/* Ultra-Minimalist Mode Distractions / Rest Study Note (Right Side in Shortest Height) */}
+        {isResting && isEditingMinimalNote && (
+          <div className="pip-distractions-minimal absolute inset-0 z-20 w-full h-full bg-slate-900 border border-indigo-500/50 !px-2.5 !py-1 items-center gap-1.5">
+            <PenLine size={12} className="text-indigo-400 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              value={studyNote}
+              onChange={(e) => handleNoteChange(e.target.value)}
+              onBlur={() => setIsEditingMinimalNote(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Write study note..."
+              className="w-full bg-transparent text-white placeholder:text-slate-500 outline-none text-[11px] font-medium min-w-0"
+            />
+          </div>
+        )}
+        <div className="pip-distractions-minimal items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 shrink-0 select-none transition-all">
+          {isResting ? (
+            <button
+              type="button"
+              onClick={() => setIsEditingMinimalNote(true)}
+              className="pip-note-btn-minimal px-2 bg-slate-800 hover:bg-slate-700/80 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer touch-manipulation overflow-hidden"
+              title="Click to write or edit study note"
+            >
+              <PenLine size={13} className="text-indigo-400 shrink-0" />
               <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure"
-              )}>{distractions.internal}</span>
-            )}
-          </button>
-          <button 
-            {...(isResting ? {} : externalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 active:scale-95 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "External Distraction (Hold 0.8s to decrease)"}
-          >
-            <Wind size={17} className={isResting ? "text-slate-500" : "text-amber-400"} />
-            {distractions.external > 0 && (
-              <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure"
-              )}>{distractions.external}</span>
-            )}
-          </button>
-          <button 
-            {...(isResting ? {} : unavoidableDistraction)}
-            disabled={isResting}
-            className={cn(
-              "pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 active:scale-95 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Unavoidable Distraction (Hold 0.8s to decrease)"}
-          >
-            <Zap size={17} className={isResting ? "text-slate-500" : "text-rose-400"} />
-            {distractions.unavoidable > 0 && (
-              <span className={cn(
-                "absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure"
-              )}>{distractions.unavoidable}</span>
-            )}
-          </button>
+                "text-[9.5px] truncate flex-1 text-left",
+                studyNote.trim() ? "text-slate-200 font-medium" : "text-slate-400 italic pr-1"
+              )}>
+                {studyNote.trim() || "Note..."}
+              </span>
+            </button>
+          ) : (
+            <>
+              <button 
+                {...internalDistraction}
+                className="pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 active:scale-95 cursor-pointer touch-manipulation"
+                title="Internal Distraction (Hold 0.8s to decrease)"
+              >
+                <Brain size={17} className="text-indigo-400" />
+                {distractions.internal > 0 && (
+                  <span className="absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none bg-indigo-500 text-white-pure">
+                    {distractions.internal}
+                  </span>
+                )}
+              </button>
+              <button 
+                {...externalDistraction}
+                className="pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 active:scale-95 cursor-pointer touch-manipulation"
+                title="External Distraction (Hold 0.8s to decrease)"
+              >
+                <Wind size={17} className="text-amber-400" />
+                {distractions.external > 0 && (
+                  <span className="absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none bg-amber-500 text-white-pure">
+                    {distractions.external}
+                  </span>
+                )}
+              </button>
+              <button 
+                {...unavoidableDistraction}
+                className="pip-distract-btn w-8.5 h-8.5 bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden transition-all select-none text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 active:scale-95 cursor-pointer touch-manipulation"
+                title="Unavoidable Distraction (Hold 0.8s to decrease)"
+              >
+                <Zap size={17} className="text-rose-400" />
+                {distractions.unavoidable > 0 && (
+                  <span className="absolute bottom-0 right-0 px-1 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[8px] font-black leading-none bg-rose-500 text-white-pure">
+                    {distractions.unavoidable}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -819,61 +873,85 @@ export const CompactTimer: React.FC<CompactTimerProps> = ({
         </button>
       </div>
 
-      {/* Distractions Module (Below Controls) */}
+      {/* Distractions Module / Rest Study Note (Below Controls) */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="pip-distractions-standard flex flex-col items-center mt-3 gap-1.5 z-10 w-full select-none"
       >
-        <div className={cn(
-          "flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800 transition-opacity",
-          isResting && "opacity-50"
-        )}>
-          <button 
-            {...(isResting ? {} : internalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Internal (Hold 0.8s to decrease)"}
-          >
-            <div className="flex items-center gap-1">
-               <Brain size={12} />
-               <span className="font-bold">INT</span>
-            </div>
-            {distractions.internal > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure")}>{distractions.internal}</span>}
-          </button>
-          <button 
-            {...(isResting ? {} : externalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "External (Hold 0.8s to decrease)"}
-          >
-            <div className="flex items-center gap-1">
-               <Wind size={12} />
-               <span className="font-bold">EXT</span>
-            </div>
-            {distractions.external > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure")}>{distractions.external}</span>}
-          </button>
-          <button 
-            {...(isResting ? {} : unavoidableDistraction)}
-            disabled={isResting}
-            className={cn(
-              "flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none",
-              isResting ? "text-slate-500 cursor-not-allowed opacity-75" : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Unavoidable (Hold 0.8s to decrease)"}
-          >
-            <div className="flex items-center gap-1">
-               <Zap size={12} />
-               <span className="font-bold">UNA</span>
-            </div>
-            {distractions.unavoidable > 0 && <span className={cn("absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none", isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure")}>{distractions.unavoidable}</span>}
-          </button>
+        <div className="flex items-center justify-between w-full space-x-1 bg-slate-900/50 p-1 rounded-lg border border-slate-800 transition-all">
+          {isResting ? (
+            isEditingStandardNote ? (
+              <div className="w-full py-1.5 px-2.5 bg-slate-800 rounded-md text-[10px] flex items-center gap-1.5 border border-indigo-500/50">
+                <PenLine size={11} className="text-indigo-400 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={studyNote}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  onBlur={() => setIsEditingStandardNote(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Write study note..."
+                  className="w-full bg-transparent text-white placeholder:text-slate-500 outline-none text-[10px] font-medium min-w-0"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingStandardNote(true)}
+                className="w-full py-1.5 px-2.5 bg-slate-800 hover:bg-slate-800/90 border border-transparent hover:border-indigo-500/30 rounded-md text-[10px] transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation overflow-hidden text-left"
+                title="Click to write or edit study note"
+              >
+                <PenLine size={11} className="text-indigo-400 shrink-0" />
+                <span className={cn(
+                  "truncate flex-1",
+                  studyNote.trim() ? "text-slate-200 font-medium" : "text-slate-500 italic pr-1"
+                )}>
+                  {studyNote.trim() || "Add study note..."}
+                </span>
+              </button>
+            )
+          ) : (
+            <>
+              <button 
+                {...internalDistraction}
+                className="flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
+                title="Internal (Hold 0.8s to decrease)"
+              >
+                <div className="flex items-center gap-1">
+                   <Brain size={12} />
+                   <span className="font-bold">INT</span>
+                </div>
+                {distractions.internal > 0 && <span className="absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none bg-indigo-500 text-white-pure">{distractions.internal}</span>}
+              </button>
+              <button 
+                {...externalDistraction}
+                className="flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
+                title="External (Hold 0.8s to decrease)"
+              >
+                <div className="flex items-center gap-1">
+                   <Wind size={12} />
+                   <span className="font-bold">EXT</span>
+                </div>
+                {distractions.external > 0 && <span className="absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none bg-amber-500 text-white-pure">{distractions.external}</span>}
+              </button>
+              <button 
+                {...unavoidableDistraction}
+                className="flex-1 py-1.5 bg-slate-800 rounded-md text-[9px] transition-colors flex flex-col items-center justify-center gap-0.5 relative overflow-hidden select-none text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
+                title="Unavoidable (Hold 0.8s to decrease)"
+              >
+                <div className="flex items-center gap-1">
+                   <Zap size={12} />
+                   <span className="font-bold">UNA</span>
+                </div>
+                {distractions.unavoidable > 0 && <span className="absolute bottom-0 right-0 px-0.5 min-w-[12px] h-[12px] flex items-center justify-center rounded-tl text-[7.5px] font-black leading-none bg-rose-500 text-white-pure">{distractions.unavoidable}</span>}
+              </button>
+            </>
+          )}
         </div>
       </motion.div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Play, Pause, RotateCcw, SkipForward, Trophy, Coins, Zap, Flame, Coffee, Sparkles, Clock, Brain, Wind } from 'lucide-react';
+import { Sword, Play, Pause, RotateCcw, SkipForward, Trophy, Coins, Zap, Flame, Coffee, Sparkles, Clock, Brain, Wind, PenLine } from 'lucide-react';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { RewardCard, StudySession, Dungeon } from '../../types';
 import { cn } from '../../lib/utils';
@@ -113,12 +113,18 @@ export const Timer = React.memo<TimerProps>(({
   critMultiplier,
   onTimerStart
 }) => {
-  const { timeLeft, setTimeLeft, distractions, _setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt: storeFocusPrompt, setShowFocusPrompt: setStoreFocusPrompt } = useTimerStore();
+  const { timeLeft, setTimeLeft, distractions, _setDistractions, activeRewardSession, setActiveRewardSession, showFocusPrompt: storeFocusPrompt, setShowFocusPrompt: setStoreFocusPrompt, studyNote, setStudyNote, setLastCompletedSession } = useTimerStore();
   const [showRewards, setShowRewards] = useState<{ session: StudySession; choices: RewardCard[] } | null>(null);
-  const [studyNote, setStudyNote] = useState('');
+  const [isEditingNote, setIsEditingNote] = useState(false);
   const [showTalentPopup, setShowTalentPopup] = useState<StudySession['triggeredTalents'] | null>(null);
   const [showFocusPrompt, setShowFocusPrompt] = useState(false);
   const [hasRerolled, setHasRerolled] = useState(false);
+
+  useEffect(() => {
+    if (!isResting) {
+      setIsEditingNote(false);
+    }
+  }, [isResting]);
 
   const internalDistraction = useDistractionButton('internal', 'click');
   const externalDistraction = useDistractionButton('external', 'pop');
@@ -225,6 +231,36 @@ export const Timer = React.memo<TimerProps>(({
     setSkipProgress(0);
   }, []);
 
+  const handleNoteChange = useCallback((newNote: string, explicitSession?: StudySession) => {
+    setStudyNote(newNote);
+    if (!onSaveNote) return;
+
+    if (explicitSession) {
+      onSaveNote(
+        explicitSession.id,
+        new Date(explicitSession.timestamp).getTime(),
+        explicitSession.duration,
+        currentDungeon?.name || 'Free Study',
+        newNote
+      );
+      return;
+    }
+
+    const target = useTimerStore.getState().lastCompletedSession;
+    if (target) {
+      onSaveNote(target.id, target.timestamp, target.duration, target.dungeonName, newNote);
+    } else if (__history && __history.length > 0) {
+      const latest = __history[__history.length - 1];
+      onSaveNote(
+        latest.id,
+        new Date(latest.timestamp).getTime(),
+        latest.duration,
+        currentDungeon?.name || 'Free Study',
+        newNote
+      );
+    }
+  }, [setStudyNote, onSaveNote, currentDungeon?.name, __history]);
+
   const submitStudyNote = useCallback((session: StudySession) => {
     if (studyNote.trim() && onSaveNote) {
       onSaveNote(
@@ -266,6 +302,7 @@ export const Timer = React.memo<TimerProps>(({
     if (isResting) {
       // Finished rest
       setIsResting(false);
+      setStudyNote('');
       setDuration(focusDuration);
       setTimeLeft(focusDuration * 60);
       
@@ -311,6 +348,13 @@ export const Timer = React.memo<TimerProps>(({
       const session = onComplete(actualDuration, actualFocusDuration, actualRestDuration, recordedDistractions);
       useTimerStore.getState()._setDistractions({ internal: 0, external: 0, unavoidable: 0 });
       if (session) {
+        setLastCompletedSession({
+          id: session.id,
+          timestamp: new Date(session.timestamp).getTime(),
+          duration: session.duration,
+          dungeonName: currentDungeon?.name || 'Free Study'
+        });
+        setStudyNote('');
         const generated = generateRewardChoicesForSession(session, {
           rewardPool,
           activeTalents,
@@ -547,6 +591,7 @@ export const Timer = React.memo<TimerProps>(({
     setDuration(focusDuration);
     setTimeLeft(focusDuration * 60);
     setLoopCount(0);
+    setStudyNote('');
     _setDistractions({ internal: 0, external: 0, unavoidable: 0 });
   };
 
@@ -724,85 +769,94 @@ export const Timer = React.memo<TimerProps>(({
         </button>
       </div>
 
-      {/* Distraction Controls */}
+      {/* Distraction Controls / Rest Study Note */}
       <motion.div 
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className={cn("flex flex-col items-center shrink-0 z-20", isFullscreen ? "gap-0.5 sm:gap-1" : "gap-1")}
       >
-        <span className={cn("text-[9px] md:text-[10px] uppercase tracking-widest font-bold", isResting ? "text-slate-600" : "text-slate-500")}>
-          Distractions
+        <span className={cn("text-[9px] md:text-[10px] uppercase tracking-widest font-bold", isResting ? "text-emerald-500/80" : "text-slate-500")}>
+          {isResting ? "Study Note" : "Distractions"}
         </span>
-        <div className={cn(
-          "flex items-center space-x-1.5 md:space-x-2 bg-slate-900/80 backdrop-blur-md p-1 md:p-1.5 rounded-full border border-slate-800 shadow-xl select-none transition-opacity",
-          isResting && "opacity-50"
-        )}>
-          <button 
-            {...(isResting ? {} : internalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
-              isResting 
-                ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Internal: Distracted by your own thoughts (Hold 0.8s to decrease)"}
-          >
-            <Brain size={13} className="shrink-0" />
-            <span>Internal</span>
-            {distractions.internal > 0 && (
-              <span className={cn(
-                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-indigo-500 text-white-pure"
-              )}>
-                {distractions.internal}
-              </span>
-            )}
-          </button>
-          <button 
-            {...(isResting ? {} : externalDistraction)}
-            disabled={isResting}
-            className={cn(
-              "w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
-              isResting 
-                ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "External: Interrupted by environment (Hold 0.8s to decrease)"}
-          >
-            <Wind size={13} className="shrink-0" />
-            <span>External</span>
-            {distractions.external > 0 && (
-              <span className={cn(
-                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-amber-500 text-white-pure"
-              )}>
-                {distractions.external}
-              </span>
-            )}
-          </button>
-          <button 
-            {...(isResting ? {} : unavoidableDistraction)}
-            disabled={isResting}
-            className={cn(
-              "w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none",
-              isResting 
-                ? "text-slate-500 cursor-not-allowed opacity-75" 
-                : "text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
-            )}
-            title={isResting ? "Distractions disabled during rest" : "Unavoidable: Forced to interrupt (Hold 0.8s to decrease)"}
-          >
-            <Zap size={13} className="shrink-0" />
-            <span>Unavoidable</span>
-            {distractions.unavoidable > 0 && (
-              <span className={cn(
-                "w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0",
-                isResting ? "bg-slate-700/60 text-slate-300" : "bg-rose-500 text-white-pure"
-              )}>
-                {distractions.unavoidable}
-              </span>
-            )}
-          </button>
+        <div className="flex items-center space-x-1.5 md:space-x-2 bg-slate-900/80 backdrop-blur-md p-1 md:p-1.5 rounded-full border border-slate-800 shadow-xl select-none transition-all">
+          {isResting ? (
+            isEditingNote ? (
+              <div className="w-[298px] sm:w-[330px] md:w-[366px] py-1.5 md:py-2 px-3.5 md:px-4 bg-slate-800 rounded-full text-[10px] md:text-xs flex items-center gap-2 border border-indigo-500/50">
+                <PenLine size={13} className="shrink-0 text-indigo-400" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={studyNote}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  onBlur={() => setIsEditingNote(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Write your study note..."
+                  className="w-full bg-transparent text-slate-100 placeholder:text-slate-500 outline-none text-[10px] md:text-xs font-medium min-w-0"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingNote(true)}
+                className="w-[298px] sm:w-[330px] md:w-[366px] py-1.5 md:py-2 px-3.5 md:px-4 bg-slate-800 hover:bg-slate-800/90 border border-transparent hover:border-indigo-500/30 rounded-full text-[10px] md:text-xs transition-all flex items-center gap-2 cursor-pointer touch-manipulation group overflow-hidden"
+                title="Click to write or edit study note"
+              >
+                <PenLine size={13} className="shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span className={cn(
+                  "truncate text-left flex-1",
+                  studyNote.trim() ? "text-slate-200 font-medium" : "text-slate-500 italic pr-1"
+                )}>
+                  {studyNote.trim() || "Add study note..."}
+                </span>
+              </button>
+            )
+          ) : (
+            <>
+              <button 
+                {...internalDistraction}
+                className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 cursor-pointer touch-manipulation"
+                title="Internal: Distracted by your own thoughts (Hold 0.8s to decrease)"
+              >
+                <Brain size={13} className="shrink-0" />
+                <span>Internal</span>
+                {distractions.internal > 0 && (
+                  <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0 bg-indigo-500 text-white-pure">
+                    {distractions.internal}
+                  </span>
+                )}
+              </button>
+              <button 
+                {...externalDistraction}
+                className="w-[86px] sm:w-[96px] md:w-[106px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none text-slate-300 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer touch-manipulation"
+                title="External: Interrupted by environment (Hold 0.8s to decrease)"
+              >
+                <Wind size={13} className="shrink-0" />
+                <span>External</span>
+                {distractions.external > 0 && (
+                  <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0 bg-amber-500 text-white-pure">
+                    {distractions.external}
+                  </span>
+                )}
+              </button>
+              <button 
+                {...unavoidableDistraction}
+                className="w-[114px] sm:w-[126px] md:w-[138px] py-1.5 md:py-2 bg-slate-800 rounded-full text-[10px] md:text-xs transition-colors flex items-center justify-center gap-1 md:gap-1.5 shrink-0 whitespace-nowrap select-none text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer touch-manipulation"
+                title="Unavoidable: Forced to interrupt (Hold 0.8s to decrease)"
+              >
+                <Zap size={13} className="shrink-0" />
+                <span>Unavoidable</span>
+                {distractions.unavoidable > 0 && (
+                  <span className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 flex items-center justify-center rounded-full text-[8px] md:text-[9px] font-black shrink-0 bg-rose-500 text-white-pure">
+                    {distractions.unavoidable}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </motion.div>
 
@@ -932,7 +986,7 @@ export const Timer = React.memo<TimerProps>(({
                 <input
                   type="text"
                   value={studyNote}
-                  onChange={(e) => setStudyNote(e.target.value)}
+                  onChange={(e) => handleNoteChange(e.target.value, showRewards.session)}
                   placeholder="e.g. Cleared chapter 1, grasped core concepts..."
                   className="w-full bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600 shadow-inner"
                 />
@@ -952,7 +1006,6 @@ export const Timer = React.memo<TimerProps>(({
                         submitStudyNote(showRewards.session);
                         setActiveRewardSession(null);
                         setShowRewards(null);
-                        setStudyNote('');
                       }}
                       className="flex items-center gap-2 px-5 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white rounded-full font-bold uppercase text-[10px] md:text-xs transition-all shadow-sm group"
                     >
@@ -1024,7 +1077,6 @@ export const Timer = React.memo<TimerProps>(({
                           submitStudyNote(showRewards.session);
                           setActiveRewardSession(null);
                           setShowRewards(null);
-                          setStudyNote('');
                           onRewardSelect(card, showRewards.session.id);
                           if (card.type === 'item' && card.itemType !== 'talent_shard' && card.itemType !== 'death_defying_medal') {
                             onInventoryAdd(card.id);

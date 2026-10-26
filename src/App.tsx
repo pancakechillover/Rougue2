@@ -1262,6 +1262,7 @@ function App() {
     setIsResting(false);
     setDuration(focusDuration);
     useTimerStore.getState().setTimeLeft(focusDuration * 60);
+    useTimerStore.getState().setStudyNote('');
     setLoopCount(0);
   }, [focusDuration]);
 
@@ -1269,6 +1270,54 @@ function App() {
     setIsTimerActive(true);
     setTimerEndTime(Date.now() - 1000);
   }, []);
+
+  const handleSaveNotePip = useCallback((sessionId: string, timestamp: number, duration: number, dungeonName: string, noteText: string) => {
+    const trimmed = noteText.trim();
+    updateSession(sessionId, { note: trimmed });
+
+    const studyDate = new Date(timestamp);
+    const dateStr = getSettlementDay(studyDate, state.timeSettings);
+    const timeStr = studyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const linePrefix = `- ${timeStr} - ${duration}m - ${dungeonName} - `;
+
+    setState(prev => {
+      const existingLog = prev.dailyLogs?.[dateStr];
+      const existingReflection = existingLog?.reflection || '';
+      const lines = existingReflection ? existingReflection.split('\n') : [];
+      const lineIdx = lines.findIndex(l => l.startsWith(linePrefix));
+
+      let nextLines: string[];
+      if (trimmed) {
+        const newLine = `${linePrefix}${trimmed}`;
+        if (lineIdx !== -1) {
+          nextLines = [...lines];
+          nextLines[lineIdx] = newLine;
+        } else {
+          nextLines = [...lines, newLine];
+        }
+      } else {
+        if (lineIdx !== -1) {
+          nextLines = lines.filter((_, idx) => idx !== lineIdx);
+        } else {
+          return prev;
+        }
+      }
+
+      const newReflection = nextLines.join('\n');
+
+      return {
+        ...prev,
+        dailyLogs: {
+          ...(prev.dailyLogs || {}),
+          [dateStr]: {
+            ...(existingLog || {}),
+            rating: existingLog?.rating || 3,
+            reflection: newReflection
+          }
+        }
+      };
+    });
+  }, [state.timeSettings, updateSession, setState]);
 
   return (
     <>
@@ -1304,6 +1353,8 @@ function App() {
           lastCompletionRewards={state.lastCompletionRewards}
           pipVictorySummary={pipVictorySummary}
           standardSessionMinutes={state.standardSessionMinutes}
+          history={state.history}
+          onSaveNote={handleSaveNotePip}
           onRewardSelect={(reward, sessionId) => {
             useTimerStore.getState().setActiveRewardSession(null);
             selectReward(reward, sessionId);
@@ -1323,6 +1374,7 @@ function App() {
             setIsResting(false);
             setDuration(focusDuration);
             useTimerStore.getState().setTimeLeft(focusDuration * 60);
+            useTimerStore.getState().setStudyNote('');
             setIsTimerActive(true);
             setTimerEndTime(Date.now() + focusDuration * 60 * 1000);
           }}

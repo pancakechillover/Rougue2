@@ -244,23 +244,41 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 
   // Handle jump to recent sessions from Stats
   const handleSaveNote = React.useCallback((sessionId: string, timestamp: number, duration: number, dungeonName: string, noteText: string) => {
-    if (!noteText.trim()) return;
+    const trimmed = noteText.trim();
 
     // 1. Update the session with the note
-    updateSession(sessionId, { note: noteText });
+    updateSession(sessionId, { note: trimmed });
 
-    // 2. Append to daily reflection
+    // 2. Update or remove line in daily reflection (idempotent for real-time WYSIWYG sync)
     const studyDate = new Date(timestamp);
     const dateStr = getSettlementDay(studyDate, state.timeSettings);
+    const timeStr = studyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const linePrefix = `- ${timeStr} - ${duration}m - ${dungeonName} - `;
     
     setState(prev => {
       const existingLog = prev.dailyLogs?.[dateStr];
       const existingReflection = existingLog?.reflection || '';
-      
-      const timeStr = studyDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const appendText = `- ${timeStr} - ${duration}m - ${dungeonName} - ${noteText}`;
-      
-      const newReflection = existingReflection ? `${existingReflection}\n${appendText}` : appendText;
+      const lines = existingReflection ? existingReflection.split('\n') : [];
+      const lineIdx = lines.findIndex(l => l.startsWith(linePrefix));
+
+      let nextLines: string[];
+      if (trimmed) {
+        const newLine = `${linePrefix}${trimmed}`;
+        if (lineIdx !== -1) {
+          nextLines = [...lines];
+          nextLines[lineIdx] = newLine;
+        } else {
+          nextLines = [...lines, newLine];
+        }
+      } else {
+        if (lineIdx !== -1) {
+          nextLines = lines.filter((_, idx) => idx !== lineIdx);
+        } else {
+          return prev;
+        }
+      }
+
+      const newReflection = nextLines.join('\n');
       
       return {
         ...prev,
