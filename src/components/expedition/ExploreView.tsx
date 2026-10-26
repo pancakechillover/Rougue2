@@ -33,6 +33,7 @@ import { TalentIcon } from '../talents/TalentIcon';
 import { RewardChestModal } from '../modals/RewardChestModal';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
 import { PopoverPortal } from '../common/PopoverPortal';
+import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
 import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
