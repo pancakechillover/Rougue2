@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.1';
-export const LAST_UPDATE_DATE = '2026-10-25';
-export const LAST_UPDATE_TIME = '22:30:00';
+export const APP_VERSION = 'v9.4.2';
+export const LAST_UPDATE_DATE = '2026-10-26';
+export const LAST_UPDATE_TIME = '23:59:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,20 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.2',
+    date: '2026-10-26',
+    time: '23:59:00',
+    title: 'Version 9.4.2: Passport Dialog Fixes & Verification Hardening',
+    items: [
+      { category: 'Verification', description: 'Verification characters are now drawn as a dot matrix rather than text nodes, so the answer can no longer be pulled out of the markup with a single regular expression. The client-side fallback challenge was removed: the server only accepts codes it signed itself, and an unreachable challenge now shows a retry state instead of a code that could never pass.' },
+      { category: 'Passport Dialog', description: 'Dismissing the red error banner no longer closes the entire window.' },
+      { category: 'Passport Dialog', description: 'The compact view no longer offers "Dismiss Comparison" when there is nothing to compare; in that state it reads "Not Now".' },
+      { category: 'Comparison', description: 'The comparison table now covers the five fields that decide the choice: level/XP, gold, session count, last update, and which device saved each side.' },
+      { category: 'Cloud Sync', description: 'Initializing a cloud archive no longer pops a second comparison straight afterwards. Automatic checks pause briefly once a conflict has been resolved, while explicit checks still run.' },
+      { category: 'Device Identity', description: 'Restoring a cloud save no longer overwrites this browser\'s device code, so Chrome and Edge on the same computer keep separate identities instead of being treated as one device. New codes carry a browser prefix, and a reset control is available when an identity has already been shared.' }
+    ]
+  },
   {
     version: 'v9.4.0',
     date: '2026-10-23',

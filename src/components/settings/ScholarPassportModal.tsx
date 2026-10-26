@@ -51,69 +51,6 @@ const USER_AGREEMENT_SECTIONS = [
   }
 ];
 
-const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-function createClientFallbackCaptcha(): { svg: string; captchaToken: string } {
-  const charColors = [
-    'var(--color-indigo-400, #818cf8)',
-    'var(--color-slate-100, #f1f5f9)',
-    'var(--color-indigo-500, #6366f1)',
-    'var(--color-slate-200, #e2e8f0)'
-  ];
-  const randInt = (min: number, max: number) =>
-    Math.floor(Math.random() * (max - min)) + min;
-
-  let code = '';
-  for (let i = 0; i < 4; i++) {
-    code += CAPTCHA_CHARSET[randInt(0, CAPTCHA_CHARSET.length)];
-  }
-
-  let noisePaths = '';
-  for (let i = 0; i < 3; i++) {
-    const x1 = randInt(4, 24);
-    const y1 = randInt(6, 38);
-    const cx1 = randInt(30, 62);
-    const cy1 = randInt(4, 40);
-    const cx2 = randInt(62, 96);
-    const cy2 = randInt(4, 40);
-    const x2 = randInt(100, 120);
-    const y2 = randInt(6, 38);
-    const strokeColor =
-      i % 2 === 0 ? 'var(--color-indigo-400, #818cf8)' : 'var(--color-slate-400, #94a3b8)';
-    noisePaths += `<path d="M${x1} ${y1} C${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}" stroke="${strokeColor}" stroke-width="1.35" stroke-opacity="0.4" stroke-linecap="round" fill="none"/>`;
-  }
-
-  for (let i = 0; i < 10; i++) {
-    const cx = randInt(8, 116);
-    const cy = randInt(6, 38);
-    const r = (randInt(8, 16) / 10).toFixed(1);
-    const dotColor = charColors[i % charColors.length];
-    noisePaths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotColor}" fill-opacity="0.35"/>`;
-  }
-
-  let charElements = '';
-  for (let i = 0; i < code.length; i++) {
-    const ch = code[i];
-    const x = 20 + i * 28 + randInt(-2, 3);
-    const y = 23 + randInt(-3, 4);
-    const rotate = randInt(-16, 17);
-    const skewX = randInt(-10, 11);
-    const color = charColors[i % charColors.length];
-    charElements += `<g transform="translate(${x}, ${y}) rotate(${rotate}) skewX(${skewX})"><text x="0" y="0" fill="${color}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="23" font-weight="900" text-anchor="middle" dominant-baseline="central" style="user-select:none">${ch}</text></g>`;
-  }
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="44" viewBox="0 0 124 44" class="w-full h-full select-none">${noisePaths}${charElements}</svg>`;
-  const nonce = `local_${Math.random().toString(16).slice(2, 10)}`;
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-  const codeHex = Array.from(code)
-    .map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'))
-    .join('');
-
-  return {
-    svg,
-    captchaToken: `${nonce}.${expiresAt}.${codeHex}`
-  };
-}
 
 interface ScholarPassportModalProps {
   isOpen: boolean;
@@ -193,6 +130,13 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
   const [captchaSvg, setCaptchaSvg] = useState<string>('');
   const [captchaToken, setCaptchaToken] = useState<string>('');
   const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
+  /**
+   * Set when the challenge could not be fetched. The dialog used to silently
+   * substitute a client-generated challenge in that case, but the server only
+   * accepts codes it signed, so the user was asked to retype a code that could
+   * never pass - and the error they got blamed the code, not the outage.
+   */
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaInput, setCaptchaInput] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showUserAgreement, setShowUserAgreement] = useState(false);
@@ -214,17 +158,19 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
       if (res.ok && data?.success && typeof data.svg === 'string' && typeof data.captchaToken === 'string') {
         setCaptchaSvg(data.svg);
         setCaptchaToken(data.captchaToken);
+        setCaptchaError(null);
         return;
       }
+      setCaptchaSvg('');
+      setCaptchaToken('');
+      setCaptchaError('Verification service is unavailable. Please retry.');
     } catch {
-      // Fallback to client-generated SVG challenge below if server is unreachable
+      setCaptchaSvg('');
+      setCaptchaToken('');
+      setCaptchaError('Verification service is unreachable. Please retry.');
     } finally {
       setCaptchaLoading(false);
     }
-
-    const fallback = createClientFallbackCaptcha();
-    setCaptchaSvg(fallback.svg);
-    setCaptchaToken(fallback.captchaToken);
   }, []);
 
   // Migration state
@@ -1048,7 +994,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                       className="w-[132px] h-[46px] px-1.5 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-xl flex items-center justify-center shrink-0 transition-all relative overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors pointer-events-none" />
-                      {captchaLoading || !captchaSvg ? (
+                      {captchaError && !captchaSvg ? (
+                        <span className="flex flex-col items-center gap-0.5 text-[9px] font-black text-rose-400 leading-none text-center">
+                          <AlertTriangle size={14} />
+                          RETRY
+                        </span>
+                      ) : captchaLoading || !captchaSvg ? (
                         <RefreshCw size={16} className="animate-spin text-indigo-400" />
                       ) : (
                         <div
@@ -1130,6 +1081,10 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                   disabled={
                     authLoading ||
                     isSyncing ||
+                    // No challenge means the server will reject the submit anyway;
+                    // keeping the button disabled makes the retry control the
+                    // obvious next step instead of a guaranteed failure.
+                    !captchaToken ||
                     (activeTab === 'register' &&
                       (usernameCheckStatus === 'taken' || usernameCheckStatus === 'invalid'))
                   }

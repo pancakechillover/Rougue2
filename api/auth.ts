@@ -372,6 +372,50 @@ function getCaptchaSecret(): string {
   return getAuthTokenSecret() || CAPTCHA_FALLBACK_SECRET;
 }
 
+/**
+ * 5x7 dot-matrix glyphs for the challenge characters.
+ *
+ * The characters used to be emitted as <text> nodes, which meant the answer sat
+ * in the response as literal text: a twelve-character regex pulled it out and
+ * automated registration needed no image understanding at all. Drawing them as
+ * dots removes the text, so recovering the code now requires clustering points
+ * back onto a grid and matching them against a glyph set.
+ */
+const CAPTCHA_GLYPHS: Record<string, string[]> = {
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
+  C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
+  H: ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  J: ['..###', '...#.', '...#.', '...#.', '...#.', '#..#.', '.##..'],
+  K: ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'],
+  L: ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+  M: ['#...#', '##.##', '#.#.#', '#...#', '#...#', '#...#', '#...#'],
+  N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+  Q: ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'],
+  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  V: ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+  W: ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '##.##', '#...#'],
+  X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'],
+  Z: ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
+  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'],
+  '3': ['####.', '....#', '....#', '.###.', '....#', '....#', '####.'],
+  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'],
+  '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  '6': ['.###.', '#...#', '#....', '####.', '#...#', '#...#', '.###.'],
+  '7': ['#####', '....#', '...#.', '..#..', '.#...', '.#...', '.#...'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
+  '9': ['.###.', '#...#', '#...#', '.####', '....#', '#...#', '.###.'],
+};
+
 function buildCaptchaSvg(code: string): string {
   const charColors = [
     'var(--color-indigo-400, #818cf8)',
@@ -396,7 +440,7 @@ function buildCaptchaSvg(code: string): string {
     noisePaths += `<path d="M${x1} ${y1} C${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}" stroke="${strokeColor}" stroke-width="1.35" stroke-opacity="0.4" stroke-linecap="round" fill="none"/>`;
   }
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 6; i++) {
     const cx = crypto.randomInt(8, 116);
     const cy = crypto.randomInt(6, 38);
     const r = (crypto.randomInt(8, 16) / 10).toFixed(1);
@@ -404,15 +448,48 @@ function buildCaptchaSvg(code: string): string {
     noisePaths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotColor}" fill-opacity="0.35"/>`;
   }
 
+  const CELL = 3.5;
+  const DOT = 2.5;
   let charElements = '';
+
   for (let i = 0; i < code.length; i++) {
-    const ch = code[i];
-    const x = 20 + i * 28 + crypto.randomInt(-2, 3);
-    const y = 23 + crypto.randomInt(-3, 4);
-    const rotate = crypto.randomInt(-16, 17);
-    const skewX = crypto.randomInt(-10, 11);
+    const glyph = CAPTCHA_GLYPHS[code[i]];
+    if (!glyph) continue;
+
+    const originX = 14 + i * 28;
+    const originY = 10;
+    const centerX = originX + (5 * CELL) / 2;
+    const centerY = originY + (7 * CELL) / 2;
+    const rotate = crypto.randomInt(-9, 10);
+    const skewX = crypto.randomInt(-5, 6);
     const color = charColors[i % charColors.length];
-    charElements += `<g transform="translate(${x}, ${y}) rotate(${rotate}) skewX(${skewX})"><text x="0" y="0" fill="${color}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="23" font-weight="900" text-anchor="middle" dominant-baseline="central" style="user-select:none">${ch}</text></g>`;
+
+    const cells: Array<[number, number]> = [];
+    for (let row = 0; row < 7; row++) {
+      for (let col = 0; col < 5; col++) {
+        if (glyph[row][col] === '#') cells.push([col, row]);
+      }
+    }
+    // Shuffled so the order of the nodes says nothing about the character.
+    for (let k = cells.length - 1; k > 0; k--) {
+      const j = crypto.randomInt(0, k + 1);
+      [cells[k], cells[j]] = [cells[j], cells[k]];
+    }
+
+    let dots = '';
+    for (const [col, row] of cells) {
+      const x = originX + col * CELL + crypto.randomInt(-2, 3) / 10;
+      const y = originY + row * CELL + crypto.randomInt(-2, 3) / 10;
+      dots += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${DOT}" height="${DOT}" rx="0.9" fill="${color}"/>`;
+    }
+    // A few lighter decoy dots inside the cell to break naive grid reconstruction.
+    for (let d = 0; d < 1; d++) {
+      const x = originX + crypto.randomInt(0, 16) + crypto.randomInt(-2, 3) / 10;
+      const y = originY + crypto.randomInt(0, 22) + crypto.randomInt(-2, 3) / 10;
+      dots += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="2.2" height="2.2" rx="0.7" fill="${color}" fill-opacity="0.4"/>`;
+    }
+
+    charElements += `<g transform="rotate(${rotate} ${centerX.toFixed(1)} ${centerY.toFixed(1)}) skewX(${skewX})">${dots}</g>`;
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="44" viewBox="0 0 124 44" class="w-full h-full select-none">${noisePaths}${charElements}</svg>`;
@@ -475,17 +552,11 @@ export function verifySignedCaptchaChallenge(
   }
   const normalizedCode = captchaCode.trim().toUpperCase();
 
-  // Support client-generated fallback challenge if /api/auth?action=captcha was unreachable
-  if (nonce.startsWith('local_')) {
-    const expectedHex = Buffer.from(normalizedCode, 'utf8').toString('hex');
-    if (!constantTimeCompare(signature.toLowerCase(), expectedHex.toLowerCase())) {
-      return {
-        valid: false,
-        error: `${contextPrefix}: Incorrect 4-character verification code ("${normalizedCode}"). A new code has been generated.`,
-      };
-    }
-    return { valid: true, nonce };
-  }
+  // A client-generated fallback challenge used to be accepted here whenever the
+  // nonce started with "local_", by comparing the signature against the hex of
+  // the submitted answer. That is a self-signed token: anyone could mint one and
+  // skip the challenge entirely, so it is gone. Only tokens signed with the
+  // server secret below are accepted.
 
   const expectedSig = crypto
     .createHmac('sha256', getCaptchaSecret())
