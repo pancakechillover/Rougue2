@@ -342,7 +342,12 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           }
         `}</style>
 
-        <div className="overflow-x-auto pb-4 lg:pb-0 custom-scrollbar w-full lg:w-auto flex justify-start lg:justify-center lg:items-start">
+        <div
+          className={cn(
+            "overflow-x-auto pb-4 lg:pb-0 custom-scrollbar w-full flex justify-start lg:justify-center lg:items-start",
+            heatmapMode === 'year' ? "lg:w-full" : "lg:w-auto"
+          )}
+        >
           <div
             className={cn(
               "mx-auto",
@@ -350,67 +355,56 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                 ? "min-w-max flex gap-1.5 heatmap-year"
                 : "w-full grid gap-2 heatmap-responsive"
             )}
-            style={
-              heatmapMode === 'year'
-                ? undefined
-                : { gridTemplateColumns: 'auto auto', columnGap: 'var(--cell-gap)' }
-            }
+            style={{
+              gridTemplateColumns:
+                heatmapMode === 'year' ? 'auto minmax(0, 1fr)' : 'auto auto',
+              columnGap: 'var(--cell-gap)',
+            }}
           >
             <div
               className="grid grid-rows-7 text-slate-500 font-medium pr-1 text-right mt-6"
               style={{ rowGap: 'var(--cell-gap)', fontSize: 'var(--label-size)' }}
             >
-              <div style={{ height: 'var(--cell-size)' }} className="flex items-center justify-end leading-none">Mon</div>
-              <div style={{ height: 'var(--cell-size)' }} className="invisible" />
-              <div style={{ height: 'var(--cell-size)' }} className="flex items-center justify-end leading-none">Wed</div>
-              <div style={{ height: 'var(--cell-size)' }} className="invisible" />
-              <div style={{ height: 'var(--cell-size)' }} className="flex items-center justify-end leading-none">Fri</div>
-              <div style={{ height: 'var(--cell-size)' }} className="invisible" />
-              <div style={{ height: 'var(--cell-size)' }} className="invisible" />
+              <div className="flex items-center justify-end leading-none">Mon</div>
+              <div className="invisible" />
+              <div className="flex items-center justify-end leading-none">Wed</div>
+              <div className="invisible" />
+              <div className="flex items-center justify-end leading-none">Fri</div>
+              <div className="invisible" />
+              <div className="invisible" />
             </div>
 
             <div className="flex flex-col min-w-0">
               <div
-                className={cn("h-6", heatmapMode === 'year' ? "relative" : "grid items-end")}
-                style={
-                  heatmapMode === 'year'
-                    ? undefined
-                    : { gridAutoColumns: 'var(--cell-size)' }
-                }
+                className="h-6 grid items-end"
+                style={{
+                  // Same column tracks as the cell grid, so a month label always
+                  // sits over its own week — also when the columns resize.
+                  gridAutoColumns:
+                    heatmapMode === 'year' ? 'minmax(0, 1fr)' : 'var(--cell-size)',
+                }}
               >
                 {heatmapMonthLabels.map((label, i) => (
                   <span
                     key={i}
-                    className={cn("text-slate-500 font-medium", heatmapMode === 'year' ? "absolute" : "min-w-0 truncate")}
-                    style={
-                      heatmapMode === 'year'
-                        ? {
-                            left: `calc(${label.colIndex} * (var(--cell-size) + var(--cell-gap)))`,
-                            bottom: '4px',
-                            fontSize: 'var(--label-size)',
-                          }
-                        : {
-                            // Same column track as the cell grid, so the label
-                            // always sits over its own week.
-                            gridColumn: label.colIndex + 1,
-                            fontSize: 'var(--label-size)',
-                          }
-                    }
+                    className="text-slate-500 font-medium min-w-0 truncate"
+                    style={{
+                      gridColumn: label.colIndex + 1,
+                      fontSize: 'var(--label-size)',
+                    }}
                   >
                     {label.month}
                   </span>
                 ))}
               </div>
               <div
-                className={cn(
-                  "grid grid-rows-7 grid-flow-col",
-                  heatmapMode === 'year' ? "justify-start auto-cols-max" : "justify-stretch"
-                )}
+                className="grid grid-rows-7 grid-flow-col justify-stretch"
                 style={{
                   gap: 'var(--cell-gap)',
-                  ...(heatmapMode === 'year'
-                    ? {}
-                    : { gridAutoColumns: 'var(--cell-size)' }),
+                  // The year view has 53 narrow columns: letting them share
+                  // the row fills the width without inflating the height.
+                  gridAutoColumns:
+                    heatmapMode === 'year' ? 'minmax(0, 1fr)' : 'var(--cell-size)',
                 }}
               >
                 {Array.from({ length: (heatmapDays[0].getDay() + 6) % 7 }).map((_, i) => (
@@ -419,7 +413,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                     className="border border-transparent"
                     style={
                       heatmapMode === 'year'
-                        ? { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                        ? { width: '100%', aspectRatio: '1' }
                         : { width: 'var(--cell-size)', height: 'var(--cell-size)' }
                     }
                   />
@@ -435,7 +429,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                       className="relative heatmap-cell-container flex items-center justify-center"
                       style={
                         heatmapMode === 'year'
-                          ? { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                          ? { width: '100%', aspectRatio: '1' }
                           : { width: 'var(--cell-size)', height: 'var(--cell-size)' }
                       }
                     >

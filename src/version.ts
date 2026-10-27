@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.8';
+export const APP_VERSION = 'v9.4.9';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '16:35:00';
+export const LAST_UPDATE_TIME = '17:00:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.9',
+    date: '2026-10-27',
+    time: '17:00:00',
+    title: 'Version 9.4.9: Year Heatmap Fills the Row',
+    items: [
+      { category: 'Heatmap', description: 'The year view now spreads its 53 week-columns across the full width instead of huddling in the middle, and every cell keeps a square shape by deriving its height from its width. Because the columns are narrow, filling the row barely changes the height of the chart.' },
+      { category: 'Heatmap', description: 'The month labels and the weekday labels now share the exact same column tracks as the cells, so they stay aligned when the columns resize.' }
+    ]
+  },
   {
     version: 'v9.4.8',
     date: '2026-10-27',
