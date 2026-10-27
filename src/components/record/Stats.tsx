@@ -5,7 +5,7 @@ import {
   startOfDay, endOfDay, isWithinInterval,
   eachDayOfInterval
 } from 'date-fns';
-import { StudySession, AppState, Dungeon, MajorDungeon, RewardHistoryItem, ChartLayerSelection } from '../../types';
+import { StudySession, AppState, Dungeon, MajorDungeon, ChartLayerSelection } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { 
   BarChart2, Share2, LayoutTemplate
@@ -652,28 +652,6 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
   };
 
   // --- Aggregate Helpers ---
-  const getGainsForPeriod = (_sessions: StudySession[], _rewards: RewardHistoryItem[], dateRange?: { start: Date, end: Date }) => {
-    const rangeInterval = dateRange 
-      ? { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) }
-      : undefined;
-
-    const periodSessions = rangeInterval 
-      ? processedHistory.filter(s => isWithinInterval(s.assignedDate, rangeInterval))
-      : processedHistory;
-    const periodRewards = rangeInterval
-      ? processedRewards.filter(r => isWithinInterval(r.assignedDate, rangeInterval))
-      : processedRewards;
-
-    const coins = periodSessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 
-                  periodRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-    const xp = periodSessions.reduce((acc, s) => acc + (Number(s.xpEarned) || 0), 0) + 
-               periodRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-    
-    const tasks = Math.floor(periodSessions.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks), 0));
-    const distractions = periodSessions.reduce((acc, s) => acc + calculateDistractionCount(s.distractions), 0);
-
-    return { coins, xp, tasks, distractions };
-  };
 
   const filterSessionsByTags = useCallback((sessions: StudySession[], tagIds: string[]) => {
     if (!tagIds || tagIds.length === 0) return sessions;

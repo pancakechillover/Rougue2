@@ -1,21 +1,17 @@
 {
-  "version": "v9.4.6",
+  "version": "v9.4.22",
   "date": "2026-10-27",
   "latestRelease": {
-    "version": "v9.4.6",
-    "date": "2026-10-27",
-    "time": "14:40:00",
-    "title": "Version 9.4.6: Heatmap Layout Balance",
+    "version": "v9.4.22",
+    "date": "2026-10-28",
+    "time": "01:10:00",
+    "title": "Version 9.4.22: Settings Page Cannot Scroll",
     "items": [
       {
-        "category": "Heatmap",
-        "description": "The summary card now grows to fill the leftover width instead of sitting at a fixed 288px. A 30-day grid is only five columns wide, so the old layout left roughly 270px of empty space on each side; the stats are now laid out as one full-width row plus a 2x2 block, which finally has room to breathe."
-      },
-      {
-        "category": "Heatmap",
-        "description": "Cells grow to 48px on wide screens, and the card is sized to its content rather than stretched to match the calendar height."
+        "category": "Settings",
+        "description": "Wheeling over the rail still scrolled the whole page. The pane height was 100dvh, but the top status bar (41px) and the app wrapper padding (32px) sit outside it, so the page stayed 73px taller than the viewport and the wheel fell through to it. The height now subtracts both, the page is exactly viewport-tall, and the wheel has nowhere to go except the pane under the cursor."
       }
     ]
   },
-  "timestamp": 1793082846605
+  "timestamp": 1793119376160
 }

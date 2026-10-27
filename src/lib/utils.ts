@@ -130,7 +130,15 @@ export function getSettlementDay(date: Date, timeSettings?: any): string {
   return format(baseDate, 'yyyy-MM-dd');
 }
 
-export function getSessionEffectiveMinutes(session: any, includeRestTimeInTasks: boolean): number {
+export function getSessionEffectiveMinutes(
+  session: any,
+  includeRestTimeInTasks: boolean,
+  /**
+   * Fallback rest length for older records that never stored `restDuration`.
+   * Optional so every existing two-argument call keeps its behaviour.
+   */
+  standardRestMinutes?: number
+): number {
   let baseDuration = (session.focusDuration !== undefined && session.focusDuration !== null) 
     ? session.focusDuration 
     : (session.duration || 0);
@@ -139,10 +147,15 @@ export function getSessionEffectiveMinutes(session: any, includeRestTimeInTasks:
     baseDuration = 0;
   }
     
-  if (includeRestTimeInTasks && typeof session.restDuration === 'number' && !isNaN(session.restDuration)) {
-    return baseDuration + session.restDuration;
+  if (includeRestTimeInTasks) {
+    if (typeof session.restDuration === 'number' && !isNaN(session.restDuration)) {
+      return baseDuration + session.restDuration;
+    }
+    if (typeof standardRestMinutes === 'number' && !isNaN(standardRestMinutes)) {
+      return baseDuration + standardRestMinutes;
+    }
   }
-  
+
   return baseDuration;
 }
 
