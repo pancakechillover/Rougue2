@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.33.3",
   "type": "module",
   "scripts": {
+    "predev": "tsx scripts/generate-version.ts",
     "dev": "tsx server.ts",
     "build": "tsx scripts/generate-version.ts && vite build",
     "start": "tsx server.ts",
