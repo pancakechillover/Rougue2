@@ -362,22 +362,20 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   return (
     <div id="weekly-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
-        <div className="flex flex-wrap items-center justify-between md:justify-start gap-2.5">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="text-indigo-400" size={20} />
-            <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Weekly</h3>
-          </div>
+        <div className="flex items-center gap-2">
+          <CalendarDays className="text-indigo-400" size={20} />
+          <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Weekly</h3>
+        </div>
 
-          <ChartLayerFilterDropdown 
+        <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+          <ChartLayerFilterDropdown
             layers={activeLayers}
             onChange={handleLayersChange}
             weekMode={weeklyMode}
             onWeekModeChange={setWeeklyMode}
             title="Weekly View & Layers"
           />
-        </div>
-
-        <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full md:w-auto shrink-0">
+          <div className="flex-1 md:flex-none flex items-center justify-center gap-1 bg-slate-800/50 rounded-lg p-0.5 sm:p-1">
           <DatePicker
             value={format(weeklyDate, 'yyyy-MM-dd')}
             onChange={(val) => val && setWeeklyDate(parseISO(val))}
@@ -392,6 +390,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
           >
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}
           </DatePicker>
+          </div>
         </div>
       </div>
 

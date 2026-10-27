@@ -550,6 +550,13 @@ export function useCloudSync(
   const resolveConflict = useCallback(async (useCloud: boolean) => {
     if (!syncCheckResult) return;
 
+    // Cancel anything still in flight. checkNewer pauses ~1.2s before writing
+    // syncCheckResult; without bumping the request id, that pending timer fires
+    // after this handler has already cleared the result and re-opens the very
+    // comparison the user just dismissed.
+    activeCheckRequestRef.current++;
+    activeSyncRequestRef.current++;
+
     setIsSyncing(true);
     try {
       if (useCloud && syncCheckResult.cloudData) {
@@ -887,7 +894,12 @@ export function useCloudSync(
         });
 
         // If exact data match, we can silently refresh local identity by not showing modal
-        if (localFingerprint === cloudFingerprint && !forceModal) {
+        // Identical data means there is nothing to choose between, so never show
+        // the comparison - not even when the caller asked to force the modal.
+        // Comparing two equal saves and being asked "which record to keep" is
+        // meaningless, and it used to reappear right after the user resolved a
+        // conflict because the resolved state matched the cloud copy exactly.
+        if (localFingerprint === cloudFingerprint) {
           const isSpecialCode = code === 'WebDAV' || code === 'GoogleDrive' || code === 'GoogleDriveAuth' || code.startsWith('usr_') || code === 'Account';
           setState(prev => ({ 
             ...prev, 

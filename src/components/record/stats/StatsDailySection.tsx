@@ -242,21 +242,19 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
   return (
     <div id="daily-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
-        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5">
-          <div className="flex items-center gap-2">
-            <Calendar className="text-indigo-400" size={20} />
-            <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Daily</h3>
-          </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="text-indigo-400" size={20} />
+          <h3 className="text-lg font-bold text-slate-100 uppercase tracking-widest">Daily</h3>
+        </div>
 
-          <ChartLayerFilterDropdown 
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <ChartLayerFilterDropdown
             layers={activeLayers}
             onChange={handleLayersChange}
             title="Daily Chart Layers"
           />
-        </div>
-
-        <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 bg-slate-800/50 rounded-lg p-0.5 sm:p-1 w-full sm:w-auto shrink-0">
-          <DatePicker
+          <div className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-slate-800/50 rounded-lg p-0.5 sm:p-1">
+            <DatePicker
             value={format(dailyDate, 'yyyy-MM-dd')}
             onChange={(val) => val && handleDailyDateChange(parseISO(val))}
             indicators={dateIndicators}
@@ -273,6 +271,7 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
               <span>{isToday(dailyDate) ? 'Today' : format(dailyDate, 'MMM d, yyyy')}</span>
             </div>
           </DatePicker>
+          </div>
         </div>
       </div>
 

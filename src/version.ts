@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.4';
+export const APP_VERSION = 'v9.4.5';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '01:10:00';
+export const LAST_UPDATE_TIME = '13:50:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.5',
+    date: '2026-10-27',
+    time: '13:50:00',
+    title: 'Version 9.4.5: No More Pointless Comparisons & Record Header Layout',
+    items: [
+      { category: 'Cloud Sync', description: 'Restoring a cloud save no longer pops the comparison dialog again. Two things caused it: the "identical data" shortcut was skipped whenever the caller asked to force the modal, and a check that was still in its delay could wake up after the conflict had been resolved and write a fresh comparison. Identical saves are now always silent, and resolving a conflict cancels any check still in flight.' },
+      { category: 'Record Layout', description: 'The chart-layer filter moved from beside the card title to the right-hand control row, next to the date stepper, so all interactive controls sit together and the title row stays clean. Applied to both Daily and Weekly.' }
+    ]
+  },
   {
     version: 'v9.4.4',
     date: '2026-10-27',
