@@ -37,6 +37,15 @@ export interface DungeonReward {
   itemType?: 'double_xp' | 'double_coin' | 'talent_shard' | 'death_defying_medal' | 'xp_bonus_percent' | 'coin_bonus_percent';
 }
 
+export type TagColor = 'indigo' | 'sky' | 'amber' | 'rose' | 'violet' | 'cyan' | 'teal' | 'fuchsia';
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: TagColor;
+  archived?: boolean;
+}
+
 export interface Dungeon {
   id: string;
   name: string;
@@ -57,6 +66,7 @@ export interface Dungeon {
   routineType?: 'daily' | 'weekly' | 'monthly';
   lastRoutineReset?: string;
   deadline?: string; // YYYY-MM-DD
+  tags?: string[];
 }
 
 export interface MajorDungeon {
@@ -71,6 +81,7 @@ export interface MajorDungeon {
   routineType?: 'daily' | 'weekly' | 'monthly';
   lastRoutineReset?: string;
   deadline?: string;
+  tags?: string[];
 }
 
 export interface RewardHistoryItem {
@@ -221,6 +232,7 @@ export interface TodayTodo {
   durationMinutes?: number;
   date?: string; // Format: YYYY-MM-DD
   source?: 'manual' | 'expedition' | 'yesterday' | 'ddl' | 'routine';
+  tags?: string[];
 }
 
 export interface DailyLog {
@@ -406,6 +418,9 @@ export interface AppState {
   sagePersonalityPrompts?: Record<string, string>;
   sageAllowGameModifiers?: boolean;
   
+  // Task Tags Registry
+  tags?: Tag[];
+
   // Record View Options
   statsViewOpts?: {
     showDailyBar?: boolean;
@@ -415,9 +430,10 @@ export interface AppState {
     showRoutineTracker?: boolean;
     showWorkstationTracker?: boolean;
     showSleepTracker?: boolean;
+    showTagTracker?: boolean;
     showHeatmap?: boolean;
-    dailyDonutMode?: '24h' | 'compact';
-    weeklyDonutMode?: 'time_of_day' | 'day_of_week';
+    dailyDonutMode?: '24h' | 'compact' | 'tags';
+    weeklyDonutMode?: 'time_of_day' | 'day_of_week' | 'tags';
     hiddenRoutines?: string[];
     averageCalculationBase?: 'active_days' | 'total_days';
     yAxisMaxMode?: 'dynamic' | 'fixed';
@@ -473,6 +489,7 @@ export interface StudySession {
   isCrit?: boolean;
   period?: string;
   assignedDateStr?: string;
+  tags?: string[];
   triggeredTalents?: {
     flowExperience?: { xp: number; coins: number };
     perfectTheory?: { xp: number; coins: number };

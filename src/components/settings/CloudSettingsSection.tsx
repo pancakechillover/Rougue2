@@ -27,7 +27,9 @@ import {
   Database,
   ShieldCheck,
   AlertTriangle,
-  Pencil
+  Pencil,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { AppState } from '../../types';
 import { cn, getDeviceCode } from '../../lib/utils';
@@ -35,6 +37,12 @@ import { CURRENT_SCHEMA_VERSION, PRE_MIGRATION_BACKUP_KEY, backupRaw } from '../
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { CloudHistoryModal } from './CloudHistoryModal';
 import { scrubExportData } from '../../utils/exportScrubber';
+import {
+  PRE_DEMO_BACKUP_KEY,
+  loadPreviewDemoDataIntoStorage,
+  restorePreDemoBackupFromStorage,
+  downloadPreviewDemoJsonFile,
+} from '../../lib/previewDemoData';
 
 interface CloudSettingsSectionProps {
   state: AppState;
@@ -1175,6 +1183,72 @@ export const CloudSettingsSection: React.FC<CloudSettingsSectionProps> = ({
               >
                 Import JSON
               </label>
+            </div>
+          </div>
+
+          {/* Preview Demo Dataset Card */}
+          <div className="p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/20 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3 text-white font-bold">
+                <Sparkles size={20} className="text-indigo-400" />
+                <span>Preview Demo Dataset</span>
+              </div>
+              {state.userUniqueId === 'ID-ARIA7' && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Active Preview Data
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Load or download a comprehensive showcase dataset (multi-tier goals, 8 color tags, 30-day focus history, workstation & sleep logs, journals, talents, quests, vault items, and fellowship preview).
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: 'Load Preview Demo Data?',
+                    message:
+                      'This will load the comprehensive preview dataset into your browser (your current local save will be backed up automatically so you can restore it anytime).',
+                    confirmText: 'Load Demo Data',
+                    type: 'info',
+                    isAlert: false,
+                    onConfirm: () => {
+                      loadPreviewDemoDataIntoStorage();
+                      window.location.reload();
+                    },
+                  });
+                }}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles size={14} />
+                Load Preview Demo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => downloadPreviewDemoJsonFile()}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-bold transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download size={14} className="text-indigo-400" />
+                Download Demo JSON
+              </button>
+
+              {typeof window !== 'undefined' && Boolean(localStorage.getItem(PRE_DEMO_BACKUP_KEY)) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (restorePreDemoBackupFromStorage()) {
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl font-bold transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw size={14} />
+                  Restore Previous Save
+                </button>
+              )}
             </div>
           </div>
         </div>

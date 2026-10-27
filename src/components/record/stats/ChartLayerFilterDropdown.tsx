@@ -10,16 +10,21 @@ import {
   Activity,
   Sparkles,
   SlidersHorizontal,
-  CalendarRange
+  CalendarRange,
+  Tags
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { ChartLayerSelection } from '../../../types';
+import { ChartLayerSelection, Tag } from '../../../types';
+import { TagBadge } from '../../common/TagBadge';
 
 interface ChartLayerFilterDropdownProps {
   layers: ChartLayerSelection;
   onChange: (newLayers: ChartLayerSelection) => void;
   weekMode?: 'calendar' | 'rolling';
   onWeekModeChange?: (mode: 'calendar' | 'rolling') => void;
+  tags?: Tag[];
+  selectedTagIds?: string[];
+  onSelectedTagIdsChange?: (ids: string[]) => void;
   title?: string;
   className?: string;
 }
@@ -37,6 +42,9 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
   onChange,
   weekMode,
   onWeekModeChange,
+  tags = [],
+  selectedTagIds = [],
+  onSelectedTagIdsChange,
   title = "Display Layers",
   className
 }) => {
@@ -242,10 +250,10 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
         type="button"
         onClick={handleToggleOpen}
         className={cn(
-          "p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center cursor-pointer group select-none",
-          isOpen && "bg-slate-700 text-indigo-400"
+          "p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center cursor-pointer group select-none relative",
+          (isOpen || selectedTagIds.length > 0) && "bg-slate-700 text-indigo-400"
         )}
-        title={`${title}: ${modePrefix}${getButtonLabel()}`}
+        title={`${title}: ${modePrefix}${getButtonLabel()}${selectedTagIds.length > 0 ? ` (${selectedTagIds.length} tag filter)` : ''}`}
         aria-label={title}
         aria-expanded={isOpen}
       >
@@ -253,6 +261,9 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
           size={14}
           className="shrink-0 transition-colors"
         />
+        {selectedTagIds.length > 0 && (
+          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 border border-slate-900" />
+        )}
       </button>
 
       {/* Portaled Custom Dropdown Popover */}
@@ -413,6 +424,46 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
                   );
                 })}
               </div>
+
+              {/* Optional Tag Filter Section */}
+              {onSelectedTagIdsChange && tags.filter(t => !t.archived).length > 0 && (
+                <div className="flex flex-col gap-1.5 border-t border-slate-800 pt-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                      <Tags size={12} className="text-indigo-400" />
+                      <span>Filter by Tag</span>
+                    </span>
+                    {selectedTagIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectedTagIdsChange([])}
+                        className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 uppercase"
+                      >
+                        Reset ({selectedTagIds.length})
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-0.5">
+                    {tags.filter(t => !t.archived).map(tag => {
+                      const isTagSelected = selectedTagIds.includes(tag.id);
+                      return (
+                        <TagBadge
+                          key={tag.id}
+                          tag={tag}
+                          size="xs"
+                          selected={isTagSelected}
+                          onClick={() => {
+                            const next = isTagSelected
+                              ? selectedTagIds.filter(id => id !== tag.id)
+                              : [...selectedTagIds, tag.id];
+                            onSelectedTagIdsChange(next);
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Footer Tip */}
               <div className="text-[9px] text-slate-500 text-center pt-1 border-t border-slate-800/60">

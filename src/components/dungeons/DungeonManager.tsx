@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
-import { Dungeon, MajorDungeon, DungeonReward } from '../../types';
-import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, ChevronDown, Gift, X, Edit2, Coins, Zap, Trophy, Square, CheckSquare, Archive, Search, Calendar, GripVertical, Scroll, RefreshCcw } from 'lucide-react';
+import { Dungeon, MajorDungeon, DungeonReward, Tag, TagColor } from '../../types';
+import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, ChevronDown, Gift, X, Edit2, Coins, Zap, Trophy, Square, CheckSquare, Archive, Search, Calendar, GripVertical, Scroll, RefreshCcw, ArrowUp, ArrowDown, ArrowUpToLine, Tags, FolderInput } from 'lucide-react';
 import { cn, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { PresetControl, getAutoLoadedPreset } from '../dashboard/PresetControl';
 import { DatePicker } from '../common/DatePicker';
+import { TagBadge, TagPicker } from '../common/TagBadge';
+import { getInheritedTagIds, getEffectiveDungeonTagIds, canMoveSubDungeonToParent, generateTagId } from '../../lib/tags';
 import { format } from 'date-fns';
 
 const DraggableItem = ({ item, isEditMode, children, className, handleClassName, _onMove: __onMove, onDragStart }: any) => {
@@ -54,9 +57,176 @@ const DraggableItem = ({ item, isEditMode, children, className, handleClassName,
   );
 };
 
+interface ParentHierarchyOption {
+  id: string;
+  name: string;
+  parentType: 'Goal' | 'Tier 1' | 'Tier 2';
+  resultingTier: 'Tier 1' | 'Tier 2' | 'Tier 3';
+  depth: number;
+  label: string;
+}
+
+const HierarchyParentPicker: React.FC<{
+  value: string;
+  options: ParentHierarchyOption[];
+  onChange: (parentId: string) => void;
+  placeholder?: string;
+  className?: string;
+}> = ({ value, options, onChange, placeholder = 'Select destination Goal or Tier...', className }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const selectedOption = options.find(o => o.id === value);
+  const filteredOptions = search.trim()
+    ? options.filter(o => o.name.toLowerCase().includes(search.trim().toLowerCase()))
+    : options;
+
+  const getBadgeStyle = (depth: number) => {
+    if (depth === 0) return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+    if (depth === 1) return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+    return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+  };
+
+  return (
+    <div ref={containerRef} className={cn("relative", className)}>
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(prev => !prev);
+          if (!isOpen) setSearch('');
+        }}
+        className={cn(
+          "w-full bg-slate-800/90 hover:bg-slate-800 border rounded-xl px-3 h-[38px] text-left flex items-center justify-between gap-2 transition-all cursor-pointer",
+          isOpen ? "border-indigo-500 ring-1 ring-indigo-500/30" : "border-slate-700 hover:border-slate-600"
+        )}
+      >
+        {selectedOption ? (
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className={cn(
+              "px-1.5 h-5 inline-flex items-center rounded text-[10px] font-black uppercase border shrink-0",
+              getBadgeStyle(selectedOption.depth)
+            )}>
+              {selectedOption.parentType}
+            </span>
+            <span className="text-xs font-bold text-white truncate">
+              {selectedOption.name || 'Unnamed'}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400 truncate">{placeholder}</span>
+        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {selectedOption && (
+            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 h-5 inline-flex items-center rounded">
+              → {selectedOption.resultingTier}
+            </span>
+          )}
+          <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-indigo-400")} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.14 }}
+            className="absolute z-50 left-0 right-0 mt-1.5 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+          >
+            {options.length > 5 && (
+              <div className="p-2 border-b border-slate-800 bg-slate-950/50">
+                <div className="relative flex items-center">
+                  <Search size={12} className="absolute left-2.5 text-slate-500 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Filter goals or tiers..."
+                    autoFocus
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="max-h-56 overflow-y-auto custom-scrollbar p-1.5 space-y-0.5">
+              {filteredOptions.length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-500 italic pr-1">
+                  No matching destination found
+                </div>
+              ) : (
+                filteredOptions.map(opt => {
+                  const isSelected = opt.id === value;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(opt.id);
+                        setIsOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer group",
+                        opt.depth === 1 && !search.trim() && "pl-6",
+                        opt.depth === 2 && !search.trim() && "pl-10",
+                        isSelected
+                          ? "bg-indigo-500/20 text-white border border-indigo-500/40"
+                          : "hover:bg-slate-800/80 text-slate-300 border border-transparent"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {opt.depth > 0 && !search.trim() && (
+                          <span className="text-slate-600 font-mono text-xs shrink-0 select-none">└</span>
+                        )}
+                        <span className={cn(
+                          "px-1.5 h-5 inline-flex items-center rounded text-[9px] font-black uppercase border shrink-0",
+                          getBadgeStyle(opt.depth)
+                        )}>
+                          {opt.parentType}
+                        </span>
+                        <span className={cn(
+                          "text-xs truncate",
+                          isSelected ? "font-bold text-white" : "font-medium text-slate-200 group-hover:text-white"
+                        )}>
+                          {opt.name || 'Unnamed'}
+                        </span>
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold shrink-0 px-1.5 h-5 inline-flex items-center rounded",
+                        isSelected ? "text-indigo-300 bg-indigo-500/20" : "text-slate-500 group-hover:text-slate-400"
+                      )}>
+                        → {opt.resultingTier}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 interface DungeonManagerProps {
   dungeons: Dungeon[];
   majorDungeons: MajorDungeon[];
+  tags?: Tag[];
+  onUpdateTags?: (tags: Tag[]) => void;
+  onOpenTagManager?: () => void;
   currentDungeonId: string | null;
   standardSessionMinutes?: number;
   standardRestMinutes?: number;
@@ -64,14 +234,14 @@ interface DungeonManagerProps {
   isAddingMajor: boolean;
   setIsAddingMajor: (val: boolean) => void;
   onSelect: (id: string) => void;
-  onCreateMajor: (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string) => void;
+  onCreateMajor: (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string, tags?: string[]) => void;
   onCreateSub: (dungeon: Omit<Dungeon, 'id' | 'completedSessions' | 'status'>) => void;
   onUpdateMajor: (id: string, updates: Partial<MajorDungeon>) => void;
   onUpdateSub: (id: string, updates: Partial<Dungeon>) => void;
   onDeleteMajor: (id: string) => void;
   onDeleteSub: (id: string) => void;
-  _onReorderMajor: (id: string, direction: 'up' | 'down') => void;
-  _onReorderSub: (id: string, direction: 'up' | 'down') => void;
+  _onReorderMajor: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
+  _onReorderSub: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
   onMoveItem: (itemId: string, newParentId: string | null) => void;
   onDragStart?: () => void;
   onFinalizeMajor: (id: string) => void;
@@ -88,6 +258,9 @@ interface DungeonManagerProps {
 export const DungeonManager = React.memo<DungeonManagerProps>(({
   dungeons,
   majorDungeons,
+  tags = [],
+  onUpdateTags,
+  onOpenTagManager,
   currentDungeonId,
   standardSessionMinutes = 25,
   standardRestMinutes = 5,
@@ -102,8 +275,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
   onUpdateSub,
   onDeleteMajor,
   onDeleteSub,
-  _onReorderMajor: __onReorderMajor,
-  _onReorderSub: __onReorderSub,
+  _onReorderMajor,
+  _onReorderSub,
   onMoveItem,
   onDragStart,
   setMajorDungeons,
@@ -120,6 +293,9 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
   const [editingSub, setEditingSub] = useState<Dungeon | null>(null);
   const [expandedMajors, setExpandedMajors] = useState<string[]>([]);
   const [expandedSubDungeons, setExpandedSubDungeons] = useState<string[]>([]);
+  const [filterTagId, setFilterTagId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchActionMode, setBatchActionMode] = useState<'none' | 'tag' | 'move'>('none');
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -139,7 +315,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     rewards: [{ type: 'coins', amount: 100 }] as DungeonReward[],
     isRoutine: false,
     routineType: 'daily' as 'daily' | 'weekly' | 'monthly',
-    deadline: undefined as string | undefined
+    deadline: undefined as string | undefined,
+    tags: [] as string[]
   });
   const [newSub, setNewSub] = useState({
     name: '',
@@ -153,8 +330,35 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     isLongTerm: false,
     isRoutine: false,
     routineType: 'daily' as 'daily' | 'weekly' | 'monthly',
-    deadline: undefined as string | undefined
+    deadline: undefined as string | undefined,
+    tags: [] as string[]
   });
+
+  React.useEffect(() => {
+    if (!isEditMode) {
+      setSelectedIds([]);
+      setBatchActionMode('none');
+    }
+  }, [isEditMode]);
+
+  const toggleSelectId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const validTags = React.useMemo(
+    () => (Array.isArray(tags) ? tags : []).filter((t): t is Tag => Boolean(t && typeof t === 'object' && typeof t.id === 'string' && typeof t.name === 'string')),
+    [tags]
+  );
+
+  const handleCreateNewTag = (nameOrTag: string | Tag, color: TagColor = 'indigo'): Tag => {
+    const newTag: Tag =
+      typeof nameOrTag === 'string'
+        ? { id: generateTagId(), name: nameOrTag, color }
+        : nameOrTag;
+    onUpdateTags?.([...validTags, newTag]);
+    return newTag;
+  };
 
   React.useEffect(() => {
     const handleExpandMode = (e: CustomEvent<string>) => {
@@ -203,7 +407,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
         rewards: [{ type: 'coins', amount: 100 }],
         isRoutine: false,
         routineType: 'daily',
-        deadline: undefined
+        deadline: undefined,
+        tags: []
       });
     }
   }, [isAddingMajor, editingMajor]);
@@ -218,7 +423,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
           rewards: preset.rewards || [{ type: 'coins', amount: 100 }],
           isRoutine: preset.isRoutine || false,
           routineType: preset.routineType || 'daily',
-          deadline: undefined
+          deadline: undefined,
+          tags: preset.tags || []
         });
         return;
       }
@@ -229,7 +435,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
         rewards: [{ type: 'coins', amount: 100 }],
         isRoutine: false,
         routineType: 'daily',
-        deadline: undefined
+        deadline: undefined,
+        tags: []
       });
     }
   }, [isAddingMajor]);
@@ -250,7 +457,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
           isLongTerm: preset.isLongTerm || false,
           isRoutine: preset.isRoutine || false,
           routineType: preset.routineType || 'daily',
-          deadline: undefined
+          deadline: undefined,
+          tags: preset.tags || []
         });
         return;
       }
@@ -267,7 +475,8 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
         isLongTerm: false,
         isRoutine: false,
         routineType: 'daily',
-        deadline: undefined
+        deadline: undefined,
+        tags: []
       });
     }
   }, [isAddingSub]);
@@ -365,7 +574,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
     return (
       <div className="flex items-center gap-1.5 flex-wrap shrink-0">
         {rewards.slice(0, 3).map((r, i) => (
-          <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/50 border border-slate-800 text-[10px] font-bold text-slate-400 shrink-0 max-w-[120px] truncate">
+          <div key={i} className="flex items-center gap-1 px-1.5 h-5 rounded bg-slate-900/50 border border-slate-800 text-[10px] font-bold text-slate-400 shrink-0 max-w-[120px] truncate">
             {r.type === 'coins' && <Coins size={10} className="text-amber-500 min-w-[10px]" />}
             {r.type === 'xp' && <Zap size={10} className="text-indigo-400 min-w-[10px]" />}
             {r.type === 'talentPoint' && <Scroll size={10} className="text-emerald-400 min-w-[10px]" />}
@@ -455,6 +664,19 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   style={{ paddingLeft: `${(level - 1) * 18}px` }}
                 >
                   <div className="flex items-center shrink-0 gap-1">
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSelectId(sub.id, e)}
+                        className={cn(
+                          "p-0.5 rounded transition-colors shrink-0",
+                          selectedIds.includes(sub.id) ? "text-indigo-400" : "text-slate-600 hover:text-slate-300"
+                        )}
+                        title={selectedIds.includes(sub.id) ? "Deselect task" : "Select task for batch action"}
+                      >
+                        {selectedIds.includes(sub.id) ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </button>
+                    )}
                     {level > 1 && (
                       <span className="text-slate-600/80 font-mono text-[11px] select-none shrink-0 -ml-1 mr-0.5">└</span>
                     )}
@@ -475,11 +697,11 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                         "font-bold text-[13px] sm:text-xs transition-all max-w-full truncate",
                         sub.status === 'completed' ? "text-slate-500 line-through font-medium" : currentDungeonId === sub.id ? "text-indigo-400" : "text-slate-200"
                       )}>
-                        {sub.name || <span className="italic opacity-50">Unnamed Task</span>}
+                        {sub.name || <span className="italic pr-1 opacity-50">Unnamed Task</span>}
                       </span>
                       
                       {sub.deadline && sub.status !== 'completed' && (
-                        <div className={cn("flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded border text-[10px] font-black uppercase shadow-sm",
+                        <div className={cn("flex items-center gap-1 shrink-0 px-1.5 h-5 rounded border text-[10px] font-black uppercase shadow-sm",
                           sub.deadline < format(new Date(), 'yyyy-MM-dd') ? "border-rose-500/30 bg-rose-500/10 text-rose-400" : "border-amber-500/30 bg-amber-500/10 text-amber-400"
                         )}>
                           <Calendar size={10} />
@@ -488,7 +710,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       )}
                       
                       {sub.isRoutine && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase shadow-sm shrink-0" title="Refreshes progress on reset">
+                        <div className="flex items-center gap-1 px-1.5 h-5 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase shadow-sm shrink-0" title="Refreshes progress on reset">
                           <RefreshCcw size={8} />
                           <span>{sub.routineType}</span>
                           {sub.lastRoutineReset && (
@@ -510,6 +732,26 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                           )}
                         </div>
                       )}
+
+                      {(() => {
+                        const ownTagIds = sub.tags || [];
+                        const inheritedIds = getInheritedTagIds(sub.parentId, dungeons, majorDungeons).filter(id => !ownTagIds.includes(id));
+                        if (ownTagIds.length === 0 && inheritedIds.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {ownTagIds.map(tId => {
+                              const tagObj = validTags.find(t => t.id === tId);
+                              if (!tagObj) return null;
+                              return <TagBadge key={tId} tag={tagObj} size="xs" />;
+                            })}
+                            {inheritedIds.map(tId => {
+                              const tagObj = validTags.find(t => t.id === tId);
+                              if (!tagObj) return null;
+                              return <TagBadge key={tId} tag={tagObj} size="xs" inherited />;
+                            })}
+                          </div>
+                        );
+                      })()}
 
                       {renderRewards(sub)}
                     </div>
@@ -586,7 +828,34 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
 
                   <div className="flex items-center justify-end shrink-0 gap-1">
                     {isEditMode && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                        {idx > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'top'); }}
+                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-indigo-400 rounded transition-all"
+                            title="Move to Top"
+                          >
+                            <ArrowUpToLine size={11} />
+                          </button>
+                        )}
+                        {idx > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'up'); }}
+                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-white rounded transition-all"
+                            title="Move Up"
+                          >
+                            <ArrowUp size={11} />
+                          </button>
+                        )}
+                        {idx < parentSubs.length - 1 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'down'); }}
+                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-white rounded transition-all"
+                            title="Move Down"
+                          >
+                            <ArrowDown size={11} />
+                          </button>
+                        )}
                         {currentDepth < 3 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setIsAddingSub({ parentId: sub.id }); }}
@@ -676,7 +945,23 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
 
   const filteredMajors = React.useMemo(() => {
     if (activeTab === 'active') {
-      return majorDungeons.filter(m => m.status !== 'archived');
+      const activeList = majorDungeons.filter(m => m.status !== 'archived');
+      if (!filterTagId) return activeList;
+      return activeList.filter(m => {
+        if (m.tags?.includes(filterTagId)) return true;
+        // Check if any sub-dungeon under this major has the tag
+        return dungeons.some(d => {
+          const eff = getEffectiveDungeonTagIds(d.id, dungeons, majorDungeons);
+          if (!eff.includes(filterTagId)) return false;
+          // Walk up to root major
+          let curr: Dungeon | undefined = d;
+          while (curr?.parentId) {
+            if (curr.parentId === m.id) return true;
+            curr = dungeons.find(p => p.id === curr?.parentId);
+          }
+          return false;
+        });
+      });
     }
     const filtered = majorDungeons.filter(m => m.status === 'archived');
     
@@ -696,31 +981,73 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
       
       return matchesSearch;
     });
-  }, [majorDungeons, activeTab, archiveSearch, dateFilter]);
+  }, [majorDungeons, dungeons, activeTab, archiveSearch, dateFilter, filterTagId]);
+
+  const validParentOptionsForSub = React.useMemo<ParentHierarchyOption[]>(() => {
+    const activeMajors = majorDungeons.filter(m => m.status !== 'archived' && !m.isFinalized);
+    const options: ParentHierarchyOption[] = [];
+
+    for (const major of activeMajors) {
+      options.push({
+        id: major.id,
+        name: major.name,
+        parentType: 'Goal',
+        resultingTier: 'Tier 1',
+        label: `[Expedition Goal] ${major.name} (→ Tier 1)`,
+        depth: 0
+      });
+
+      const tier1Subs = dungeons.filter(d => d.parentId === major.id);
+      for (const t1 of tier1Subs) {
+        if (editingSub && !canMoveSubDungeonToParent(editingSub.id, t1.id, dungeons, majorDungeons)) continue;
+        options.push({
+          id: t1.id,
+          name: t1.name,
+          parentType: 'Tier 1',
+          resultingTier: 'Tier 2',
+          label: `  └ [Tier 1] ${t1.name} (→ Tier 2)`,
+          depth: 1
+        });
+
+        const tier2Subs = dungeons.filter(d => d.parentId === t1.id);
+        for (const t2 of tier2Subs) {
+          if (editingSub && !canMoveSubDungeonToParent(editingSub.id, t2.id, dungeons, majorDungeons)) continue;
+          options.push({
+            id: t2.id,
+            name: t2.name,
+            parentType: 'Tier 2',
+            resultingTier: 'Tier 3',
+            label: `    └ [Tier 2] ${t2.name} (→ Tier 3)`,
+            depth: 2
+          });
+        }
+      }
+    }
+    return options;
+  }, [majorDungeons, dungeons, editingSub]);
 
   return (
-    <div className="space-y-8">
-      {/* Active Dungeon moved to Top Bar */}
-
-      <AnimatePresence>
-        {(editingMajor || editingSub || isAddingMajor || isAddingSub) && (
+    <div className="space-y-6">
+      {(editingMajor || editingSub || isAddingMajor || isAddingSub) && createPortal(
+        <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm isolate"
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-6 overflow-y-auto max-h-[90vh]"
+              className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl space-y-4 overflow-y-auto max-h-[90vh] custom-scrollbar"
             >
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white uppercase tracking-tight">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic pr-1">
                   {isAddingMajor ? 'CREATE EXPEDITION GOAL' : isAddingSub ? `CREATE TIER ${getSubDungeonDepth(isAddingSub.parentId) + 1}` : `EDIT ${editingMajor ? 'DUNGEON GOAL' : 'TIER ' + getSubDungeonDepth(editingSub?.id || '')}`}
                 </h3>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   {(isAddingMajor || isAddingSub) && (
                     <PresetControl
                       type={isAddingMajor ? 'dungeon_major' : 'dungeon_sub'}
@@ -749,16 +1076,23 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       }}
                     />
                   )}
-                  <button onClick={() => { setEditingMajor(null); setEditingSub(null); setIsAddingMajor(false); setIsAddingSub(null); }} className="text-slate-500 hover:text-white">
-                    <X size={24} />
+                  <button
+                    onClick={() => { setEditingMajor(null); setEditingSub(null); setIsAddingMajor(false); setIsAddingSub(null); }}
+                    className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
                   </button>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className={cn("space-y-1", (editingSub || isAddingSub) && !(isAddingSub ? newSub.isOpenEnded : editingSub?.isOpenEnded) ? "sm:col-span-1" : "sm:col-span-2")}>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Name</label>
+                {/* Row 1: Name + Parent Hierarchy (Sub) or Deadline (Major) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sword size={12} className="text-indigo-400 shrink-0" />
+                      <span>{isAddingMajor || editingMajor ? 'Goal Name' : 'Tier Name'}</span>
+                    </label>
                     <input
                       type="text"
                       value={isAddingMajor ? newMajor.name : isAddingSub ? newSub.name : (editingMajor ? editingMajor.name : editingSub?.name || '')}
@@ -768,212 +1102,320 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                         else if (editingMajor) setEditingMajor({ ...editingMajor, name: e.target.value });
                         else if (editingSub) setEditingSub({ ...editingSub, name: e.target.value });
                       }}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
-                      placeholder={isAddingMajor || isAddingSub ? "Goal Name" : ""}
+                      className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 h-[38px] text-white text-sm focus:outline-none focus:border-indigo-500"
+                      placeholder={isAddingMajor || editingMajor ? "e.g. Master Calculus" : "e.g. Chapter 1 Exercises"}
                     />
                   </div>
-                  {(editingSub || isAddingSub) && !(isAddingSub ? newSub.isOpenEnded : editingSub?.isOpenEnded) && (
-                    <div className="space-y-1 sm:col-span-1">
-                      {(() => {
-                        const hasChildren = editingSub ? dungeons.some(d => d.parentId === editingSub.id) : false;
-                        const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
-                        const hierStats = (hasChildren && editingSub) ? getDungeonHierarchyStats(editingSub.id, dungeons, timePerRoom) : null;
 
-                        return (
-                          <>
-                            <div className="flex justify-between items-end">
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Rooms</label>
-                              <div className="text-[10px] text-indigo-400 font-bold tabular-nums">
-                                {(() => {
-                                  const rooms = hasChildren 
-                                    ? hierStats?.totalSessions 
-                                    : isAddingSub ? (newSub.totalSessions || 0) : (editingSub?.totalSessions || 0);
-                                  if (!rooms) return null;
-                                  const totalMinutes = hasChildren ? (hierStats?.targetMinutes || 0) : rooms * timePerRoom;
-                                  if (totalMinutes < 60) return `${totalMinutes} min`;
-                                  const h = Math.floor(totalMinutes / 60);
-                                  const m = totalMinutes % 60;
-                                  return m > 0 ? `${h} h ${m} min` : `${h} h`;
-                                })()}
-                              </div>
-                            </div>
-                            {hasChildren && hierStats ? (
-                              <div className="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2 text-slate-300 text-sm flex items-center justify-between">
-                                <span className="font-mono font-bold text-white">{hierStats.totalSessions} rooms</span>
-                                <span className="text-[10px] text-indigo-400 font-medium italic">Calculated from child tiers</span>
-                              </div>
-                            ) : (
-                              <SpinnerInput
-                                min={1}
-                                value={isAddingSub ? (newSub.totalSessions === undefined ? '' : newSub.totalSessions) : (editingSub?.totalSessions === undefined ? '' : editingSub.totalSessions)}
-                                onChange={(val) => {
-                                  if (isAddingSub) setNewSub({ ...newSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
-                                  else if (editingSub) setEditingSub({ ...editingSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
-                                }}
-                                className="w-full text-sm focus:border-indigo-500"
-                              />
-                            )}
-                          </>
-                        );
-                      })()}
+                  {(editingSub || isAddingSub) ? (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <FolderInput size={12} className="text-indigo-400 shrink-0" />
+                        <span>Parent Goal / Tier</span>
+                      </label>
+                      <HierarchyParentPicker
+                        value={isAddingSub ? isAddingSub.parentId : (editingSub?.parentId || '')}
+                        options={validParentOptionsForSub}
+                        onChange={(targetParentId) => {
+                          if (!targetParentId) return;
+                          if (isAddingSub) {
+                            setIsAddingSub({ parentId: targetParentId });
+                          } else if (editingSub) {
+                            setEditingSub({ ...editingSub, parentId: targetParentId });
+                          }
+                        }}
+                      />
                     </div>
-                  )}
-                  {(editingMajor || isAddingMajor || editingSub || isAddingSub) && (
-                    <div className="space-y-1 sm:col-span-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex justify-between items-center">
-                        <span>Deadline (Optional)</span>
-                        {Boolean(isAddingMajor ? newMajor.deadline : isAddingSub ? newSub.deadline : editingMajor ? editingMajor.deadline : editingSub?.deadline) && (
-                          <button 
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={12} className="text-indigo-400 shrink-0" />
+                          <span>Deadline <span className="text-slate-600 font-normal lowercase">(optional)</span></span>
+                        </span>
+                        {Boolean(isAddingMajor ? newMajor.deadline : editingMajor?.deadline) && (
+                          <button
+                            type="button"
                             onClick={(e) => {
                               e.preventDefault();
                               if (isAddingMajor) setNewMajor({ ...newMajor, deadline: undefined });
-                              else if (isAddingSub) setNewSub({ ...newSub, deadline: undefined });
                               else if (editingMajor) setEditingMajor({ ...editingMajor, deadline: undefined });
-                              else if (editingSub) setEditingSub({ ...editingSub, deadline: undefined });
                             }}
                             className="text-[10px] underline text-slate-500 hover:text-slate-300"
-                          >Clear</button>
+                          >
+                            Clear
+                          </button>
                         )}
                       </label>
                       <DatePicker
-                        value={isAddingMajor ? newMajor.deadline || '' : isAddingSub ? newSub.deadline || '' : editingMajor ? editingMajor.deadline || '' : editingSub?.deadline || ''}
+                        value={isAddingMajor ? newMajor.deadline || '' : editingMajor?.deadline || ''}
                         onChange={(val) => {
                           if (isAddingMajor) setNewMajor({ ...newMajor, deadline: val });
-                          else if (isAddingSub) setNewSub({ ...newSub, deadline: val });
                           else if (editingMajor) setEditingMajor({ ...editingMajor, deadline: val });
-                          else if (editingSub) setEditingSub({ ...editingSub, deadline: val });
                         }}
-                        className="bg-slate-800 border-slate-700"
+                        className="bg-slate-800/90 border-slate-700 rounded-xl px-3.5 h-[38px] text-xs"
                       />
-                    </div>
-                  )}
-                  {(editingMajor || isAddingMajor || editingSub || isAddingSub) && (
-                    <div className="space-y-1 sm:col-span-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
-                      <input
-                        type="text"
-                        value={isAddingMajor ? newMajor.description : isAddingSub ? newSub.description : (editingMajor ? editingMajor.description : editingSub?.description || '') || ''}
-                        onChange={e => {
-                          if (isAddingMajor) setNewMajor({ ...newMajor, description: e.target.value });
-                          else if (isAddingSub) setNewSub({ ...newSub, description: e.target.value });
-                          else if (editingMajor) setEditingMajor({ ...editingMajor, description: e.target.value });
-                          else if (editingSub) setEditingSub({ ...editingSub, description: e.target.value });
-                        }}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
-                        placeholder={isAddingMajor || isAddingSub ? "Description" : "Optional description"}
-                      />
-                    </div>
-                  )}
-
-                  {(editingSub || isAddingSub) && (
-                    <div className="sm:col-span-2 pt-1 pb-1">
-                       <label className="flex items-center gap-3 text-white cursor-pointer border border-slate-700/50 bg-slate-800/30 px-4 py-3 rounded-xl hover:border-indigo-500/50 transition-colors">
-                         <div className="shrink-0 flex items-center justify-center">
-                           <input
-                             type="checkbox"
-                             checked={
-                               isAddingSub ? newSub.isOpenEnded :
-                               editingSub ? editingSub.isOpenEnded : false
-                             }
-                             onChange={e => {
-                               if (isAddingSub) setNewSub({ ...newSub, isOpenEnded: e.target.checked });
-                               else if (editingSub) setEditingSub({ ...editingSub, isOpenEnded: e.target.checked });
-                             }}
-                             className="w-4 h-4 rounded bg-slate-900 border-slate-600 focus:ring-indigo-500 text-indigo-500 cursor-pointer"
-                           />
-                         </div>
-                         <div className="flex-1 flex items-center justify-between min-w-0">
-                           <span className="font-semibold text-slate-200 text-sm">Open-Ended Task</span>
-                           <span className="text-[11px] text-slate-500 truncate ml-2">Track time endlessly without session goals</span>
-                         </div>
-                       </label>
-                    </div>
-                  )}
-
-                  {(editingMajor || isAddingMajor || editingSub || isAddingSub) && (
-                    <div className="space-y-1 sm:col-span-2">
-                      <label className="flex items-center gap-2 text-white text-sm cursor-pointer border border-slate-700 bg-slate-800 p-3 rounded-xl hover:border-indigo-500 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={
-                            isAddingMajor ? newMajor.isRoutine : 
-                            isAddingSub ? newSub.isRoutine :
-                            editingMajor ? editingMajor.isRoutine :
-                            editingSub ? editingSub.isRoutine : false
-                          }
-                          onChange={e => {
-                            if (isAddingMajor) setNewMajor({ ...newMajor, isRoutine: e.target.checked });
-                            else if (isAddingSub) setNewSub({ ...newSub, isRoutine: e.target.checked });
-                            else if (editingMajor) setEditingMajor({ ...editingMajor, isRoutine: e.target.checked });
-                            else if (editingSub) setEditingSub({ ...editingSub, isRoutine: e.target.checked });
-                          }}
-                          className="w-4 h-4 rounded bg-slate-900 border-indigo-500 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                        />
-                        <span className="font-bold">Routine {isAddingMajor || editingMajor ? 'Expedition' : 'Tier'}</span>
-                        <span className="text-xs text-slate-400 font-normal ml-auto">Resets progress periodically</span>
-                      </label>
-                      
-                      {(
-                        isAddingMajor ? newMajor.isRoutine : 
-                        isAddingSub ? newSub.isRoutine :
-                        editingMajor ? editingMajor.isRoutine : 
-                        editingSub ? editingSub.isRoutine : false
-                      ) && (
-                        <div className="flex gap-4 p-3 bg-slate-800/80 rounded-xl border border-slate-700">
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest my-auto mr-2">Interval</span>
-                          {(['daily', 'weekly', 'monthly'] as const).map(t => (
-                            <label key={t} className="flex items-center gap-2 cursor-pointer text-sm text-slate-300 hover:text-white">
-                              <input
-                                type="radio"
-                                name="routineType"
-                                value={t}
-                                checked={(
-                                  isAddingMajor ? newMajor.routineType :
-                                  isAddingSub ? newSub.routineType :
-                                  editingMajor ? editingMajor.routineType :
-                                  editingSub ? editingSub.routineType : 'daily'
-                                ) === t}
-                                onChange={e => {
-                                  if (isAddingMajor) setNewMajor({ ...newMajor, routineType: e.target.value as any });
-                                  else if (isAddingSub) setNewSub({ ...newSub, routineType: e.target.value as any });
-                                  else if (editingMajor) setEditingMajor({ ...editingMajor, routineType: e.target.value as any });
-                                  else if (editingSub) setEditingSub({ ...editingSub, routineType: e.target.value as any });
-                                }}
-                                className="w-4 h-4 text-indigo-500 border-slate-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                              />
-                              <span className="capitalize font-medium">{t}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  {editingMajor && !editingMajor.isFinalized && editingMajor.status !== 'completed' && dungeons.some(d => d.parentId === editingMajor.id) && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-amber-400">
-                        <Target size={18} />
-                        <span className="text-sm font-bold uppercase tracking-wider">Finalization Check</span>
+                {/* Row 2: Description + Deadline (for Sub-Tiers) */}
+                <div className={cn("grid grid-cols-1 gap-3.5", (editingSub || isAddingSub) && "sm:grid-cols-2")}>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Edit2 size={12} className="text-indigo-400 shrink-0" />
+                      <span>Note / Description <span className="text-slate-600 font-normal lowercase">(optional)</span></span>
+                    </label>
+                    <input
+                      type="text"
+                      value={isAddingMajor ? newMajor.description : isAddingSub ? newSub.description : (editingMajor ? editingMajor.description : editingSub?.description || '') || ''}
+                      onChange={e => {
+                        if (isAddingMajor) setNewMajor({ ...newMajor, description: e.target.value });
+                        else if (isAddingSub) setNewSub({ ...newSub, description: e.target.value });
+                        else if (editingMajor) setEditingMajor({ ...editingMajor, description: e.target.value });
+                        else if (editingSub) setEditingSub({ ...editingSub, description: e.target.value });
+                      }}
+                      className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 h-[38px] text-white text-xs focus:outline-none focus:border-indigo-500"
+                      placeholder="Add a brief description or note..."
+                    />
+                  </div>
+
+                  {(editingSub || isAddingSub) && (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={12} className="text-indigo-400 shrink-0" />
+                          <span>Deadline <span className="text-slate-600 font-normal lowercase">(optional)</span></span>
+                        </span>
+                        {Boolean(isAddingSub ? newSub.deadline : editingSub?.deadline) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (isAddingSub) setNewSub({ ...newSub, deadline: undefined });
+                              else if (editingSub) setEditingSub({ ...editingSub, deadline: undefined });
+                            }}
+                            className="text-[10px] underline text-slate-500 hover:text-slate-300"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </label>
+                      <DatePicker
+                        value={isAddingSub ? newSub.deadline || '' : editingSub?.deadline || ''}
+                        onChange={(val) => {
+                          if (isAddingSub) setNewSub({ ...newSub, deadline: val });
+                          else if (editingSub) setEditingSub({ ...editingSub, deadline: val });
+                        }}
+                        className="bg-slate-800/90 border-slate-700 rounded-xl px-3.5 h-[38px] text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Row 3: Target Sessions & Repeat Cycle */}
+                <div className={cn("grid grid-cols-1 gap-3.5", (editingSub || isAddingSub) && "sm:grid-cols-2")}>
+                  {(editingSub || isAddingSub) && (() => {
+                    const isOpenEnded = isAddingSub ? !!newSub.isOpenEnded : !!editingSub?.isOpenEnded;
+                    const hasChildren = editingSub ? dungeons.some(d => d.parentId === editingSub.id) : false;
+                    const timePerRoom = standardSessionMinutes + (includeRestTimeInTasks ? standardRestMinutes : 0);
+                    const hierStats = (hasChildren && editingSub) ? getDungeonHierarchyStats(editingSub.id, dungeons, timePerRoom) : null;
+
+                    const durationText = (() => {
+                      if (isOpenEnded) return 'Unlimited duration';
+                      const rooms = hasChildren
+                        ? hierStats?.totalSessions
+                        : isAddingSub ? (newSub.totalSessions || 0) : (editingSub?.totalSessions || 0);
+                      if (!rooms) return null;
+                      const totalMinutes = hasChildren ? (hierStats?.targetMinutes || 0) : rooms * timePerRoom;
+                      if (totalMinutes < 60) return `${totalMinutes} min`;
+                      const h = Math.floor(totalMinutes / 60);
+                      const m = totalMinutes % 60;
+                      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                    })();
+
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Target size={12} className="text-indigo-400 shrink-0" />
+                            <span>Target Sessions</span>
+                          </label>
+                          {durationText && (
+                            <span className="text-[10px] font-bold text-indigo-400 tabular-nums">
+                              {durationText}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="bg-slate-800/90 p-1 rounded-xl border border-slate-700 flex items-center shrink-0 h-[38px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isAddingSub) setNewSub({ ...newSub, isOpenEnded: false });
+                                else if (editingSub) setEditingSub({ ...editingSub, isOpenEnded: false });
+                              }}
+                              className={cn(
+                                "px-2.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer",
+                                !isOpenEnded ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                              )}
+                            >
+                              Rooms
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isAddingSub) setNewSub({ ...newSub, isOpenEnded: true });
+                                else if (editingSub) setEditingSub({ ...editingSub, isOpenEnded: true });
+                              }}
+                              className={cn(
+                                "px-2.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer",
+                                isOpenEnded ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                              )}
+                            >
+                              ∞ Endless
+                            </button>
+                          </div>
+
+                          {!isOpenEnded ? (
+                            hasChildren && hierStats ? (
+                              <div className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 h-[38px] flex items-center justify-between">
+                                <span className="font-mono font-bold text-xs text-white">{hierStats.totalSessions}</span>
+                                <span className="text-[10px] text-indigo-400 italic pr-1 truncate ml-1">From children</span>
+                              </div>
+                            ) : (
+                              <div className="flex-1 min-w-0">
+                                <SpinnerInput
+                                  min={1}
+                                  value={isAddingSub ? (newSub.totalSessions === undefined ? '' : newSub.totalSessions) : (editingSub?.totalSessions === undefined ? '' : editingSub.totalSessions)}
+                                  onChange={(val) => {
+                                    if (isAddingSub) setNewSub({ ...newSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
+                                    else if (editingSub) setEditingSub({ ...editingSub, totalSessions: typeof val === 'number' ? Math.max(1, val) : '' as any });
+                                  }}
+                                  className="text-sm focus:border-indigo-500 h-[38px]"
+                                />
+                              </div>
+                            )
+                          ) : (
+                            <div className="flex-1 min-w-0 bg-slate-800/40 border border-slate-800 rounded-xl px-3 h-[38px] flex items-center">
+                              <span className="text-[11px] text-slate-400 italic pr-1 truncate">Track time freely</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Once finalized, you cannot add more tiers or edit rewards. 
-                        Major rewards are only granted if the goal is finalized before completion.
-                      </p>
+                    );
+                  })()}
+
+                  {/* Repeat Cycle */}
+                  {(() => {
+                    const isRoutine = isAddingMajor ? newMajor.isRoutine : isAddingSub ? newSub.isRoutine : editingMajor ? editingMajor.isRoutine : !!editingSub?.isRoutine;
+                    const routineType = (isAddingMajor ? newMajor.routineType : isAddingSub ? newSub.routineType : editingMajor ? editingMajor.routineType : editingSub?.routineType) || 'daily';
+
+                    const setCycle = (nextRoutine: boolean, nextType?: 'daily' | 'weekly' | 'monthly') => {
+                      const typeToUse = nextType || routineType;
+                      if (isAddingMajor) setNewMajor({ ...newMajor, isRoutine: nextRoutine, routineType: typeToUse });
+                      else if (isAddingSub) setNewSub({ ...newSub, isRoutine: nextRoutine, routineType: typeToUse });
+                      else if (editingMajor) setEditingMajor({ ...editingMajor, isRoutine: nextRoutine, routineType: typeToUse });
+                      else if (editingSub) setEditingSub({ ...editingSub, isRoutine: nextRoutine, routineType: typeToUse });
+                    };
+
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <RefreshCcw size={12} className="text-indigo-400 shrink-0" />
+                            <span>Repeat Cycle</span>
+                          </label>
+                          <span className="text-[10px] text-slate-500">
+                            {isRoutine ? `Resets ${routineType}` : 'One-time goal'}
+                          </span>
+                        </div>
+                        <div className="bg-slate-800/90 p-1 rounded-xl border border-slate-700 grid grid-cols-4 gap-1 h-[38px]">
+                          <button
+                            type="button"
+                            onClick={() => setCycle(false)}
+                            className={cn(
+                              "rounded-lg text-[11px] font-bold transition-all cursor-pointer",
+                              !isRoutine ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                            )}
+                          >
+                            Once
+                          </button>
+                          {(['daily', 'weekly', 'monthly'] as const).map(t => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setCycle(true, t)}
+                              className={cn(
+                                "rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer",
+                                isRoutine && routineType === t
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-slate-400 hover:text-slate-200"
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Row 4: Tags */}
+                <div className="pt-1">
+                  <TagPicker
+                    compact
+                    tags={validTags}
+                    selectedTagIds={
+                      isAddingMajor ? (newMajor.tags || []) :
+                      isAddingSub ? (newSub.tags || []) :
+                      editingMajor ? (editingMajor.tags || []) :
+                      (editingSub?.tags || [])
+                    }
+                    inheritedTagIds={
+                      isAddingSub ? getInheritedTagIds(isAddingSub.parentId, dungeons, majorDungeons) :
+                      editingSub ? getInheritedTagIds(editingSub.parentId, dungeons, majorDungeons) :
+                      []
+                    }
+                    onChange={(nextTagIds) => {
+                      if (isAddingMajor) setNewMajor({ ...newMajor, tags: nextTagIds });
+                      else if (isAddingSub) setNewSub({ ...newSub, tags: nextTagIds });
+                      else if (editingMajor) setEditingMajor({ ...editingMajor, tags: nextTagIds });
+                      else if (editingSub) setEditingSub({ ...editingSub, tags: nextTagIds });
+                    }}
+                    onCreateTag={handleCreateNewTag}
+                  />
+                </div>
+
+                {/* Row 5: Finalization Check & Completion Rewards */}
+                <div className="space-y-3 pt-1">
+                  {editingMajor && !editingMajor.isFinalized && editingMajor.status !== 'completed' && dungeons.some(d => d.parentId === editingMajor.id) && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5 text-amber-400">
+                          <Target size={14} />
+                          <span className="text-xs font-bold uppercase tracking-wider">Finalization Check</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-snug">
+                          Lock tiers & rewards to enable Major Goal completion bonus.
+                        </p>
+                      </div>
                       <button
+                        type="button"
                         onClick={() => {
                           onFinalizeMajor(editingMajor.id);
                           setEditingMajor(null);
                         }}
-                        className="w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-xs font-bold uppercase transition-all border border-amber-500/30"
+                        className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-bold uppercase transition-all border border-amber-500/30 shrink-0"
                       >
-                        Finalize Now
+                        Finalize
                       </button>
                     </div>
                   )}
 
                   {(() => {
+                    const isMajorModal = !!isAddingMajor || !!editingMajor;
                     const isRewardLocked = editingMajor 
                       ? (editingMajor.isFinalized || editingMajor.status === 'completed')
                       : editingSub
@@ -982,32 +1424,36 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       ? (majorDungeons.find(m => m.id === isAddingSub.parentId)?.isFinalized)
                       : false;
 
+                    const rewardList = isAddingMajor ? newMajor.rewards : isAddingSub ? newSub.rewards : (editingMajor?.rewards || editingSub?.rewards || []);
+
                     return (
-                      <>
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h5 className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-                            Completion Rewards {isRewardLocked && <span className="text-amber-500 text-[10px] lowercase italic pr-1">(Locked)</span>}
+                          <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Trophy size={12} className="text-indigo-400 shrink-0" />
+                            <span>Completion Rewards {isRewardLocked && <span className="text-amber-500 text-[10px] lowercase italic pr-1">(Locked)</span>}</span>
                           </h5>
                           {!isRewardLocked && (
-                            <button 
-                              onClick={() => addReward(isAddingMajor || !!editingMajor)}
+                            <button
+                              type="button"
+                              onClick={() => addReward(isMajorModal)}
                               className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
                             >
                               <Plus size={14} /> Add Reward
                             </button>
                           )}
                         </div>
-                        
-                        <div className="space-y-2">
-                          {(isAddingMajor ? newMajor.rewards : isAddingSub ? newSub.rewards : (editingMajor?.rewards || editingSub?.rewards || [])).map((reward, idx) => (
-                            <div key={idx} className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 space-y-3 relative">
+
+                        <div className="space-y-3">
+                          {rewardList.map((reward, idx) => (
+                            <div key={idx} className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 space-y-3">
                               <div className="flex items-center gap-2">
-                                <select 
-                                  value={reward.type}
+                                <select
                                   disabled={isRewardLocked}
-                                  onChange={e => updateReward(idx, 'type', e.target.value, !!isAddingMajor || !!editingMajor)}
+                                  value={reward.type}
+                                  onChange={e => updateReward(idx, 'type', e.target.value as any, isMajorModal)}
                                   className={cn(
-                                    "flex-grow bg-slate-900 text-sm border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500",
+                                    "flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500",
                                     isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
                                   )}
                                 >
@@ -1017,62 +1463,66 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                                   <option value="item">Item</option>
                                   <option value="text">Custom Text</option>
                                 </select>
-                                <SpinnerInput 
-                                  disabled={isRewardLocked}
-                                  value={reward.amount === undefined || reward.amount === null ? '' : reward.amount}
-                                  onChange={(val) => {
-                                    updateReward(idx, 'amount', typeof val === 'number' ? val : ('' as any), !!isAddingMajor || !!editingMajor);
-                                  }}
-                                  className={cn(
-                                    "w-24 text-sm px-2",
-                                    isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
-                                  )}
-                                  placeholder="Amt"
-                                />
+                                {reward.type !== 'text' && (
+                                  <div className="w-24 shrink-0">
+                                    <SpinnerInput
+                                      disabled={isRewardLocked}
+                                      value={reward.amount === undefined || reward.amount === null ? '' : reward.amount}
+                                      onChange={(val) => {
+                                        updateReward(idx, 'amount', typeof val === 'number' ? val : ('' as any), isMajorModal);
+                                      }}
+                                      className={cn(
+                                        "text-xs py-1.5 px-3",
+                                        isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
+                                      )}
+                                      placeholder="Amount"
+                                    />
+                                  </div>
+                                )}
                                 {!isRewardLocked && (
-                                  <button onClick={() => removeReward(idx, !!isAddingMajor || !!editingMajor)} className="p-1.5 text-slate-500 hover:text-red-400">
+                                  <button type="button" onClick={() => removeReward(idx, isMajorModal)} className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg">
                                     <X size={16} />
                                   </button>
                                 )}
                               </div>
                               {reward.type === 'item' && (
                                 <div className="grid grid-cols-2 gap-2">
-                                  <select 
+                                  <select
                                     disabled={isRewardLocked}
-                                    value={reward.itemType}
-                                    onChange={e => updateReward(idx, 'itemType', e.target.value, !!isAddingMajor || !!editingMajor)}
+                                    value={reward.itemType || 'talent_shard'}
+                                    onChange={e => updateReward(idx, 'itemType', e.target.value as any, isMajorModal)}
                                     className={cn(
-                                      "bg-slate-900 text-xs border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500",
+                                      "bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500",
                                       isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
                                     )}
                                   >
                                     <option value="talent_shard">Talent Shard</option>
-                                    <option value="death_defying_medal">Medal</option>
-                                    <option value="double_xp">Double XP</option>
-                                    <option value="double_coin">Double Coin</option>
+                                    <option value="death_defying_medal">Death Defying Medal</option>
+                                    <option value="double_xp">2x XP Potion</option>
+                                    <option value="double_coin">2x Coin Potion</option>
                                   </select>
-                                  <input 
+                                  <input
                                     type="text"
                                     disabled={isRewardLocked}
-                                    placeholder="Item Name"
+                                    placeholder="Item Name..."
                                     value={reward.itemName || ''}
-                                    onChange={e => updateReward(idx, 'itemName', e.target.value, !!isAddingMajor || !!editingMajor)}
+                                    onChange={e => updateReward(idx, 'itemName', e.target.value, isMajorModal)}
                                     className={cn(
-                                      "bg-slate-900 text-xs border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500",
+                                      "bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500",
                                       isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
                                     )}
                                   />
                                 </div>
                               )}
                               {reward.type === 'text' && (
-                                <input 
+                                <input
                                   type="text"
                                   disabled={isRewardLocked}
-                                  placeholder="Reward Message"
+                                  placeholder="Enter custom reward message..."
                                   value={reward.rewardText || ''}
-                                  onChange={e => updateReward(idx, 'rewardText', e.target.value, !!isAddingMajor || !!editingMajor)}
+                                  onChange={e => updateReward(idx, 'rewardText', e.target.value, isMajorModal)}
                                   className={cn(
-                                    "w-full bg-slate-900 text-xs border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500",
+                                    "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500",
                                     isRewardLocked ? "text-slate-500 cursor-not-allowed opacity-70" : "text-white"
                                   )}
                                 />
@@ -1080,7 +1530,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                             </div>
                           ))}
                         </div>
-                      </>
+                      </div>
                     );
                   })()}
                 </div>
@@ -1146,10 +1596,10 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                     }
 
                     if (isAddingMajor) {
-                      onCreateMajor(newMajor.name, newMajor.description, newMajor.rewards, newMajor.isRoutine, newMajor.routineType, newMajor.deadline);
+                      onCreateMajor(newMajor.name, newMajor.description, newMajor.rewards, newMajor.isRoutine, newMajor.routineType, newMajor.deadline, newMajor.tags);
                       setIsAddingMajor(false);
                     } else if (isAddingSub) {
-                      onCreateSub({ ...newSub, parentId: isAddingSub.parentId });
+                      onCreateSub({ ...newSub, parentId: isAddingSub.parentId, tags: newSub.tags });
                       setIsAddingSub(null);
                     } else if (editingMajor) {
                       onUpdateMajor(editingMajor.id, { 
@@ -1158,10 +1608,15 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                         rewards: editingMajor.rewards,
                         isRoutine: editingMajor.isRoutine,
                         routineType: editingMajor.routineType,
-                        deadline: editingMajor.deadline
+                        deadline: editingMajor.deadline,
+                        tags: editingMajor.tags
                       });
                       setEditingMajor(null);
                     } else if (editingSub) {
+                      const origSub = dungeons.find(d => d.id === editingSub.id);
+                      if (origSub && editingSub.parentId && origSub.parentId !== editingSub.parentId) {
+                        onMoveItem(editingSub.id, editingSub.parentId);
+                      }
                       onUpdateSub(editingSub.id, { 
                         name: editingSub.name, 
                         description: editingSub.description, 
@@ -1170,12 +1625,14 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                         rewards: editingSub.rewards,
                         isRoutine: editingSub.isRoutine,
                         routineType: editingSub.routineType,
-                        deadline: editingSub.deadline
+                        deadline: editingSub.deadline,
+                        tags: editingSub.tags,
+                        parentId: editingSub.parentId
                       });
                       setEditingSub(null);
                     }
                   }}
-                  className="px-8 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                  className="px-8 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500 transition-colors"
                 >
                   {isAddingMajor ? 'CREATE EXPEDITION GOAL' : isAddingSub ? 'CREATE TIER' : 'SAVE CHANGES'}
                 </button>
@@ -1183,12 +1640,198 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               </div>
             </motion.div>
           </motion.div>
-        )}
+        </AnimatePresence>,
+        document.body
+      )}
 
+      {/* Tag Filter Bar */}
+      {activeTab === 'active' && (validTags.filter(t => !t.archived).length > 0 || isEditMode) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/40 border border-slate-800/60 rounded-2xl px-3.5 py-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mr-1 flex items-center gap-1">
+              <Tags size={12} className="text-indigo-400" />
+              Filter:
+            </span>
+            <button
+              type="button"
+              onClick={() => setFilterTagId(null)}
+              className={cn(
+                "h-[26px] px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border flex items-center shrink-0",
+                filterTagId === null
+                  ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                  : "bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200"
+              )}
+            >
+              All
+            </button>
+            {validTags.filter(t => !t.archived).map(tag => (
+              <TagBadge
+                key={tag.id}
+                tag={tag}
+                size="sm"
+                selected={filterTagId === tag.id}
+                onClick={() => setFilterTagId(prev => prev === tag.id ? null : tag.id)}
+              />
+            ))}
+          </div>
+          {onOpenTagManager && (
+            <button
+              type="button"
+              onClick={onOpenTagManager}
+              className="h-[26px] flex items-center text-[10px] font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 px-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 transition-all shrink-0"
+            >
+              Manage Tags
+            </button>
+          )}
+        </div>
+      )}
 
-      </AnimatePresence>
+      {/* Multi-Select Batch Operations Bar */}
+      {isEditMode && selectedIds.length > 0 && (
+        <div className="sticky top-2 z-40 bg-slate-900/95 backdrop-blur-md border border-indigo-500/40 rounded-2xl p-3 shadow-2xl flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
+              {selectedIds.length} Selected
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSelectedIds([]); setBatchActionMode('none'); }}
+              className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1"
+            >
+              Clear
+            </button>
+          </div>
 
-      {/* Tab Switcher Removed */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBatchActionMode(prev => prev === 'tag' ? 'none' : 'tag')}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all",
+                batchActionMode === 'tag'
+                  ? "bg-indigo-600 text-white border-indigo-500"
+                  : "bg-slate-800 text-slate-200 border-slate-700 hover:border-indigo-500/50"
+              )}
+            >
+              <Tags size={13} />
+              Batch Tag
+            </button>
+
+            {selectedIds.some(id => dungeons.some(d => d.id === id)) && (
+              <button
+                type="button"
+                onClick={() => setBatchActionMode(prev => prev === 'move' ? 'none' : 'move')}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all",
+                  batchActionMode === 'move'
+                    ? "bg-indigo-600 text-white border-indigo-500"
+                    : "bg-slate-800 text-slate-200 border-slate-700 hover:border-indigo-500/50"
+                )}
+              >
+                <FolderInput size={13} />
+                Move Selected Tiers
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setModalConfig({
+                  isOpen: true,
+                  title: "Batch Delete Tasks",
+                  message: `Are you sure you want to delete ${selectedIds.length} selected item(s)? This cannot be undone.`,
+                  confirmText: "Delete All",
+                  type: "danger",
+                  onConfirm: () => {
+                    onDragStart?.();
+                    selectedIds.forEach(id => {
+                      if (majorDungeons.some(m => m.id === id)) {
+                        onDeleteMajor(id);
+                      } else if (dungeons.some(d => d.id === id)) {
+                        onDeleteSub(id);
+                      }
+                    });
+                    setSelectedIds([]);
+                    setBatchActionMode('none');
+                  }
+                });
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all"
+            >
+              <Trash2 size={13} />
+              Delete ({selectedIds.length})
+            </button>
+          </div>
+
+          {batchActionMode === 'tag' && (
+            <div className="w-full pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-1">
+                Toggle Tag on Selected:
+              </span>
+              {validTags.filter(t => !t.archived).map(tag => {
+                const allHaveTag = selectedIds.every(id => {
+                  const m = majorDungeons.find(maj => maj.id === id);
+                  if (m) return m.tags?.includes(tag.id);
+                  const s = dungeons.find(sub => sub.id === id);
+                  return s ? s.tags?.includes(tag.id) : false;
+                });
+                return (
+                  <TagBadge
+                    key={tag.id}
+                    tag={tag}
+                    size="sm"
+                    selected={allHaveTag}
+                    onClick={() => {
+                      selectedIds.forEach(id => {
+                        const m = majorDungeons.find(maj => maj.id === id);
+                        if (m) {
+                          const curr = m.tags || [];
+                          const next = allHaveTag ? curr.filter(tId => tId !== tag.id) : Array.from(new Set([...curr, tag.id]));
+                          onUpdateMajor(m.id, { tags: next });
+                        }
+                        const s = dungeons.find(sub => sub.id === id);
+                        if (s) {
+                          const curr = s.tags || [];
+                          const next = allHaveTag ? curr.filter(tId => tId !== tag.id) : Array.from(new Set([...curr, tag.id]));
+                          onUpdateSub(s.id, { tags: next });
+                        }
+                      });
+                    }}
+                  />
+                );
+              })}
+              {validTags.filter(t => !t.archived).length === 0 && (
+                <span className="text-xs text-slate-500 italic pr-1">No tags available. Create one in Manage Tags first.</span>
+              )}
+            </div>
+          )}
+
+          {batchActionMode === 'move' && (
+            <div className="w-full pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
+                Target Parent for Selected Tiers:
+              </span>
+              <HierarchyParentPicker
+                value=""
+                options={validParentOptionsForSub}
+                placeholder="Select destination Goal or Tier..."
+                className="flex-1 min-w-[240px] max-w-md"
+                onChange={(targetParentId) => {
+                  if (!targetParentId || !setDungeons) return;
+                  onDragStart?.();
+                  setDungeons(prev => prev.map(d => {
+                    if (!selectedIds.includes(d.id)) return d;
+                    if (!canMoveSubDungeonToParent(d.id, targetParentId, prev, majorDungeons)) return d;
+                    return { ...d, parentId: targetParentId };
+                  }));
+                  setBatchActionMode('none');
+                  setSelectedIds([]);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {activeTab === 'active' ? (
@@ -1229,7 +1872,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
               data-drop-target="true"
               className="space-y-1 bg-slate-900/10 rounded-2xl border border-slate-800/30 p-1 min-h-[100px]"
             >
-            {filteredMajors.map(major => (
+            {filteredMajors.map((major, majorIdx) => (
             <DraggableItem 
               key={major.id} 
               item={major} 
@@ -1249,6 +1892,19 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                 onClick={() => toggleMajor(major.id)}
               >
                 <div className="flex items-center space-x-3 min-w-0 flex-1">
+                  {isEditMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => toggleSelectId(major.id, e)}
+                      className={cn(
+                        "p-0.5 rounded transition-colors shrink-0",
+                        selectedIds.includes(major.id) ? "text-indigo-400" : "text-slate-600 hover:text-slate-300"
+                      )}
+                      title={selectedIds.includes(major.id) ? "Deselect goal" : "Select goal for batch action"}
+                    >
+                      {selectedIds.includes(major.id) ? <CheckSquare size={15} /> : <Square size={15} />}
+                    </button>
+                  )}
                   <div className="shrink-0 flex items-center justify-center w-6 h-6 border-b-2 border-slate-700/50">
                     {major.status === 'completed' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Sword size={16} className="text-slate-500" />}
                   </div>
@@ -1259,11 +1915,20 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                         major.status === 'completed' ? "text-slate-500 line-through opacity-50" : "text-white"
                       )}>{major.name}</h3>
                       {major.deadline && major.status !== 'completed' && (
-                        <div className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-black uppercase shadow-sm shrink-0", 
+                        <div className={cn("flex items-center gap-1 px-1.5 h-5 rounded border text-[10px] font-black uppercase shadow-sm shrink-0", 
                           major.deadline < format(new Date(), 'yyyy-MM-dd') ? "border-rose-500/30 bg-rose-500/10 text-rose-400" : "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
                         )}>
                           <Calendar size={10} />
                           <span>{major.deadline}</span>
+                        </div>
+                      )}
+                      {(major.tags || []).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {(major.tags || []).map(tId => {
+                            const tagObj = validTags.find(t => t.id === tId);
+                            if (!tagObj) return null;
+                            return <TagBadge key={tId} tag={tagObj} size="xs" />;
+                          })}
                         </div>
                       )}
                       {major.description && (
@@ -1271,7 +1936,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       )}
                       
                       {major.isRoutine && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase shadow-sm" title="Refreshes progress on reset">
+                        <div className="flex items-center gap-1 px-1.5 h-5 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase shadow-sm" title="Refreshes progress on reset">
                           <RefreshCcw size={10} />
                           <span>{major.routineType}</span>
                           {major.lastRoutineReset && (
@@ -1400,6 +2065,33 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   <div className="flex items-center justify-end shrink-0 gap-1">
                     {isEditMode && (
                       <div className="flex items-center gap-1 shrink-0">
+                        {majorIdx > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'top'); }}
+                            className="p-1 bg-slate-800 text-slate-500 hover:text-indigo-400 rounded-md transition-all"
+                            title="Move Goal to Top"
+                          >
+                            <ArrowUpToLine size={13} />
+                          </button>
+                        )}
+                        {majorIdx > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'up'); }}
+                            className="p-1 bg-slate-800 text-slate-500 hover:text-white rounded-md transition-all"
+                            title="Move Goal Up"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                        )}
+                        {majorIdx < filteredMajors.length - 1 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'down'); }}
+                            className="p-1 bg-slate-800 text-slate-500 hover:text-white rounded-md transition-all"
+                            title="Move Goal Down"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditingMajor(major); }}
                           className={cn(

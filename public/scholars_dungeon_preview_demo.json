@@ -1,0 +1,5102 @@
+{
+  "level": 42,
+  "xp": 840,
+  "coins": 4850,
+  "talentPoints": 5,
+  "talentShards": 2,
+  "deathDefyingMedals": 3,
+  "doubleXpCards": 2,
+  "doubleGoldCards": 2,
+  "doubleXpActive": true,
+  "doubleGoldActive": false,
+  "unlockedTalents": [
+    "a1",
+    "a2",
+    "b1",
+    "b2",
+    "c1",
+    "c2"
+  ],
+  "activeTalents": [
+    "a1",
+    "a2",
+    "b1",
+    "b2",
+    "c1",
+    "c2"
+  ],
+  "currentDungeonId": "d-thesis-p2-1",
+  "history": [
+    {
+      "id": "demo-sess-0-2",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-27T14:26:00.000Z",
+      "coinsEarned": 30,
+      "xpEarned": 95,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-27",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-0-4",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-27T14:15:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-27",
+      "tags": [
+        "tag-coding"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-0-3",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-27T13:15:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-27",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-0-1",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-27T10:13:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-27",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-0-0",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 1,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-27T08:00:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-10-27",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-1-4",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-26T19:24:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Completed active recall deck for technical collocations.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-26",
+      "tags": [
+        "tag-lang"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-1-3",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-26T16:11:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Practiced rim-lighting and subsurface scattering on foliage.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-26",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-1-2",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-26T14:33:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Drafted Section 3.2 on hardware-aware sparsity patterns.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-26",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-1-1",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-26T10:20:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Fixed lock contention in concurrent subscriber registry.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-26",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-1-0",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-26T08:07:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-26",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-2-5",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T21:09:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-2-4",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T19:31:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented shared memory swizzling to eliminate bank conflicts.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-2-3",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T16:18:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Synthesized related work on linear-time state space models.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-2-2",
+      "dungeonId": "d-routine-run",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T14:05:00.000Z",
+      "coinsEarned": 32,
+      "xpEarned": 95,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Steady aerobic run + ankle & hip mobility.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-2-1",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T10:27:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Shadowed ICML oral presentation and reviewed 25 academic idioms.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-2-0",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-25T08:14:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Sketched architectural silhouettes and composition grids.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-25",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-3-3",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-24T16:25:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented Raft AppendEntries RPC handler with Tokio channels.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-24",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-3-2",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-24T14:12:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Tuned cosine learning rate warmup schedule.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-24",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-3-1",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-24T10:34:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Profiled Triton kernel occupancy across block sizes 64 and 128.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-24",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-3-0",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-24T08:21:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Read FlashAttention-3 paper and derived warp specialization notes.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-24",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-4-4",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-23T19:10:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Outdoor track intervals + cooldown stretch.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-23",
+      "tags": [
+        "tag-fitness"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-4-3",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-23T16:32:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Practiced impromptu 3-minute research pitch recording.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-23",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-4-2",
+      "dungeonId": "d-routine-art",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-23T14:19:00.000Z",
+      "coinsEarned": 28,
+      "xpEarned": 95,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Painted 3 atmospheric perspective studies in Procreate.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-23",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-4-1",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-23T10:06:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Created architecture diagram for multi-stage pipeline.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-23",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-4-0",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-23T08:28:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-23",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-5-5",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T21:30:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-coding"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-5-4",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T19:17:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": true,
+      "period": "night",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-5-3",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T16:04:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-5-2",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T14:26:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-5-1",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T10:13:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-5-0",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-22T08:00:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Completed active recall deck for technical collocations.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-22",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-6-3",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-21T16:11:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Drafted Section 3.2 on hardware-aware sparsity patterns.",
+      "isCrit": true,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-21",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-6-2",
+      "dungeonId": "d-rust-2",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-21T14:33:00.000Z",
+      "coinsEarned": 30,
+      "xpEarned": 95,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Fixed lock contention in concurrent subscriber registry.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-21",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-6-1",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-21T10:20:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-21",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-6-0",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-21T08:07:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented shared memory swizzling to eliminate bank conflicts.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-21",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-7-3",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-20T16:18:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Steady aerobic run + ankle & hip mobility.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-20",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-7-2",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-20T14:05:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Shadowed ICML oral presentation and reviewed 25 academic idioms.",
+      "isCrit": true,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-20",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-7-1",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-20T10:27:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Sketched architectural silhouettes and composition grids.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-20",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-7-0",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-20T08:14:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Polished LaTeX tables and caption formatting.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-20",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-8-4",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-19T19:03:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented Raft AppendEntries RPC handler with Tokio channels.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-19",
+      "tags": [
+        "tag-coding"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-8-3",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-19T16:25:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Tuned cosine learning rate warmup schedule.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-19",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-8-2",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-19T14:12:00.000Z",
+      "coinsEarned": 32,
+      "xpEarned": 95,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Profiled Triton kernel occupancy across block sizes 64 and 128.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-19",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-8-1",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-19T10:34:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Read FlashAttention-3 paper and derived warp specialization notes.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-10-19",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-8-0",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-19T08:21:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Outdoor track intervals + cooldown stretch.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-19",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-9-2",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-18T14:19:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Created architecture diagram for multi-stage pipeline.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-18",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-9-1",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-18T10:06:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-18",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-9-0",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-18T08:28:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-10-18",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-10-3",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-17T16:04:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-17",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-10-2",
+      "dungeonId": "d-routine-run",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-17T14:26:00.000Z",
+      "coinsEarned": 28,
+      "xpEarned": 95,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-17",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-10-1",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-17T10:13:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Completed active recall deck for technical collocations.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-17",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-10-0",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-17T08:00:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Practiced rim-lighting and subsurface scattering on foliage.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-17",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-11-4",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-16T19:24:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Drafted Section 3.2 on hardware-aware sparsity patterns.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-16",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-11-3",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-16T16:11:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Fixed lock contention in concurrent subscriber registry.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-16",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-11-2",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-16T14:33:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-16",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-11-1",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-16T10:20:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented shared memory swizzling to eliminate bank conflicts.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-16",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-11-0",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-16T08:07:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Synthesized related work on linear-time state space models.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-16",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-12-2",
+      "dungeonId": "d-routine-art",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-15T14:05:00.000Z",
+      "coinsEarned": 30,
+      "xpEarned": 95,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Sketched architectural silhouettes and composition grids.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-15",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-12-1",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-15T10:27:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Polished LaTeX tables and caption formatting.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-15",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-12-0",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-15T08:14:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented Raft AppendEntries RPC handler with Tokio channels.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-15",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-13-3",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-14T16:25:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Profiled Triton kernel occupancy across block sizes 64 and 128.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-14",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-13-2",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-14T14:12:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Read FlashAttention-3 paper and derived warp specialization notes.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-14",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-13-1",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-14T10:34:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Outdoor track intervals + cooldown stretch.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-14",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-13-0",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-14T08:21:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Practiced impromptu 3-minute research pitch recording.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-14",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-14-4",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-13T19:10:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Painted 3 atmospheric perspective studies in Procreate.",
+      "isCrit": true,
+      "period": "night",
+      "assignedDateStr": "2026-10-13",
+      "tags": [
+        "tag-art"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-14-3",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-13T16:32:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Created architecture diagram for multi-stage pipeline.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-13",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-14-2",
+      "dungeonId": "d-rust-2",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-13T14:19:00.000Z",
+      "coinsEarned": 32,
+      "xpEarned": 95,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-13",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-14-1",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-13T10:06:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-13",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-14-0",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-13T08:28:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-13",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-16-3",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-11T16:11:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-11",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-16-2",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-11T14:33:00.000Z",
+      "coinsEarned": 140,
+      "xpEarned": 95,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented shared memory swizzling to eliminate bank conflicts.",
+      "isCrit": true,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-11",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-16-1",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-11T10:20:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Synthesized related work on linear-time state space models.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-11",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-16-0",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-11T08:07:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Steady aerobic run + ankle & hip mobility.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-11",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-17-4",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-10T19:31:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Shadowed ICML oral presentation and reviewed 25 academic idioms.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-10",
+      "tags": [
+        "tag-lang"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-17-3",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-10T16:18:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Sketched architectural silhouettes and composition grids.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-10",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-17-2",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-10T14:05:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Polished LaTeX tables and caption formatting.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-10",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-17-1",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-10T10:27:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented Raft AppendEntries RPC handler with Tokio channels.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-10-10",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-17-0",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-10T08:14:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Tuned cosine learning rate warmup schedule.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-10",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-18-2",
+      "dungeonId": "d-routine-run",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-09T14:12:00.000Z",
+      "coinsEarned": 30,
+      "xpEarned": 95,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Outdoor track intervals + cooldown stretch.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-09",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-18-1",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-09T10:34:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Practiced impromptu 3-minute research pitch recording.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-09",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-18-0",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-09T08:21:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Painted 3 atmospheric perspective studies in Procreate.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-10-09",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-19-3",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-08T16:32:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-08",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-19-2",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-08T14:19:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-08",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-19-1",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-08T10:06:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-08",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-19-0",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-08T08:28:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-08",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-20-4",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-07T19:17:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-10-07",
+      "tags": [
+        "tag-fitness"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-20-3",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-07T16:04:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Completed active recall deck for technical collocations.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-07",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-20-2",
+      "dungeonId": "d-routine-art",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-07T14:26:00.000Z",
+      "coinsEarned": 32,
+      "xpEarned": 95,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Practiced rim-lighting and subsurface scattering on foliage.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-07",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-20-1",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-07T10:13:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Drafted Section 3.2 on hardware-aware sparsity patterns.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-07",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-20-0",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-07T08:00:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Fixed lock contention in concurrent subscriber registry.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-07",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-22-3",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-05T16:18:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Polished LaTeX tables and caption formatting.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-05",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-22-2",
+      "dungeonId": "d-rust-2",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-05T14:05:00.000Z",
+      "coinsEarned": 28,
+      "xpEarned": 95,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Implemented Raft AppendEntries RPC handler with Tokio channels.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-05",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-22-1",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-05T10:27:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Tuned cosine learning rate warmup schedule.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-05",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-22-0",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-10-05T08:14:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Profiled Triton kernel occupancy across block sizes 64 and 128.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-05",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-23-4",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-04T19:03:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Read FlashAttention-3 paper and derived warp specialization notes.",
+      "isCrit": true,
+      "period": "night",
+      "assignedDateStr": "2026-10-04",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-23-3",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-04T16:25:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Outdoor track intervals + cooldown stretch.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-04",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-23-2",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-04T14:12:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Practiced impromptu 3-minute research pitch recording.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-04",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-23-1",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-04T10:34:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Painted 3 atmospheric perspective studies in Procreate.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-04",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-23-0",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-04T08:21:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Created architecture diagram for multi-stage pipeline.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-04",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-24-2",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-03T14:19:00.000Z",
+      "coinsEarned": 30,
+      "xpEarned": 95,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-03",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-24-1",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-03T10:06:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-03",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-24-0",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-03T08:28:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-03",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-25-3",
+      "dungeonId": "d-routine-art",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-02T16:04:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Practiced rim-lighting and subsurface scattering on foliage.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-02",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-25-2",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-02T14:26:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Drafted Section 3.2 on hardware-aware sparsity patterns.",
+      "isCrit": true,
+      "period": "afternoon",
+      "assignedDateStr": "2026-10-02",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-25-1",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-02T10:13:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Fixed lock contention in concurrent subscriber registry.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-02",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-25-0",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-10-02T08:00:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Logged gradient norm and throughput curves in W&B.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-10-02",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-27-2",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-30T14:05:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Tuned cosine learning rate warmup schedule.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-09-30",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-27-1",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-30T10:27:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Profiled Triton kernel occupancy across block sizes 64 and 128.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-09-30",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-27-0",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-30T08:14:00.000Z",
+      "coinsEarned": 70,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Read FlashAttention-3 paper and derived warp specialization notes.",
+      "isCrit": true,
+      "period": "morning",
+      "assignedDateStr": "2026-09-30",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-28-3",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-29T16:25:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Practiced impromptu 3-minute research pitch recording.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-09-29",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "demo-sess-28-2",
+      "dungeonId": "d-routine-art",
+      "duration": 60,
+      "focusDuration": 50,
+      "restDuration": 10,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-29T14:12:00.000Z",
+      "coinsEarned": 28,
+      "xpEarned": 95,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Painted 3 atmospheric perspective studies in Procreate.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-09-29",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "demo-sess-28-1",
+      "dungeonId": "d-thesis-p3",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-29T10:34:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Created architecture diagram for multi-stage pipeline.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-09-29",
+      "tags": [
+        "tag-writing",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-28-0",
+      "dungeonId": "d-rust-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 1,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-29T08:21:00.000Z",
+      "coinsEarned": 18,
+      "xpEarned": 48,
+      "rewardName": "Coffee Bean",
+      "rewardIcon": "Coffee",
+      "note": "Added randomized election timeout and snapshot compaction test.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-09-29",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "demo-sess-29-4",
+      "dungeonId": "d-thesis-p1-2",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 1
+      },
+      "timestamp": "2026-09-28T19:10:00.000Z",
+      "coinsEarned": 17,
+      "xpEarned": 48,
+      "rewardName": "Small Wallet",
+      "rewardIcon": "Wallet",
+      "note": "Ran FineWeb-Edu validation perplexity eval at 8k context.",
+      "isCrit": false,
+      "period": "night",
+      "assignedDateStr": "2026-09-28",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ],
+      "triggeredTalents": {
+        "perfectTheory": {
+          "xp": 180,
+          "coins": 90
+        }
+      }
+    },
+    {
+      "id": "demo-sess-29-3",
+      "dungeonId": "d-thesis-p2-1",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 1,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-28T16:32:00.000Z",
+      "coinsEarned": 16,
+      "xpEarned": 48,
+      "rewardName": "Copper Bag",
+      "rewardIcon": "Coins",
+      "note": "Verified numerical parity against FP16 reference implementation.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-09-28",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-29-2",
+      "dungeonId": "d-routine-paper",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-28T14:19:00.000Z",
+      "coinsEarned": 15,
+      "xpEarned": 48,
+      "rewardName": "Tiny Scroll",
+      "rewardIcon": "Scroll",
+      "note": "Annotated ring-attention communication overlap proofs.",
+      "isCrit": false,
+      "period": "afternoon",
+      "assignedDateStr": "2026-09-28",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "demo-sess-29-1",
+      "dungeonId": "d-routine-run",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-28T10:06:00.000Z",
+      "coinsEarned": 14,
+      "xpEarned": 48,
+      "rewardName": "Study Gem",
+      "rewardIcon": "Gem",
+      "note": "Morning 5km tempo run, crisp pace and great energy.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-09-28",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "demo-sess-29-0",
+      "dungeonId": "d-routine-lang",
+      "duration": 30,
+      "focusDuration": 25,
+      "restDuration": 5,
+      "distractions": {
+        "internal": 0,
+        "external": 0,
+        "unavoidable": 0
+      },
+      "timestamp": "2026-09-28T08:28:00.000Z",
+      "coinsEarned": 19,
+      "xpEarned": 48,
+      "rewardName": "Lucky Penny",
+      "rewardIcon": "Coins",
+      "note": "Completed active recall deck for technical collocations.",
+      "isCrit": false,
+      "period": "morning",
+      "assignedDateStr": "2026-09-28",
+      "tags": [
+        "tag-lang"
+      ]
+    }
+  ],
+  "rewardHistory": [
+    {
+      "id": "rh-1",
+      "name": "Five-Minute Scroll",
+      "rarity": "epic",
+      "source": "Explore",
+      "timestamp": "2026-10-27T13:56:31.803Z",
+      "type": "text",
+      "rewardText": "Take a timed 5-minute scroll break, then return to your next task",
+      "redeemed": false,
+      "note": "Implement Block-Sparse Attention Kernel",
+      "sessionGoal": 50,
+      "sessionDuration": 50
+    },
+    {
+      "id": "rh-2",
+      "name": "Fancy Dinner / Movie Night / Dessert",
+      "rarity": "SR",
+      "color": "purple",
+      "source": "Gacha",
+      "timestamp": "2026-10-26T15:26:31.803Z",
+      "type": "text",
+      "rewardText": "Fancy Dinner / Movie Night / Dessert",
+      "redeemed": false
+    },
+    {
+      "id": "rh-3",
+      "name": "One Song Pass",
+      "rarity": "common",
+      "source": "Explore",
+      "timestamp": "2026-10-26T15:26:31.803Z",
+      "type": "text",
+      "rewardText": "Listen to one song as a short reward before your next task",
+      "redeemed": false,
+      "note": "ArXiv Paper Deep Reading",
+      "sessionGoal": 25,
+      "sessionDuration": 25
+    },
+    {
+      "id": "rh-4",
+      "name": "Specialty Pour-Over Coffee & Pastry",
+      "rarity": "rare",
+      "source": "Shop",
+      "timestamp": "2026-10-25T15:26:31.803Z",
+      "type": "text",
+      "rewardText": "Treat yourself to an artisan pour-over coffee & croissant",
+      "redeemed": false
+    },
+    {
+      "id": "rh-5",
+      "name": "B Prize: Luxury Cushion / Desk Mat",
+      "rarity": "B Prize",
+      "color": "purple",
+      "source": "Gacha",
+      "timestamp": "2026-10-24T15:26:31.803Z",
+      "type": "text",
+      "rewardText": "Luxury Cushion / Desk Mat",
+      "redeemed": true
+    },
+    {
+      "id": "rh-6",
+      "name": "Talent Shard",
+      "rarity": "legendary",
+      "source": "Explore",
+      "timestamp": "2026-10-23T15:26:31.803Z",
+      "type": "item",
+      "itemType": "talent_shard",
+      "amount": 1,
+      "redeemed": true,
+      "note": "Survey 15 Flash & Sparse Attention Papers"
+    },
+    {
+      "id": "rh-7",
+      "name": "Death Defying Medal",
+      "rarity": "legendary",
+      "source": "Explore",
+      "timestamp": "2026-10-21T15:26:31.803Z",
+      "type": "item",
+      "itemType": "death_defying_medal",
+      "amount": 1,
+      "redeemed": true
+    },
+    {
+      "id": "rh-8",
+      "name": "Watch a Movie",
+      "rarity": "common",
+      "source": "Shop",
+      "timestamp": "2026-10-20T15:26:31.803Z",
+      "type": "text",
+      "rewardText": "Treat yourself to a cinema experience",
+      "redeemed": true
+    }
+  ],
+  "transactionHistory": [
+    {
+      "id": "tx-1",
+      "timestamp": "2026-10-27T14:41:31.803Z",
+      "type": "coins",
+      "amount": 28,
+      "reason": "Focus Session Completed"
+    },
+    {
+      "id": "tx-2",
+      "timestamp": "2026-10-27T14:41:31.803Z",
+      "type": "xp",
+      "amount": 95,
+      "reason": "Focus Session Completed"
+    },
+    {
+      "id": "tx-3",
+      "timestamp": "2026-10-27T12:26:31.803Z",
+      "type": "coins",
+      "amount": 60,
+      "reason": "Dungeon Completed: ArXiv Paper Deep Reading"
+    },
+    {
+      "id": "tx-4",
+      "timestamp": "2026-10-26T15:26:31.803Z",
+      "type": "coins",
+      "amount": -100,
+      "reason": "Gacha Pull: Standard Gacha"
+    },
+    {
+      "id": "tx-5",
+      "timestamp": "2026-10-25T15:26:31.803Z",
+      "type": "coins",
+      "amount": -180,
+      "reason": "Purchased: Specialty Pour-Over Coffee & Pastry"
+    },
+    {
+      "id": "tx-6",
+      "timestamp": "2026-10-23T15:26:31.803Z",
+      "type": "coins",
+      "amount": 100,
+      "reason": "Dungeon Completed: Survey 15 Flash & Sparse Attention Papers"
+    }
+  ],
+  "questHistory": [
+    {
+      "id": "qh-1",
+      "questId": "q_daily_1",
+      "title": "Daily Warmup",
+      "type": "daily_sessions",
+      "timestamp": "2026-10-27T13:26:31.803Z",
+      "rewards": [
+        {
+          "type": "xp",
+          "amount": 50
+        }
+      ],
+      "isAchievement": false
+    },
+    {
+      "id": "qh-2",
+      "questId": "q_weekly_1",
+      "title": "Weekly Scholar",
+      "type": "weekly_sessions",
+      "timestamp": "2026-10-26T15:26:31.803Z",
+      "rewards": [
+        {
+          "type": "xp",
+          "amount": 300
+        }
+      ],
+      "isAchievement": false
+    },
+    {
+      "id": "qh-3",
+      "questId": "a_streak_7",
+      "title": "Unstoppable",
+      "type": "consecutive_days",
+      "timestamp": "2026-10-20T15:26:31.803Z",
+      "rewards": [
+        {
+          "type": "item",
+          "amount": 1,
+          "itemName": "Death Defying Gold Medal"
+        }
+      ],
+      "isAchievement": true
+    },
+    {
+      "id": "qh-4",
+      "questId": "a_total_50",
+      "title": "Getting Serious",
+      "type": "total_sessions",
+      "timestamp": "2026-10-17T15:26:31.803Z",
+      "rewards": [
+        {
+          "type": "xp",
+          "amount": 500
+        }
+      ],
+      "isAchievement": true
+    }
+  ],
+  "lastStudyDate": "2026-10-27",
+  "streak": 14,
+  "dailySessions": 5,
+  "lastDailyReset": "2026-10-27",
+  "lastWeeklyReset": "2026-4",
+  "lastMonthlyReset": "2026-10",
+  "patchedDays": [
+    "2026-10-18"
+  ],
+  "dailyRerollUsed": false,
+  "claimedDailyTalents": [],
+  "inventory": [
+    "coffee_bean",
+    "bookmark"
+  ],
+  "userName": "Archmage Aria",
+  "userUniqueId": "ID-ARIA7",
+  "userTitle": "Grand Chronomancer",
+  "userBio": "Exploring sparse neural architectures, systems programming, and daily creative mastery.",
+  "userAvatar": "wizard",
+  "todayTodos": [
+    {
+      "id": "todo-1",
+      "title": "Morning 5km Run & Mobility",
+      "dungeonId": "d-routine-run",
+      "completed": true,
+      "durationMinutes": 30,
+      "date": "2026-10-27",
+      "source": "routine",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "todo-2",
+      "title": "ArXiv Paper Deep Reading (FlashAttention-3)",
+      "dungeonId": "d-routine-paper",
+      "completed": true,
+      "durationMinutes": 60,
+      "date": "2026-10-27",
+      "source": "routine",
+      "tags": [
+        "tag-reading",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "todo-3",
+      "title": "Implement Block-Sparse Attention Kernel",
+      "dungeonId": "d-thesis-p2-1",
+      "completed": true,
+      "durationMinutes": 50,
+      "date": "2026-10-27",
+      "source": "expedition",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "todo-4",
+      "title": "Reproduce Baseline Perplexity Benchmark",
+      "dungeonId": "d-thesis-p1-2",
+      "completed": false,
+      "durationMinutes": 50,
+      "date": "2026-10-27",
+      "source": "ddl",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "todo-5",
+      "title": "Draft Section 3.2 Architecture Diagram",
+      "dungeonId": "d-thesis-p3",
+      "completed": false,
+      "durationMinutes": 30,
+      "date": "2026-10-27",
+      "source": "manual",
+      "tags": [
+        "tag-writing"
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_daily_1",
+      "title": "Daily Warmup",
+      "description": "Complete 1 task today",
+      "type": "daily_sessions",
+      "target": 1,
+      "progress": 5,
+      "reward": {
+        "type": "xp",
+        "amount": 50
+      },
+      "completed": true,
+      "order": 1,
+      "isAchievement": false,
+      "claimed": true
+    },
+    {
+      "id": "q_daily_2",
+      "title": "Daily Grind",
+      "description": "Complete 3 tasks today",
+      "type": "daily_sessions",
+      "target": 3,
+      "progress": 5,
+      "reward": {
+        "type": "coins",
+        "amount": 10
+      },
+      "completed": true,
+      "order": 2,
+      "isAchievement": false,
+      "claimed": false
+    },
+    {
+      "id": "q_daily_3",
+      "title": "Daily Master",
+      "description": "Complete 5 tasks today",
+      "type": "daily_sessions",
+      "target": 5,
+      "progress": 5,
+      "reward": {
+        "type": "item",
+        "amount": 1,
+        "itemName": "Small Wallet"
+      },
+      "completed": true,
+      "order": 3,
+      "isAchievement": false,
+      "claimed": false
+    },
+    {
+      "id": "q_weekly_1",
+      "title": "Weekly Scholar",
+      "description": "Complete 10 tasks this week",
+      "type": "weekly_sessions",
+      "target": 10,
+      "progress": 22,
+      "reward": {
+        "type": "xp",
+        "amount": 300
+      },
+      "completed": true,
+      "order": 4,
+      "isAchievement": false,
+      "claimed": true
+    },
+    {
+      "id": "q_weekly_2",
+      "title": "Weekly Dedication",
+      "description": "Complete 25 tasks this week",
+      "type": "weekly_sessions",
+      "target": 25,
+      "progress": 22,
+      "reward": {
+        "type": "coins",
+        "amount": 50
+      },
+      "completed": false,
+      "order": 5,
+      "isAchievement": false,
+      "claimed": false
+    },
+    {
+      "id": "q_monthly_1",
+      "title": "Monthly Marathon",
+      "description": "Complete 50 tasks this month",
+      "type": "monthly_sessions",
+      "target": 50,
+      "progress": 68,
+      "reward": {
+        "type": "talentPoint",
+        "amount": 1
+      },
+      "completed": true,
+      "order": 6,
+      "isAchievement": false,
+      "claimed": true
+    },
+    {
+      "id": "a_total_10",
+      "title": "First Steps",
+      "description": "Complete 10 tasks in total",
+      "type": "total_sessions",
+      "target": 10,
+      "progress": 84,
+      "reward": {
+        "type": "coins",
+        "amount": 20
+      },
+      "completed": true,
+      "order": 11,
+      "isAchievement": true,
+      "claimed": true
+    },
+    {
+      "id": "a_total_50",
+      "title": "Getting Serious",
+      "description": "Complete 50 tasks in total",
+      "type": "total_sessions",
+      "target": 50,
+      "progress": 84,
+      "reward": {
+        "type": "xp",
+        "amount": 500
+      },
+      "completed": true,
+      "order": 12,
+      "isAchievement": true,
+      "claimed": true
+    },
+    {
+      "id": "a_total_100",
+      "title": "Centurion",
+      "description": "Complete 100 tasks in total",
+      "type": "total_sessions",
+      "target": 100,
+      "progress": 84,
+      "reward": {
+        "type": "talentPoint",
+        "amount": 1
+      },
+      "completed": false,
+      "order": 13,
+      "isAchievement": true,
+      "claimed": false
+    },
+    {
+      "id": "a_streak_3",
+      "title": "Warming Up",
+      "description": "Maintain a 3-day streak",
+      "type": "consecutive_days",
+      "target": 3,
+      "progress": 14,
+      "reward": {
+        "type": "coins",
+        "amount": 15
+      },
+      "completed": true,
+      "order": 14,
+      "isAchievement": true,
+      "claimed": true
+    },
+    {
+      "id": "a_streak_7",
+      "title": "Unstoppable",
+      "description": "Maintain a 7-day streak",
+      "type": "consecutive_days",
+      "target": 7,
+      "progress": 14,
+      "reward": {
+        "type": "item",
+        "amount": 1,
+        "itemName": "Death Defying Gold Medal"
+      },
+      "completed": true,
+      "order": 15,
+      "isAchievement": true,
+      "claimed": true
+    }
+  ],
+  "questNotificationStyle": "red_dot",
+  "unclaimedQuests": 2,
+  "devModeEnabled": false,
+  "devBaseXP": 25,
+  "devMinXP": 20,
+  "devMaxXP": 30,
+  "devXpMode": "random",
+  "devBaseCoins": 10,
+  "devMinCoins": 5,
+  "devMaxCoins": 15,
+  "devCoinMode": "random",
+  "devCritChance": 0.05,
+  "devCritMultiplier": 5,
+  "theme": "daylight",
+  "autoTheme": false,
+  "dayTheme": "daylight",
+  "nightTheme": "night",
+  "autoThemeDayStart": "08:00",
+  "autoThemeNightStart": "20:00",
+  "heatmapScaleMax": 8,
+  "timezone": "UTC",
+  "gachaAnimation": "card",
+  "ichibanAnimation": "scratch",
+  "gachaAllowOverlap": false,
+  "defaultMarkdownEnabled": true,
+  "standardSessionMinutes": 25,
+  "standardRestMinutes": 5,
+  "includeRestTimeInTasks": true,
+  "efficiencyRatingConfig": {
+    "autoCalculateOnOpen": true,
+    "maxDistractionsPerHour": 10,
+    "completionRateWeight": 70,
+    "focusQualityWeight": 30,
+    "ratingDisplayPreference": "efficiency",
+    "targetTimeMode": "daily_goal",
+    "capMetrics": true
+  },
+  "requireFocusConfirmation": false,
+  "timerBannerCompactMode": false,
+  "timerSkipVictoryMode": "none",
+  "timerBannerShortcuts": [
+    "pomodoro",
+    "short_break",
+    "long_break"
+  ],
+  "dailyLogs": {
+    "2026-10-14": {
+      "title": "Strong Momentum on Distributed Ablations",
+      "rating": 87,
+      "mood": "inspired",
+      "moodScore": 4,
+      "sleepTime": "23:11",
+      "wakeTime": "06:32",
+      "sleepDurationMin": 441,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **5 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **87% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-15": {
+      "title": "Zero-Distraction Morning & Methodology Draft",
+      "rating": 82,
+      "mood": "great",
+      "moodScore": 4,
+      "sleepTime": "23:04",
+      "wakeTime": "07:03",
+      "sleepDurationMin": 479,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **4 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **82% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-16": {
+      "title": "Balanced Study Rhythm & Evening Perspective Sketching",
+      "rating": 92,
+      "mood": "productive",
+      "moodScore": 5,
+      "sleepTime": "23:42",
+      "wakeTime": "07:24",
+      "sleepDurationMin": 462,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **6 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **92% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-17": {
+      "title": "High-Focus Lab Session & Raft Consensus Progress",
+      "rating": 87,
+      "mood": "focused",
+      "moodScore": 4,
+      "sleepTime": "23:35",
+      "wakeTime": "07:00",
+      "sleepDurationMin": 445,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **5 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **87% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-18": {
+      "title": "Deep Literature Synthesis & Architecture Diagrams",
+      "rating": 82,
+      "mood": "good",
+      "moodScore": 4,
+      "sleepTime": "23:28",
+      "wakeTime": "07:31",
+      "sleepDurationMin": 483,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **4 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **82% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-19": {
+      "title": "Steady Flow State & Clean Benchmark Curves",
+      "rating": 92,
+      "mood": "inspired",
+      "moodScore": 5,
+      "sleepTime": "23:21",
+      "wakeTime": "07:07",
+      "sleepDurationMin": 466,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **6 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **92% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-20": {
+      "title": "Breakthrough on Block-Sparse Kernel Tiling",
+      "rating": 87,
+      "mood": "great",
+      "moodScore": 4,
+      "sleepTime": "23:14",
+      "wakeTime": "06:43",
+      "sleepDurationMin": 449,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **5 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **87% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-21": {
+      "title": "Strong Momentum on Distributed Ablations",
+      "rating": 82,
+      "mood": "productive",
+      "moodScore": 4,
+      "sleepTime": "23:07",
+      "wakeTime": "07:14",
+      "sleepDurationMin": 487,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **4 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **82% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-22": {
+      "title": "Zero-Distraction Morning & Methodology Draft",
+      "rating": 92,
+      "mood": "focused",
+      "moodScore": 5,
+      "sleepTime": "23:00",
+      "wakeTime": "06:50",
+      "sleepDurationMin": 470,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **6 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **92% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-23": {
+      "title": "Balanced Study Rhythm & Evening Perspective Sketching",
+      "rating": 87,
+      "mood": "good",
+      "moodScore": 4,
+      "sleepTime": "23:38",
+      "wakeTime": "07:11",
+      "sleepDurationMin": 453,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **5 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **87% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-24": {
+      "title": "High-Focus Lab Session & Raft Consensus Progress",
+      "rating": 82,
+      "mood": "inspired",
+      "moodScore": 4,
+      "sleepTime": "23:31",
+      "wakeTime": "07:42",
+      "sleepDurationMin": 491,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **4 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **82% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-25": {
+      "title": "Deep Literature Synthesis & Architecture Diagrams",
+      "rating": 92,
+      "mood": "great",
+      "moodScore": 5,
+      "sleepTime": "23:24",
+      "wakeTime": "07:18",
+      "sleepDurationMin": 474,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **6 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **92% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-26": {
+      "title": "Steady Flow State & Clean Benchmark Curves",
+      "rating": 87,
+      "mood": "productive",
+      "moodScore": 4,
+      "sleepTime": "23:17",
+      "wakeTime": "06:54",
+      "sleepDurationMin": 457,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **5 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **87% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    },
+    "2026-10-27": {
+      "title": "Breakthrough on Block-Sparse Kernel Tiling",
+      "rating": 82,
+      "mood": "focused",
+      "moodScore": 4,
+      "sleepTime": "23:10",
+      "wakeTime": "06:30",
+      "sleepDurationMin": 440,
+      "reflection": "### 🎯 Accomplishments & Deep Work\n- Completed **4 focus sessions** across *Neural Architecture & Thesis* and *Daily Scholar Routine*.\n- Verified shared-memory tiling efficiency and updated benchmark plots.\n\n### 🧠 Focus Quality & Distractions\n- Maintained **82% efficiency** with phone in another room during morning Lab blocks.\n- Logged fleeting thoughts in Zettelkasten instead of switching browser tabs.\n\n### 💡 Key Insights & Adjustments\n- Starting with a 5km aerobic run before opening the terminal consistently boosts morning concentration.\n\n### 🚀 Top Priority for Tomorrow\n- Advance *Block-Sparse Attention Kernel* and complete daily ArXiv reading."
+    }
+  },
+  "journalBookmarks": [
+    "2026-10-27",
+    "2026-10-25",
+    "2026-10-22"
+  ],
+  "reflectionTemplates": [
+    {
+      "id": "preset-1",
+      "name": "Standard Review",
+      "content": "### 🎯 Accomplishments & Deep Work\n- \n\n### 🧠 Focus Quality & Distractions\n- \n\n### 💡 Key Insights & Adjustments\n- \n\n### 🚀 Top Priority for Tomorrow\n- "
+    },
+    {
+      "id": "preset-2",
+      "name": "3-2-1 Summary",
+      "content": "### 3 Completed Quests / Tasks\n1. \n2. \n3. \n\n### 2 Insights & Lessons Learned\n1. \n2. \n\n### 1 Main Goal for Tomorrow\n1. "
+    },
+    {
+      "id": "preset-3",
+      "name": "KISS Retrospective",
+      "content": "### 🟢 Keep (What worked well and should continue)\n- \n\n### 🟡 Improve (What could be done better)\n- \n\n### 🔴 Stop (What caused distractions or friction)\n- \n\n### 🔵 Start (What new habit or strategy to try)\n- "
+    }
+  ],
+  "autoLoadTemplateId": "preset-1",
+  "autoLoadTemplateMode": "empty",
+  "rewardPoolMode": "fixed",
+  "rewardPool": [
+    {
+      "id": "lucky_penny",
+      "name": "Lucky Penny",
+      "description": "Gain 1 Gold Coin",
+      "rarity": "common",
+      "type": "coins",
+      "amount": 1,
+      "weight": 16.67
+    },
+    {
+      "id": "scribbled_note",
+      "name": "Scribbled Note",
+      "description": "Gain 10 XP",
+      "rarity": "common",
+      "type": "xp",
+      "amount": 10,
+      "weight": 16.67
+    },
+    {
+      "id": "one_song_pass",
+      "name": "One Song Pass",
+      "description": "Listen to one song as a short reward before your next task",
+      "rarity": "common",
+      "type": "text",
+      "weight": 16.66,
+      "limitCount": 3,
+      "limitPeriodDays": 1
+    },
+    {
+      "id": "two_coppers",
+      "name": "Two Coppers",
+      "description": "Gain 2 Gold Coins",
+      "rarity": "uncommon",
+      "type": "coins",
+      "amount": 2,
+      "weight": 8.33
+    },
+    {
+      "id": "study_gem",
+      "name": "Study Gem",
+      "description": "Gain 20 XP",
+      "rarity": "uncommon",
+      "type": "xp",
+      "amount": 20,
+      "weight": 8.33
+    },
+    {
+      "id": "page_marker",
+      "name": "Page Marker",
+      "description": "Next Coins +5%",
+      "rarity": "uncommon",
+      "type": "item",
+      "itemType": "coin_bonus_percent",
+      "amount": 5,
+      "weight": 8.34
+    },
+    {
+      "id": "copper_bag",
+      "name": "Copper Bag",
+      "description": "Gain 3 Gold Coins",
+      "rarity": "rare",
+      "type": "coins",
+      "amount": 3,
+      "weight": 5
+    },
+    {
+      "id": "tiny_scroll",
+      "name": "Tiny Scroll",
+      "description": "Gain 30 XP",
+      "rarity": "rare",
+      "type": "xp",
+      "amount": 30,
+      "weight": 5
+    },
+    {
+      "id": "coffee_bean",
+      "name": "Coffee Bean",
+      "description": "Next XP +10%",
+      "rarity": "rare",
+      "type": "item",
+      "itemType": "xp_bonus_percent",
+      "amount": 10,
+      "weight": 5
+    },
+    {
+      "id": "small_wallet",
+      "name": "Small Wallet",
+      "description": "Gain 5 Gold Coins",
+      "rarity": "epic",
+      "type": "coins",
+      "amount": 5,
+      "weight": 2.67
+    },
+    {
+      "id": "bookmark",
+      "name": "Bookmark",
+      "description": "Next Coins +10%",
+      "rarity": "epic",
+      "type": "item",
+      "itemType": "coin_bonus_percent",
+      "amount": 10,
+      "weight": 2.67
+    },
+    {
+      "id": "five_minute_scroll",
+      "name": "Five-Minute Scroll",
+      "description": "Take a timed 5-minute scroll break, then return to your next task",
+      "rarity": "epic",
+      "type": "text",
+      "weight": 2.66,
+      "limitCount": 2,
+      "limitPeriodDays": 1
+    },
+    {
+      "id": "talent_shard",
+      "name": "Talent Shard",
+      "description": "Talent scroll piece (1/3)",
+      "rarity": "legendary",
+      "type": "item",
+      "itemType": "talent_shard",
+      "amount": 1,
+      "weight": 0.75,
+      "limitCount": 3,
+      "limitPeriodDays": 3
+    },
+    {
+      "id": "death_gold",
+      "name": "Death Defying Medal",
+      "description": "Prevent one streak break",
+      "rarity": "legendary",
+      "type": "item",
+      "itemType": "death_defying_medal",
+      "amount": 1,
+      "weight": 0.75,
+      "limitCount": 1,
+      "limitPeriodDays": 3
+    },
+    {
+      "id": "mini_game_token",
+      "name": "Mini Game Token",
+      "description": "Play one short game or a 5–10 minute mini-game session as a rare reward",
+      "rarity": "mythic",
+      "type": "text",
+      "weight": 0.25,
+      "limitCount": 1,
+      "limitPeriodDays": 1
+    },
+    {
+      "id": "guilty_pleasure_coupon",
+      "name": "Guilty Pleasure Coupon",
+      "description": "Claim one small guilty pleasure, with a timer, then return to your quest",
+      "rarity": "mythic",
+      "type": "text",
+      "weight": 0.25,
+      "limitCount": 1,
+      "limitPeriodDays": 7
+    }
+  ],
+  "pendingRewardChest": [
+    {
+      "session": {
+        "id": "demo-sess-0-2",
+        "dungeonId": "d-thesis-p2-1",
+        "duration": 60,
+        "focusDuration": 50,
+        "restDuration": 10,
+        "distractions": {
+          "internal": 0,
+          "external": 0,
+          "unavoidable": 0
+        },
+        "timestamp": "2026-10-27T14:26:00.000Z",
+        "coinsEarned": 30,
+        "xpEarned": 95,
+        "rewardName": "Copper Bag",
+        "rewardIcon": "Coins",
+        "note": "Verified numerical parity against FP16 reference implementation.",
+        "isCrit": false,
+        "period": "afternoon",
+        "assignedDateStr": "2026-10-27",
+        "tags": [
+          "tag-coding",
+          "tag-research"
+        ]
+      },
+      "choices": [
+        {
+          "id": "tiny_scroll",
+          "name": "Tiny Scroll",
+          "description": "Gain 30 XP",
+          "rarity": "rare",
+          "type": "xp",
+          "amount": 30,
+          "weight": 5
+        },
+        {
+          "id": "small_wallet",
+          "name": "Small Wallet",
+          "description": "Gain 5 Gold Coins",
+          "rarity": "epic",
+          "type": "coins",
+          "amount": 5,
+          "weight": 2.67
+        },
+        {
+          "id": "talent_shard",
+          "name": "Talent Shard",
+          "description": "Talent scroll piece (1/3)",
+          "rarity": "legendary",
+          "type": "item",
+          "itemType": "talent_shard",
+          "amount": 1,
+          "weight": 0.75,
+          "limitCount": 3,
+          "limitPeriodDays": 3
+        },
+        {
+          "id": "five_minute_scroll",
+          "name": "Five-Minute Scroll",
+          "description": "Take a timed 5-minute scroll break, then return to your next task",
+          "rarity": "epic",
+          "type": "text",
+          "weight": 2.66,
+          "limitCount": 2,
+          "limitPeriodDays": 1
+        }
+      ]
+    }
+  ],
+  "shopItems": [
+    {
+      "id": "shop-1",
+      "name": "Specialty Pour-Over Coffee & Pastry",
+      "price": 180,
+      "description": "Visit a favorite cafe for an artisan pour-over and croissant"
+    },
+    {
+      "id": "shop-2",
+      "name": "Watch a Movie / Anime Marathon",
+      "price": 500,
+      "description": "Treat yourself to a guilt-free cinema night or 3-episode marathon"
+    },
+    {
+      "id": "shop-3",
+      "name": "New Hardcover Book or Artbook",
+      "price": 1200,
+      "description": "Pick up a book from your wishlist"
+    },
+    {
+      "id": "shop-4",
+      "name": "Mechanical Keyboard Artisan Keycap",
+      "price": 2500,
+      "description": "Upgrade your workstation desk setup"
+    },
+    {
+      "id": "shop-5",
+      "name": "Weekend Getaway Trip",
+      "price": 8000,
+      "description": "A well-deserved weekend excursion and nature recharge"
+    }
+  ],
+  "gachaPools": [
+    {
+      "id": "standard_gacha",
+      "name": "Astral Sanctum Gacha",
+      "type": "gacha",
+      "cost": 100,
+      "rarities": [
+        {
+          "id": "SSR",
+          "name": "SSR",
+          "color": "amber",
+          "weight": 5,
+          "rarityValue": 5
+        },
+        {
+          "id": "SR",
+          "name": "SR",
+          "color": "purple",
+          "weight": 15,
+          "rarityValue": 4
+        },
+        {
+          "id": "R",
+          "name": "R",
+          "color": "blue",
+          "weight": 80,
+          "rarityValue": 3
+        }
+      ],
+      "items": [
+        {
+          "rarity": "SSR",
+          "name": "Big Lego Set / New Gadget / Weekend Trip",
+          "rarityValue": 5
+        },
+        {
+          "rarity": "SR",
+          "name": "Fancy Dinner / Movie Night / Dessert",
+          "rarityValue": 4
+        },
+        {
+          "rarity": "R",
+          "name": "1 Hour Gaming / 15m Nap / Favorite Snack",
+          "rarityValue": 3
+        }
+      ]
+    },
+    {
+      "id": "ichiban_1",
+      "name": "Scholar Ichiban Kuji",
+      "type": "ichiban",
+      "cost": 50,
+      "items": [
+        {
+          "rarity": "A Prize",
+          "name": "Premium Figure / Collector Artbook",
+          "count": 1,
+          "initialCount": 1,
+          "color": "amber",
+          "rarityValue": 5
+        },
+        {
+          "rarity": "B Prize",
+          "name": "Luxury Ergonomic Cushion / Desk Mat",
+          "count": 1,
+          "initialCount": 2,
+          "color": "purple",
+          "rarityValue": 4
+        },
+        {
+          "rarity": "C Prize",
+          "name": "Specialty Tea Tin / Acrylic Stand",
+          "count": 4,
+          "initialCount": 5,
+          "color": "blue",
+          "rarityValue": 3
+        },
+        {
+          "rarity": "D Prize",
+          "name": "30m Guilt-Free Gaming Ticket",
+          "count": 9,
+          "initialCount": 12,
+          "color": "emerald",
+          "rarityValue": 2
+        },
+        {
+          "rarity": "LastOne",
+          "name": "Golden Scholar Trophy / Noise-Cancelling Headphones",
+          "count": 1,
+          "initialCount": 1,
+          "color": "rose",
+          "rarityValue": 6
+        }
+      ]
+    }
+  ],
+  "activeGachaPoolId": "standard_gacha",
+  "activeIchibanPoolId": "ichiban_1",
+  "sagePrompts": [
+    {
+      "id": "prompt_welcome",
+      "title": "App Intro",
+      "prompt": "Sage, please introduce me to the \"Scholar's Dungeon\" application. What are its core mechanics, reward systems, and how should I start my journey of growth here?"
+    },
+    {
+      "id": "prompt_tasks",
+      "title": "Create Tasks",
+      "prompt": "Help me plan an expedition. Please create a structured learning task or expedition for me, including its tiers, required tasks, and rewards."
+    },
+    {
+      "id": "prompt_balance",
+      "title": "Balance Guide",
+      "prompt": "Based on my current level, gold earning rate, and shop prices, could you recommend how I should set my game balance? For example, how should XP and Gold rewards for each Focus Session be distributed to be fair and motivating?"
+    },
+    {
+      "id": "prompt_week",
+      "title": "Weekly Analysis",
+      "prompt": "Please retrieve my study records from the past 7 days and analyze my peak focus hours, as well as the correlation between my emotional state and productivity. Please summarize my overall performance this week using intuitive data observations."
+    },
+    {
+      "id": "prompt_month",
+      "title": "Monthly Review",
+      "prompt": "I would like to do a deep reflection on the past month. Please analyze my monthly progress curve. Have I stagnated in any area? Based on my growth rate, please set three specific \"step-by-step goals\" for next month."
+    },
+    {
+      "id": "prompt_1",
+      "title": "Efficiency",
+      "prompt": "Please analyze my recent learning efficiency trends and provide three practical and actionable suggestions for improvement."
+    },
+    {
+      "id": "prompt_3",
+      "title": "Encouragement",
+      "prompt": "I have been feeling a bit exhausted lately. Please give me some encouragement and motivation."
+    }
+  ],
+  "sageConversations": [
+    {
+      "id": "sage-conv-1",
+      "title": "Structuring Thesis Chapter 3 & Kernel Ablations",
+      "updatedAt": 1793103991803,
+      "messages": [
+        {
+          "role": "user",
+          "content": "How should I balance finishing the Triton kernel ablations with drafting Chapter 3 of my thesis this week?",
+          "timestamp": 1793103271803
+        },
+        {
+          "role": "assistant",
+          "content": "A dual-block rhythm works best here:\n\n1. **Morning High-Cognition Block (08:30–12:00 at Lab)**: Dedicate 2–3 sessions to *Implement Block-Sparse Attention Kernel* and launch long-running ablation jobs before lunch.\n2. **Afternoon Synthesis Block (14:00–17:30 at Library)**: While GPU jobs run, switch to *Draft Methodology & Architecture Figures* so your writing captures fresh experimental details without context-switching overhead.",
+          "timestamp": 1793103631803
+        }
+      ]
+    }
+  ],
+  "activeSageConversationId": "sage-conv-1",
+  "workstationLocations": [
+    "Lab",
+    "Library",
+    "Home"
+  ],
+  "workstationLogs": {
+    "2026-10-14": [
+      {
+        "id": "ws-13-am",
+        "date": "2026-10-14",
+        "startTime": "2026-10-14T08:30:00.000Z",
+        "endTime": "2026-10-14T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Library",
+        "note": "Morning deep work block at Library: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-13-pm",
+        "date": "2026-10-14",
+        "startTime": "2026-10-14T13:45:00.000Z",
+        "endTime": "2026-10-14T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Home",
+        "note": "Afternoon experiments & writing session at Home"
+      }
+    ],
+    "2026-10-15": [
+      {
+        "id": "ws-12-am",
+        "date": "2026-10-15",
+        "startTime": "2026-10-15T08:30:00.000Z",
+        "endTime": "2026-10-15T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Lab",
+        "note": "Morning deep work block at Lab: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-12-pm",
+        "date": "2026-10-15",
+        "startTime": "2026-10-15T13:45:00.000Z",
+        "endTime": "2026-10-15T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Library",
+        "note": "Afternoon experiments & writing session at Library"
+      }
+    ],
+    "2026-10-16": [
+      {
+        "id": "ws-11-am",
+        "date": "2026-10-16",
+        "startTime": "2026-10-16T08:30:00.000Z",
+        "endTime": "2026-10-16T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Home",
+        "note": "Morning deep work block at Home: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-11-pm",
+        "date": "2026-10-16",
+        "startTime": "2026-10-16T13:45:00.000Z",
+        "endTime": "2026-10-16T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Lab",
+        "note": "Afternoon experiments & writing session at Lab"
+      }
+    ],
+    "2026-10-17": [
+      {
+        "id": "ws-10-am",
+        "date": "2026-10-17",
+        "startTime": "2026-10-17T08:30:00.000Z",
+        "endTime": "2026-10-17T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Library",
+        "note": "Morning deep work block at Library: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-10-pm",
+        "date": "2026-10-17",
+        "startTime": "2026-10-17T13:45:00.000Z",
+        "endTime": "2026-10-17T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Home",
+        "note": "Afternoon experiments & writing session at Home"
+      }
+    ],
+    "2026-10-18": [
+      {
+        "id": "ws-9-am",
+        "date": "2026-10-18",
+        "startTime": "2026-10-18T08:30:00.000Z",
+        "endTime": "2026-10-18T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Lab",
+        "note": "Morning deep work block at Lab: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-9-pm",
+        "date": "2026-10-18",
+        "startTime": "2026-10-18T13:45:00.000Z",
+        "endTime": "2026-10-18T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Library",
+        "note": "Afternoon experiments & writing session at Library"
+      }
+    ],
+    "2026-10-19": [
+      {
+        "id": "ws-8-am",
+        "date": "2026-10-19",
+        "startTime": "2026-10-19T08:30:00.000Z",
+        "endTime": "2026-10-19T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Home",
+        "note": "Morning deep work block at Home: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-8-pm",
+        "date": "2026-10-19",
+        "startTime": "2026-10-19T13:45:00.000Z",
+        "endTime": "2026-10-19T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Lab",
+        "note": "Afternoon experiments & writing session at Lab"
+      }
+    ],
+    "2026-10-20": [
+      {
+        "id": "ws-7-am",
+        "date": "2026-10-20",
+        "startTime": "2026-10-20T08:30:00.000Z",
+        "endTime": "2026-10-20T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Library",
+        "note": "Morning deep work block at Library: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-7-pm",
+        "date": "2026-10-20",
+        "startTime": "2026-10-20T13:45:00.000Z",
+        "endTime": "2026-10-20T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Home",
+        "note": "Afternoon experiments & writing session at Home"
+      }
+    ],
+    "2026-10-21": [
+      {
+        "id": "ws-6-am",
+        "date": "2026-10-21",
+        "startTime": "2026-10-21T08:30:00.000Z",
+        "endTime": "2026-10-21T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Lab",
+        "note": "Morning deep work block at Lab: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-6-pm",
+        "date": "2026-10-21",
+        "startTime": "2026-10-21T13:45:00.000Z",
+        "endTime": "2026-10-21T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Library",
+        "note": "Afternoon experiments & writing session at Library"
+      }
+    ],
+    "2026-10-22": [
+      {
+        "id": "ws-5-am",
+        "date": "2026-10-22",
+        "startTime": "2026-10-22T08:30:00.000Z",
+        "endTime": "2026-10-22T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Home",
+        "note": "Morning deep work block at Home: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-5-pm",
+        "date": "2026-10-22",
+        "startTime": "2026-10-22T13:45:00.000Z",
+        "endTime": "2026-10-22T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Lab",
+        "note": "Afternoon experiments & writing session at Lab"
+      }
+    ],
+    "2026-10-23": [
+      {
+        "id": "ws-4-am",
+        "date": "2026-10-23",
+        "startTime": "2026-10-23T08:30:00.000Z",
+        "endTime": "2026-10-23T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Library",
+        "note": "Morning deep work block at Library: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-4-pm",
+        "date": "2026-10-23",
+        "startTime": "2026-10-23T13:45:00.000Z",
+        "endTime": "2026-10-23T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Home",
+        "note": "Afternoon experiments & writing session at Home"
+      }
+    ],
+    "2026-10-24": [
+      {
+        "id": "ws-3-am",
+        "date": "2026-10-24",
+        "startTime": "2026-10-24T08:30:00.000Z",
+        "endTime": "2026-10-24T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Lab",
+        "note": "Morning deep work block at Lab: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-3-pm",
+        "date": "2026-10-24",
+        "startTime": "2026-10-24T13:45:00.000Z",
+        "endTime": "2026-10-24T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Library",
+        "note": "Afternoon experiments & writing session at Library"
+      }
+    ],
+    "2026-10-25": [
+      {
+        "id": "ws-2-am",
+        "date": "2026-10-25",
+        "startTime": "2026-10-25T08:30:00.000Z",
+        "endTime": "2026-10-25T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Home",
+        "note": "Morning deep work block at Home: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-2-pm",
+        "date": "2026-10-25",
+        "startTime": "2026-10-25T13:45:00.000Z",
+        "endTime": "2026-10-25T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Lab",
+        "note": "Afternoon experiments & writing session at Lab"
+      }
+    ],
+    "2026-10-26": [
+      {
+        "id": "ws-1-am",
+        "date": "2026-10-26",
+        "startTime": "2026-10-26T08:30:00.000Z",
+        "endTime": "2026-10-26T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Library",
+        "note": "Morning deep work block at Library: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-1-pm",
+        "date": "2026-10-26",
+        "startTime": "2026-10-26T13:45:00.000Z",
+        "endTime": "2026-10-26T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Home",
+        "note": "Afternoon experiments & writing session at Home"
+      }
+    ],
+    "2026-10-27": [
+      {
+        "id": "ws-0-am",
+        "date": "2026-10-27",
+        "startTime": "2026-10-27T08:30:00.000Z",
+        "endTime": "2026-10-27T12:15:00.000Z",
+        "durationMinutes": 225,
+        "location": "Lab",
+        "note": "Morning deep work block at Lab: kernel implementation & literature review"
+      },
+      {
+        "id": "ws-0-pm",
+        "date": "2026-10-27",
+        "startTime": "2026-10-27T13:45:00.000Z",
+        "endTime": "2026-10-27T18:05:00.000Z",
+        "durationMinutes": 260,
+        "location": "Library",
+        "note": "Afternoon experiments & writing session at Library"
+      }
+    ]
+  },
+  "dailyProgressGoal": 6,
+  "useSameDailyProgressGoalEveryDay": true,
+  "statsViewOpts": {
+    "showDailyBar": true,
+    "showDailyDonut": true,
+    "showWeeklyBar": true,
+    "showWeeklyDonut": true,
+    "showRoutineTracker": true,
+    "showWorkstationTracker": true,
+    "showSleepTracker": true,
+    "showTagTracker": true,
+    "showHeatmap": true,
+    "dailyDonutMode": "tags",
+    "weeklyDonutMode": "tags",
+    "averageCalculationBase": "active_days",
+    "yAxisMaxMode": "dynamic"
+  },
+  "tags": [
+    {
+      "id": "tag-research",
+      "name": "Deep Research",
+      "color": "indigo"
+    },
+    {
+      "id": "tag-coding",
+      "name": "System Engineering",
+      "color": "sky"
+    },
+    {
+      "id": "tag-fitness",
+      "name": "Physical Training",
+      "color": "teal"
+    },
+    {
+      "id": "tag-reading",
+      "name": "Literature & Papers",
+      "color": "violet"
+    },
+    {
+      "id": "tag-writing",
+      "name": "Academic Writing",
+      "color": "amber"
+    },
+    {
+      "id": "tag-art",
+      "name": "Digital Illustration",
+      "color": "rose"
+    },
+    {
+      "id": "tag-lang",
+      "name": "Language Mastery",
+      "color": "cyan"
+    },
+    {
+      "id": "tag-archived",
+      "name": "Legacy Coursework",
+      "color": "fuchsia",
+      "archived": true
+    }
+  ],
+  "lastTeamData": {
+    "team": {
+      "id": "GUILD-ASTRAL-01",
+      "name": "Astral Vanguard",
+      "description": "Graduate researchers & systems engineers building deep focus habits together.",
+      "createdAt": 1790522791803,
+      "myUserId": "demo-scholar-aria",
+      "config": {
+        "permission": "captain_only",
+        "targetType": "weekly_time",
+        "targetValue": 3600,
+        "rewardType": "text",
+        "rewardContent": "Weekend Hotpot & Board Game Night!",
+        "joinRule": "direct",
+        "resetTime": "04:00"
+      },
+      "members": [
+        {
+          "userId": "demo-scholar-aria",
+          "uniqueId": "ID-ARIA7",
+          "name": "Archmage Aria",
+          "avatar": "wizard",
+          "title": "Grand Chronomancer",
+          "bio": "Sparse attention kernels & daily 5km runs.",
+          "level": 42,
+          "joinedAt": 1790522791803,
+          "totalFocusTime": 4280,
+          "cycleFocusTime": 1120,
+          "cycleKey": "2026-4",
+          "isCaptain": true,
+          "lastActive": 1793114191803
+        },
+        {
+          "userId": "demo-scholar-kaelen",
+          "uniqueId": "ID-KAEL2",
+          "name": "Sir Kaelen",
+          "avatar": "knight",
+          "title": "Iron Vanguard",
+          "bio": "Distributed systems & Rust compiler internals.",
+          "level": 38,
+          "joinedAt": 1790695591803,
+          "totalFocusTime": 3890,
+          "cycleFocusTime": 960,
+          "cycleKey": "2026-4",
+          "isCaptain": false,
+          "lastActive": 1793112691803
+        },
+        {
+          "userId": "demo-scholar-lyra",
+          "uniqueId": "ID-LYRA9",
+          "name": "Lyra the Scribe",
+          "avatar": "sage",
+          "title": "Lorekeeper",
+          "bio": "Computational neuroscience & digital illustration.",
+          "level": 35,
+          "joinedAt": 1790954791803,
+          "totalFocusTime": 3420,
+          "cycleFocusTime": 850,
+          "cycleKey": "2026-4",
+          "isCaptain": false,
+          "lastActive": 1793107591803
+        },
+        {
+          "userId": "demo-scholar-orion",
+          "uniqueId": "ID-ORIO4",
+          "name": "Orion Vance",
+          "avatar": "alchemist",
+          "title": "Arcane Alchemist",
+          "bio": "Bayesian optimization & espresso calibration.",
+          "level": 31,
+          "joinedAt": 1791473191803,
+          "totalFocusTime": 2760,
+          "cycleFocusTime": 620,
+          "cycleKey": "2026-4",
+          "isCaptain": false,
+          "lastActive": 1793100391803
+        }
+      ]
+    },
+    "messages": [
+      {
+        "id": "tm-1",
+        "userId": "demo-scholar-kaelen",
+        "name": "Sir Kaelen",
+        "avatar": "knight",
+        "content": "Just finished 3 pomodoros on the Raft state machine! How is the kernel benchmark looking?",
+        "timestamp": 1793107591803
+      },
+      {
+        "id": "tm-2",
+        "userId": "demo-scholar-aria",
+        "name": "Archmage Aria",
+        "avatar": "wizard",
+        "content": "Shared-memory tiling boosted throughput by 1.4x! Pushing the ablation plots this afternoon.",
+        "timestamp": 1793109091803
+      },
+      {
+        "id": "tm-3",
+        "userId": "demo-scholar-lyra",
+        "name": "Lyra the Scribe",
+        "avatar": "sage",
+        "content": "We are already at 59h / 60h for our weekly Fellowship target—one more session and we unlock the reward!",
+        "timestamp": 1793112391803
+      }
+    ],
+    "events": [
+      {
+        "id": "te-1",
+        "type": "focus",
+        "content": "Archmage Aria completed a 50m focus session (+50m to Fellowship goal)",
+        "timestamp": 1793112091803
+      },
+      {
+        "id": "te-2",
+        "type": "focus",
+        "content": "Sir Kaelen completed a 25m focus session (+25m to Fellowship goal)",
+        "timestamp": 1793108191803
+      },
+      {
+        "id": "te-3",
+        "type": "focus",
+        "content": "Lyra the Scribe completed a 50m focus session (+50m to Fellowship goal)",
+        "timestamp": 1793103991803
+      }
+    ]
+  },
+  "account": null,
+  "schemaVersion": 2,
+  "dungeons": [
+    {
+      "id": "d-thesis-p1",
+      "name": "Phase 1: Literature & Baseline",
+      "description": "Establish baseline metrics and complete literature synthesis",
+      "totalSessions": 14,
+      "completedSessions": 11,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 150
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-thesis",
+      "tags": [
+        "tag-reading"
+      ]
+    },
+    {
+      "id": "d-thesis-p1-1",
+      "name": "Survey 15 Flash & Sparse Attention Papers",
+      "description": "Annotate complexity trade-offs and hardware utilization tables",
+      "totalSessions": 6,
+      "completedSessions": 6,
+      "completedAt": "2026-10-23T15:26:31.803Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 100
+        },
+        {
+          "type": "xp",
+          "amount": 150
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "d-thesis-p1",
+      "tags": [
+        "tag-reading"
+      ]
+    },
+    {
+      "id": "d-thesis-p1-2",
+      "name": "Reproduce Baseline Perplexity Benchmark",
+      "description": "Verify training throughput and validation curves on 4x GPU node",
+      "totalSessions": 8,
+      "completedSessions": 5,
+      "deadline": "2026-10-30",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 120
+        },
+        {
+          "type": "xp",
+          "amount": 200
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "d-thesis-p1",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-thesis-p2",
+      "name": "Phase 2: Kernel Experiments & Ablations",
+      "description": "Custom Triton kernels and long-context memory scaling ablations",
+      "totalSessions": 16,
+      "completedSessions": 6,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 200
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-thesis",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-thesis-p2-1",
+      "name": "Implement Block-Sparse Attention Kernel",
+      "description": "Optimize shared-memory tiling and backward pass register pressure",
+      "totalSessions": 10,
+      "completedSessions": 4,
+      "deadline": "2026-11-02",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 180
+        },
+        {
+          "type": "item",
+          "amount": 1,
+          "itemType": "talent_shard",
+          "itemName": "Kernel Mastery Shard"
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "d-thesis-p2",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-thesis-p2-2",
+      "name": "Run 32K Context Window Ablation Suite",
+      "description": "Evaluate needle-in-a-haystack recall across sparsity ratios",
+      "totalSessions": 6,
+      "completedSessions": 2,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 100
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "d-thesis-p2"
+    },
+    {
+      "id": "d-thesis-p3",
+      "name": "Draft Methodology & Architecture Figures",
+      "description": "Write Section 3 formal formulation and TikZ vector diagrams",
+      "totalSessions": 8,
+      "completedSessions": 3,
+      "deadline": "2026-11-05",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 150
+        },
+        {
+          "type": "xp",
+          "amount": 250
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-thesis",
+      "tags": [
+        "tag-writing"
+      ]
+    },
+    {
+      "id": "d-routine-run",
+      "name": "Morning 5km Run & Mobility",
+      "description": "Zone 2 aerobic conditioning + 10m thoracic mobility",
+      "totalSessions": 1,
+      "completedSessions": 1,
+      "completedAt": "2026-10-27T08:15:00.000Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 50
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "m-routine",
+      "isRoutine": true,
+      "routineType": "daily",
+      "lastRoutineReset": "2026-10-27",
+      "tags": [
+        "tag-fitness"
+      ]
+    },
+    {
+      "id": "d-routine-paper",
+      "name": "ArXiv Paper Deep Reading",
+      "description": "Read and summarize 1 frontier ML paper in research vault",
+      "totalSessions": 2,
+      "completedSessions": 2,
+      "completedAt": "2026-10-27T10:45:00.000Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 60
+        },
+        {
+          "type": "xp",
+          "amount": 80
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "m-routine",
+      "isRoutine": true,
+      "routineType": "daily",
+      "lastRoutineReset": "2026-10-27",
+      "tags": [
+        "tag-reading"
+      ]
+    },
+    {
+      "id": "d-routine-lang",
+      "name": "Academic English & Shadowing",
+      "description": "25m conference talk shadowing and vocabulary review",
+      "totalSessions": 2,
+      "completedSessions": 1,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 45
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-routine",
+      "isRoutine": true,
+      "routineType": "daily",
+      "lastRoutineReset": "2026-10-27",
+      "tags": [
+        "tag-lang"
+      ]
+    },
+    {
+      "id": "d-routine-art",
+      "name": "Digital Painting & Perspective Study",
+      "description": "Environment lighting thumbnails and color harmony practice",
+      "totalSessions": 5,
+      "completedSessions": 3,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 120
+        },
+        {
+          "type": "text",
+          "amount": 1,
+          "rewardText": "Unlock 30m Artbook Browsing Break"
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-routine",
+      "isRoutine": true,
+      "routineType": "weekly",
+      "lastRoutineReset": "2026-4",
+      "tags": [
+        "tag-art"
+      ]
+    },
+    {
+      "id": "d-rust-1",
+      "name": "Custom Arena Allocator & Lifetimes Lab",
+      "description": "Zero-copy parser and slab memory pool benchmarks",
+      "totalSessions": 4,
+      "completedSessions": 4,
+      "completedAt": "2026-10-25T15:26:31.803Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 90
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "m-rust",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-rust-2",
+      "name": "Async Raft Consensus & WebSocket Engine",
+      "description": "Implement heartbeat election and log replication state machine",
+      "totalSessions": 6,
+      "completedSessions": 3,
+      "deadline": "2026-11-01",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 140
+        },
+        {
+          "type": "xp",
+          "amount": 220
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-rust",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-rust-3",
+      "name": "Open-Ended Flamegraph & Perf Profiling",
+      "description": "Continuous profiling session for lock-free ring buffers",
+      "totalSessions": 1,
+      "completedSessions": 7,
+      "isOpenEnded": true,
+      "totalFocusTime": 185,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 80
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "parentId": "m-rust",
+      "tags": [
+        "tag-coding"
+      ]
+    },
+    {
+      "id": "d-stat-1",
+      "name": "Convex Optimization & KKT Proofs",
+      "description": "Complete problem sets 1–4 with dual formulation derivations",
+      "totalSessions": 6,
+      "completedSessions": 6,
+      "completedAt": "2026-10-19T15:26:31.803Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 120
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "m-stat-completed",
+      "tags": [
+        "tag-research"
+      ]
+    },
+    {
+      "id": "d-stat-2",
+      "name": "Variational Autoencoder & MCMC Sampler",
+      "description": "Implement HMC and ELBO diagnostics from scratch",
+      "totalSessions": 6,
+      "completedSessions": 6,
+      "completedAt": "2026-10-22T15:26:31.803Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 140
+        }
+      ],
+      "isLongTerm": true,
+      "status": "completed",
+      "parentId": "m-stat-completed",
+      "tags": [
+        "tag-coding",
+        "tag-research"
+      ]
+    },
+    {
+      "id": "d-arch-1",
+      "name": "Keynote Deck & Speaker Notes",
+      "description": "Departmental presentation on efficient sequence modeling",
+      "totalSessions": 4,
+      "completedSessions": 4,
+      "completedAt": "2026-10-03T15:26:31.803Z",
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 80
+        }
+      ],
+      "isLongTerm": true,
+      "status": "archived",
+      "parentId": "m-seminar-archived",
+      "tags": [
+        "tag-archived"
+      ]
+    },
+    {
+      "id": "d-standalone-review",
+      "name": "Weekly Zettelkasten & Inbox Zero",
+      "description": "Organize fleeting notes into permanent literature cards",
+      "totalSessions": 2,
+      "completedSessions": 1,
+      "rewardCoins": 0,
+      "rewardXP": 0,
+      "rewardText": "",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 60
+        }
+      ],
+      "isLongTerm": true,
+      "status": "active",
+      "isRoutine": true,
+      "routineType": "weekly",
+      "lastRoutineReset": "2026-4",
+      "tags": [
+        "tag-writing"
+      ]
+    }
+  ],
+  "majorDungeons": [
+    {
+      "id": "m-thesis",
+      "name": "Neural Architecture & Thesis",
+      "description": "Sparse attention kernels, ablation benchmarks, and thesis manuscript chapters",
+      "status": "active",
+      "isFinalized": true,
+      "deadline": "2026-11-10",
+      "tags": [
+        "tag-research",
+        "tag-writing"
+      ],
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 500
+        },
+        {
+          "type": "xp",
+          "amount": 800
+        },
+        {
+          "type": "talentPoint",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "m-routine",
+      "name": "Daily Scholar Routine",
+      "description": "Core daily and weekly habits for physical energy, reading, and creative practice",
+      "status": "active",
+      "isRoutine": true,
+      "routineType": "daily",
+      "lastRoutineReset": "2026-10-27",
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 120
+        },
+        {
+          "type": "xp",
+          "amount": 150
+        }
+      ]
+    },
+    {
+      "id": "m-rust",
+      "name": "Full-Stack Systems & Rust Engine",
+      "description": "High-concurrency runtime architecture, memory profiling, and distributed sync",
+      "status": "active",
+      "isFinalized": false,
+      "deadline": "2026-11-17",
+      "tags": [
+        "tag-coding"
+      ],
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 400
+        },
+        {
+          "type": "xp",
+          "amount": 600
+        },
+        {
+          "type": "item",
+          "amount": 1,
+          "itemType": "talent_shard",
+          "itemName": "Ancient Engine Shard"
+        }
+      ]
+    },
+    {
+      "id": "m-stat-completed",
+      "name": "Foundations of Statistical Learning",
+      "description": "Convex optimization proofs, variational inference, and kernel methods",
+      "status": "completed",
+      "isFinalized": true,
+      "completedAt": "2026-10-22T15:26:31.803Z",
+      "tags": [
+        "tag-research",
+        "tag-reading"
+      ],
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 350
+        },
+        {
+          "type": "xp",
+          "amount": 500
+        }
+      ]
+    },
+    {
+      "id": "m-seminar-archived",
+      "name": "Spring Semester Colloquium Archive",
+      "description": "Archived keynote slides and reading group notes from previous term",
+      "status": "archived",
+      "isFinalized": true,
+      "completedAt": "2026-10-03T15:26:31.803Z",
+      "tags": [
+        "tag-archived"
+      ],
+      "rewards": [
+        {
+          "type": "coins",
+          "amount": 200
+        }
+      ]
+    }
+  ]
+}

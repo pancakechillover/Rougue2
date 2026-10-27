@@ -9,15 +9,17 @@ import {
   Archive,
   CheckCheck,
   Undo2,
-  FileText
+  FileText,
+  Tags
 } from 'lucide-react';
 import { PageHeader } from '../common/PageHeader';
 import { DungeonManager } from './DungeonManager';
 import { QuestManager } from '../journal/QuestManager';
-import { AppState, Dungeon, MajorDungeon, DungeonReward } from '../../types';
+import { AppState, Dungeon, MajorDungeon, DungeonReward, Tag } from '../../types';
 import { cn } from '../../lib/utils';
 import { exportExpeditionsToMarkdown, importExpeditionsFromMarkdown } from '../../lib/expeditionMarkdown';
 import { ImportExportModal } from './ImportExportModal';
+import { TagManagerModal } from '../common/TagBadge';
 
 interface DungeonsViewProps {
   state: AppState;
@@ -36,14 +38,14 @@ interface DungeonsViewProps {
   unclaimedQuestsCount: number;
   unclaimedAchievementsCount: number;
   setState: React.Dispatch<React.SetStateAction<AppState>>;
-  handleCreateMajor: (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string) => void;
+  handleCreateMajor: (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string, tags?: string[]) => void;
   handleCreateSub: (dungeon: Omit<Dungeon, 'id' | 'completedSessions' | 'status'>) => void;
   handleUpdateMajor: (id: string, updates: Partial<MajorDungeon>) => void;
   handleUpdateSub: (id: string, updates: Partial<Dungeon>) => void;
   handleDeleteMajor: (id: string) => void;
   handleDeleteSub: (id: string) => void;
-  reorderMajorDungeon: (id: string, direction: 'up' | 'down') => void;
-  reorderSubDungeon: (id: string, direction: 'up' | 'down') => void;
+  reorderMajorDungeon: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
+  reorderSubDungeon: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
   onMoveDungeonItem: (itemId: string, newParentId: string | null) => void;
   onDragStart: () => void;
   undoDungeonDrag: () => void;
@@ -97,19 +99,37 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
   questHistory
 }) => {
   const [isImportExportOpen, setIsImportExportOpen] = React.useState(false);
+  const [isTagManagerOpen, setIsTagManagerOpen] = React.useState(false);
+
+  const handleUpdateTags = React.useCallback((tags: Tag[]) => {
+    const clean = (Array.isArray(tags) ? tags : []).filter(
+      (t): t is Tag => Boolean(t && typeof t === 'object' && typeof t.id === 'string' && typeof t.name === 'string')
+    );
+    setState(prev => ({ ...prev, tags: clean }));
+  }, [setState]);
+
+  const handleDeleteTag = React.useCallback((tagId: string) => {
+    setMajorDungeons(prev => prev.map(m => m.tags?.includes(tagId) ? { ...m, tags: m.tags.filter(t => t !== tagId) } : m));
+    setDungeons(prev => prev.map(d => d.tags?.includes(tagId) ? { ...d, tags: d.tags.filter(t => t !== tagId) } : d));
+    setState(prev => ({
+      ...prev,
+      tags: (prev.tags || []).filter(t => Boolean(t && typeof t === 'object' && t.id && t.id !== tagId)),
+      todayTodos: (prev.todayTodos || []).map(t => t.tags?.includes(tagId) ? { ...t, tags: t.tags.filter(id => id !== tagId) } : t),
+      history: (prev.history || []).map(s => s.tags?.includes(tagId) ? { ...s, tags: s.tags.filter(id => id !== tagId) } : s)
+    }));
+  }, [setMajorDungeons, setDungeons, setState]);
 
   const handleImportExpeditions = (mdText: string) => {
-    const { majors: importedMajors, subs: importedSubs } = importExpeditionsFromMarkdown(mdText);
+    const { majors: importedMajors, subs: importedSubs, updatedTags } = importExpeditionsFromMarkdown(mdText, state.tags || []);
     
-    // Check if any imported major is not empty or if user is sure?
-    // According to instructions, we append.
     setMajorDungeons(prev => [...prev, ...importedMajors]);
     setDungeons(prev => [...prev, ...importedSubs]);
+    setState(prev => ({ ...prev, tags: updatedTags }));
   };
 
   const exportText = React.useMemo(() => {
-    return exportExpeditionsToMarkdown(majorDungeons, dungeons);
-  }, [majorDungeons, dungeons, isImportExportOpen]);
+    return exportExpeditionsToMarkdown(majorDungeons, dungeons, state.tags || []);
+  }, [majorDungeons, dungeons, state.tags, isImportExportOpen]);
 
   return (
     <motion.div
@@ -175,7 +195,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
                     ? "bg-amber-600 text-white hover:bg-amber-500 shadow-amber-500/20" 
                     : "bg-slate-800 text-slate-600 cursor-not-allowed opacity-50"
                 )}
-                title="Undo Drag Operation"
+                title="Undo Last Operation"
               >
                 <Undo2 size={16} className="sm:w-[18px] sm:h-[18px]" />
               </button>
@@ -197,10 +217,20 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
             {dungeonSubTab === 'list' && (
               <button
                 onClick={() => setIsAddingMajor(true)}
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 shrink-0"
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 shrink-0"
                 title="CREATE EXPEDITION GOAL"
               >
                 <Plus size={18} />
+              </button>
+            )}
+
+            {dungeonSubTab === 'list' && (
+              <button
+                onClick={() => setIsTagManagerOpen(true)}
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all bg-slate-800 border-slate-700 text-slate-400 hover:text-white shadow-lg border shrink-0"
+                title="Manage Tags"
+              >
+                <Tags size={18} />
               </button>
             )}
             
@@ -232,7 +262,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
             {dungeonSubTab === 'quests' && (
               <button
                 onClick={() => setIsAddingQuest(true)}
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 shrink-0"
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 shrink-0"
                 title="Add Quest"
               >
                 <Plus size={18} />
@@ -256,7 +286,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
                   className={cn(
                     "flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all shadow-lg shrink-0",
                     dungeonSubTab === ('history' as any) 
-                      ? "bg-emerald-600 text-white shadow-emerald-500/20" 
+                      ? "bg-indigo-600 text-white shadow-indigo-500/20" 
                       : "bg-slate-800 text-slate-400 hover:text-white"
                   )}
                   title="Toggle Quest History"
@@ -267,7 +297,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
                 {(unclaimedQuestsCount > 0 || unclaimedAchievementsCount > 0) && (
                   <button
                     onClick={claimAllQuestRewards}
-                    className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 shrink-0"
+                    className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 shrink-0"
                     title="Claim All Rewards"
                   >
                     <CheckCheck size={20} />
@@ -283,6 +313,9 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
         <DungeonManager 
           dungeons={dungeons}
           majorDungeons={majorDungeons}
+          tags={state.tags || []}
+          onUpdateTags={handleUpdateTags}
+          onOpenTagManager={() => setIsTagManagerOpen(true)}
           currentDungeonId={state.currentDungeonId}
           standardSessionMinutes={state.standardSessionMinutes}
           standardRestMinutes={state.standardRestMinutes}
@@ -356,6 +389,14 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
         onClose={() => setIsImportExportOpen(false)}
         onImport={handleImportExpeditions}
         exportData={exportText}
+      />
+
+      <TagManagerModal
+        isOpen={isTagManagerOpen}
+        onClose={() => setIsTagManagerOpen(false)}
+        tags={state.tags || []}
+        onUpdateTags={handleUpdateTags}
+        onDeleteTag={handleDeleteTag}
       />
     </motion.div>
   );

@@ -166,14 +166,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
       ref={triggerRef}
       onClick={toggleOpen}
       className={children ? className : cn(
-        "w-full flex items-center justify-between bg-slate-950 border border-slate-800 text-slate-200 rounded-lg p-2 cursor-pointer hover:border-indigo-500 transition-colors",
+        "w-full flex items-center justify-between bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg p-2 cursor-pointer hover:border-indigo-500 transition-colors",
         className
       )}
     >
       {children ? children : (
         <>
-          <span>{value ? value : 'Select date'}</span>
-          <CalendarIcon size={16} className="text-slate-400" />
+          <span className={cn("text-xs truncate", value ? "text-slate-200 font-medium" : "text-slate-400")}>
+            {value ? value : 'Select date'}
+          </span>
+          <CalendarIcon size={14} className="text-slate-400 shrink-0" />
         </>
       )}
     </div>

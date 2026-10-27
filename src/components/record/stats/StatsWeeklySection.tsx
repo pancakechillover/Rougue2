@@ -33,6 +33,8 @@ interface StatsWeeklySectionProps {
   setWeeklyMode: (mode: 'calendar' | 'rolling') => void;
   weeklyChartLayers?: ChartLayerSelection;
   setWeeklyChartLayers?: (layers: ChartLayerSelection) => void;
+  weeklySelectedTagIds?: string[];
+  setWeeklySelectedTagIds?: (ids: string[]) => void;
   weeklyLayerMode?: 'both' | 'bars' | 'lines';
   setWeeklyLayerMode?: (mode: 'both' | 'bars' | 'lines') => void;
   weeklyDate: Date;
@@ -56,6 +58,7 @@ interface StatsWeeklySectionProps {
   _dungeons?: any[];
   _majorDungeons?: any[];
   weeklySessions: StudySession[];
+  onUpdateState?: (updates: Partial<AppState>) => void;
 }
 
 const SharedPopoverContent = ({
@@ -307,6 +310,8 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   setWeeklyMode,
   weeklyChartLayers,
   setWeeklyChartLayers,
+  weeklySelectedTagIds = [],
+  setWeeklySelectedTagIds,
   weeklyLayerMode,
   setWeeklyLayerMode,
   weeklyDate,
@@ -330,6 +335,7 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   _dungeons: __dungeons = [],
   _majorDungeons: __majorDungeons = [],
   weeklySessions,
+  onUpdateState,
 }) => {
   const activeLayers: ChartLayerSelection = weeklyChartLayers || (weeklyLayerMode === 'bars'
     ? { time: true, totalDistractions: false, internal: false, external: false, unavoidable: false }
@@ -373,6 +379,9 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
             onChange={handleLayersChange}
             weekMode={weeklyMode}
             onWeekModeChange={setWeeklyMode}
+            tags={state.tags || []}
+            selectedTagIds={weeklySelectedTagIds}
+            onSelectedTagIdsChange={setWeeklySelectedTagIds}
             title="Weekly View & Layers"
           />
           <div className="flex-1 md:flex-none flex items-center justify-center gap-1 bg-slate-800/50 rounded-lg p-0.5 sm:p-1">
@@ -587,6 +596,14 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
           <WeeklyPieChart 
             weekSessions={weeklySessions} 
             mode={viewOpts.weeklyDonutMode || 'time_of_day'} 
+            onChangeMode={
+              onUpdateState
+                ? (nextMode) => onUpdateState({ statsViewOpts: { ...viewOpts, weeklyDonutMode: nextMode } })
+                : undefined
+            }
+            tags={state.tags || []}
+            dungeons={__dungeons}
+            majorDungeons={__majorDungeons}
             includeRestTimeInTasks={!!state.includeRestTimeInTasks}
             _timeSettings={state.timeSettings}
           />
