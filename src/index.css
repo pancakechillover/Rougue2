@@ -724,6 +724,71 @@ html, body, #root {
   background-color: var(--color-indigo-500, #6366f1) !important;
 }
 
+/* High-contrast tag badge text & active state for light themes */
+[data-theme="daylight"] .tag-text-indigo,
+[data-theme="warm"] .tag-text-indigo,
+[data-theme="candy"] .tag-text-indigo { color: #3730a3 !important; }
+
+[data-theme="daylight"] .tag-text-sky,
+[data-theme="warm"] .tag-text-sky,
+[data-theme="candy"] .tag-text-sky { color: #0369a1 !important; }
+
+[data-theme="daylight"] .tag-text-amber,
+[data-theme="warm"] .tag-text-amber,
+[data-theme="candy"] .tag-text-amber { color: #b45309 !important; }
+
+[data-theme="daylight"] .tag-text-rose,
+[data-theme="warm"] .tag-text-rose,
+[data-theme="candy"] .tag-text-rose { color: #be123c !important; }
+
+[data-theme="daylight"] .tag-text-violet,
+[data-theme="warm"] .tag-text-violet,
+[data-theme="candy"] .tag-text-violet { color: #5b21b6 !important; }
+
+[data-theme="daylight"] .tag-text-cyan,
+[data-theme="warm"] .tag-text-cyan,
+[data-theme="candy"] .tag-text-cyan { color: #0e7490 !important; }
+
+[data-theme="daylight"] .tag-text-teal,
+[data-theme="warm"] .tag-text-teal,
+[data-theme="candy"] .tag-text-teal { color: #0f766e !important; }
+
+[data-theme="daylight"] .tag-text-fuchsia,
+[data-theme="warm"] .tag-text-fuchsia,
+[data-theme="candy"] .tag-text-fuchsia { color: #a21caf !important; }
+
+[data-theme="daylight"] .tag-active-indigo,
+[data-theme="warm"] .tag-active-indigo,
+[data-theme="candy"] .tag-active-indigo { color: #1e1b4b !important; border-color: #4f46e5 !important; }
+
+[data-theme="daylight"] .tag-active-sky,
+[data-theme="warm"] .tag-active-sky,
+[data-theme="candy"] .tag-active-sky { color: #082f49 !important; border-color: #0284c7 !important; }
+
+[data-theme="daylight"] .tag-active-amber,
+[data-theme="warm"] .tag-active-amber,
+[data-theme="candy"] .tag-active-amber { color: #451a03 !important; border-color: #d97706 !important; }
+
+[data-theme="daylight"] .tag-active-rose,
+[data-theme="warm"] .tag-active-rose,
+[data-theme="candy"] .tag-active-rose { color: #4c0519 !important; border-color: #e11d48 !important; }
+
+[data-theme="daylight"] .tag-active-violet,
+[data-theme="warm"] .tag-active-violet,
+[data-theme="candy"] .tag-active-violet { color: #2e1065 !important; border-color: #7c3aed !important; }
+
+[data-theme="daylight"] .tag-active-cyan,
+[data-theme="warm"] .tag-active-cyan,
+[data-theme="candy"] .tag-active-cyan { color: #083344 !important; border-color: #0891b2 !important; }
+
+[data-theme="daylight"] .tag-active-teal,
+[data-theme="warm"] .tag-active-teal,
+[data-theme="candy"] .tag-active-teal { color: #042f2e !important; border-color: #0d9488 !important; }
+
+[data-theme="daylight"] .tag-active-fuchsia,
+[data-theme="warm"] .tag-active-fuchsia,
+[data-theme="candy"] .tag-active-fuchsia { color: #4a044e !important; border-color: #c026d3 !important; }
+
 
 /* Custom Scrollbar - Hidden by default to prevent jitter */
   .hide-scrollbar {

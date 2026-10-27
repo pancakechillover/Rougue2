@@ -21,6 +21,8 @@ import { cn, getSettlementDay, sortAgendaTodos, getDungeonHierarchyStats, getTie
 import { format, addDays, subDays, parseISO, differenceInCalendarDays, isToday } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
+import { TagBadge } from '../common/TagBadge';
+import { getTodoEffectiveTagIds } from '../../lib/tags';
 import { playSound } from '../../lib/sound';
 
 interface DraggableAgendaItemProps {
@@ -727,12 +729,24 @@ export const TodayView: React.FC<TodayViewProps> = ({
                         
                         {/* Title & Info */}
                         <div className="flex-1 min-w-0">
-                          <p className={cn(
-                            "text-sm font-semibold truncate transition-all",
-                            isChecked ? "text-slate-500 line-through" : isCurrentActiveFocus ? (isDarkTheme ? "text-indigo-200 font-bold" : "text-indigo-600 font-bold") : "text-slate-200"
-                          )}>
-                            {cleanTitle}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className={cn(
+                              "text-sm font-semibold truncate transition-all",
+                              isChecked ? "text-slate-500 line-through" : isCurrentActiveFocus ? (isDarkTheme ? "text-indigo-200 font-bold" : "text-indigo-600 font-bold") : "text-slate-200"
+                            )}>
+                              {cleanTitle}
+                            </p>
+                            {(() => {
+                              const effTagIds = getTodoEffectiveTagIds(todo, dungeons || [], majorDungeons || []);
+                              if (effTagIds.length === 0) return null;
+                              const allTags = state.tags || [];
+                              return effTagIds.map(tId => {
+                                const tagObj = allTags.find(t => t.id === tId);
+                                if (!tagObj) return null;
+                                return <TagBadge key={tId} tag={tagObj} size="xs" />;
+                              });
+                            })()}
+                          </div>
 
                           {tagInfo && (
                             <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">

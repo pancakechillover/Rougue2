@@ -16,12 +16,14 @@ import {
   Brain,
   Wind
 } from 'lucide-react';
-import { StudySession, Dungeon, MajorDungeon, RewardCard, AppState } from '../../types';
+import { StudySession, Dungeon, MajorDungeon, RewardCard, AppState, Tag } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { createPortal } from 'react-dom';
 import { ConfirmModal } from '../modals/ConfirmModal';
+import { TagBadge, TagPicker } from '../common/TagBadge';
+import { getSessionEffectiveTagIds, getInheritedTagIds, generateTagId } from '../../lib/tags';
 
 interface DailySessionsModalProps {
   isOpen: boolean;
@@ -36,6 +38,8 @@ interface DailySessionsModalProps {
   timeSettings: AppState['timeSettings'];
   period?: string;
   includeRestTimeInTasks?: boolean;
+  tags?: Tag[];
+  onUpdateTags?: (tags: Tag[]) => void;
 }
 
 export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
@@ -50,7 +54,9 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
   rewardPool,
   timeSettings,
   period,
-  includeRestTimeInTasks
+  includeRestTimeInTasks,
+  tags = [],
+  onUpdateTags
 }) => {
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [viewingRewardName, setViewingRewardName] = useState<string | null>(null);
@@ -249,6 +255,20 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
                             <span className="text-white font-bold truncate">
                               {dungeon?.name || 'Free Study'}
                             </span>
+                            {(() => {
+                              const effectiveIds = getSessionEffectiveTagIds(session, dungeons, majorDungeons);
+                              const sessionTags = effectiveIds
+                                .map(id => tags.find(t => t.id === id))
+                                .filter((t): t is Tag => !!t);
+                              if (sessionTags.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {sessionTags.map(tag => (
+                                    <TagBadge key={tag.id} tag={tag} size="xs" />
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-5 py-4 text-center whitespace-nowrap">
@@ -386,6 +406,26 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
                       onChange={(val) => setEditingSession({ ...editingSession, restDuration: typeof val === 'number' ? val : 0 })}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Tags</label>
+                  <TagPicker
+                    tags={tags}
+                    selectedTagIds={editingSession.tags || []}
+                    inheritedTagIds={(() => {
+                      const d = dungeons.find(item => item.id === editingSession.dungeonId);
+                      if (!d) return [];
+                      const inherited = getInheritedTagIds(d.parentId, dungeons, majorDungeons);
+                      return Array.from(new Set([...(d.tags || []), ...inherited]));
+                    })()}
+                    onChange={(nextIds) => setEditingSession({ ...editingSession, tags: nextIds })}
+                    onCreateTag={onUpdateTags ? (name, color) => {
+                      const newTag: Tag = { id: generateTagId(), name, color };
+                      onUpdateTags([...tags, newTag]);
+                      return newTag;
+                    } : undefined}
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-2">

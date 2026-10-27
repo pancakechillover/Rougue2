@@ -15,6 +15,8 @@ import {
   getSaveVersion,
   parseSave,
 } from '../lib/migrations';
+import { getEffectiveDungeonTagIds, canMoveSubDungeonToParent } from '../lib/tags';
+import { DEMO_SEEDED_FLAG_KEY, loadPreviewDemoDataIntoStorage } from '../lib/previewDemoData';
 
 const STORAGE_KEY = 'scholars_dungeon_state';
 
@@ -442,11 +444,25 @@ function applyLegacyMigrations(parsed: any, defaultState: AppState): any {
     });
   }
 
+  if (!Array.isArray(parsed.tags)) {
+    parsed.tags = defaultState.tags || [];
+  }
+
   return parsed;
 }
 
 export function useGameState() {
   const [state, setState] = useState<AppState>(() => {
+    const isPreviewHost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname.includes('run.app') ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1');
+
+    if (isPreviewHost && !localStorage.getItem(DEMO_SEEDED_FLAG_KEY)) {
+      loadPreviewDemoDataIntoStorage();
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     const defaultState: AppState = {
       level: 1,
@@ -583,6 +599,7 @@ export function useGameState() {
       activeIchibanPoolId: 'ichiban_1',
       sagePrompts: DEFAULT_SAGE_PROMPTS,
       workstationLocations: ['Home', 'Lab', 'Library'],
+      tags: [],
       account: null
     };
 
@@ -625,6 +642,9 @@ export function useGameState() {
       history: Array.isArray(migrated.history) ? migrated.history : defaultState.history,
       quests: Array.isArray(migrated.quests) ? migrated.quests : defaultState.quests,
       inventory: Array.isArray(migrated.inventory) ? migrated.inventory : defaultState.inventory,
+      tags: Array.isArray(migrated.tags)
+        ? migrated.tags.filter((t: any) => Boolean(t && typeof t === 'object' && typeof t.id === 'string' && typeof t.name === 'string'))
+        : defaultState.tags,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       deviceCode: getDeviceCode(),
     };
@@ -1260,7 +1280,8 @@ useCallback((amount: number) => {
       assignedDateStr: assignedDateStr || todayStr,
       coinsEarned: Math.ceil(baseCoins),
       xpEarned: Math.floor(baseXP),
-      isCrit
+      isCrit,
+      tags: getEffectiveDungeonTagIds(dungeonId || 'free_study', dungeons, majorDungeons)
     };
 
     setState(prev => {
@@ -1819,7 +1840,7 @@ useCallback((amount: number) => {
     });
   }, []);
 
-  const reorderMajorDungeon = useCallback((id: string, direction: 'up' | 'down') => {
+  const reorderMajorDungeon = useCallback((id: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
     setMajorDungeons(prev => {
       const idx = prev.findIndex(m => m.id === id);
       if (idx < 0) return prev;
@@ -1833,11 +1854,21 @@ useCallback((amount: number) => {
         [newArr[idx], newArr[idx + 1]] = [newArr[idx + 1], newArr[idx]];
         return newArr;
       }
+      if (direction === 'top' && idx > 0) {
+        const item = prev[idx];
+        const rest = prev.filter((_, i) => i !== idx);
+        return [item, ...rest];
+      }
+      if (direction === 'bottom' && idx < prev.length - 1) {
+        const item = prev[idx];
+        const rest = prev.filter((_, i) => i !== idx);
+        return [...rest, item];
+      }
       return prev;
     });
   }, []);
 
-  const reorderSubDungeon = useCallback((id: string, direction: 'up' | 'down') => {
+  const reorderSubDungeon = useCallback((id: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
     setDungeons(prev => {
       const idx = prev.findIndex(d => d.id === id);
       if (idx < 0) return prev;
@@ -1860,6 +1891,16 @@ useCallback((amount: number) => {
         const newArr = [...prev];
         [newArr[idx], newArr[targetGlobalIdx]] = [newArr[targetGlobalIdx], newArr[idx]];
         return newArr;
+      }
+      if (direction === 'top' && siblingIdx > 0) {
+        const reorderedSiblings = [siblings[siblingIdx], ...siblings.filter((_, i) => i !== siblingIdx)];
+        let sibCursor = 0;
+        return prev.map(d => d.parentId === parentId ? reorderedSiblings[sibCursor++] : d);
+      }
+      if (direction === 'bottom' && siblingIdx < siblings.length - 1) {
+        const reorderedSiblings = [...siblings.filter((_, i) => i !== siblingIdx), siblings[siblingIdx]];
+        let sibCursor = 0;
+        return prev.map(d => d.parentId === parentId ? reorderedSiblings[sibCursor++] : d);
       }
       return prev;
     });
@@ -2396,6 +2437,7 @@ useCallback((amount: number) => {
     
     if (newParentId === null) {
       if (isSub) {
+        saveDungeonHistory();
         newSubAsMajor = {
           id: isSub.id,
           name: isSub.name,
@@ -2403,6 +2445,7 @@ useCallback((amount: number) => {
           status: isSub.status,
           rewards: isSub.rewards,
           completedAt: isSub.completedAt,
+          tags: isSub.tags,
         };
         setMajorDungeons([...majorDungeons.filter(m => m.id !== itemId), newSubAsMajor]);
         setDungeons(dungeons.filter(d => d.id !== itemId));
@@ -2410,49 +2453,37 @@ useCallback((amount: number) => {
       }
       return;
     }
-    
-    const checkCycleRecursive = (currentD: Dungeon[], targetId: string | null, movingId: string): boolean => {
-      let curr = targetId;
-      const visited = new Set<string>();
-      while (curr) {
-        if (curr === movingId) return true;
-        if (visited.has(curr)) break;
-        visited.add(curr);
-        const parent = currentD.find(d => d.id === curr);
-        curr = parent?.parentId || null;
-      }
-      return false;
-    };
-
-    if (checkCycleRecursive(dungeons, newParentId, itemId)) return;
 
     if (isSub) {
-       setDungeons(dungeons.map(d => d.id === itemId ? { ...d, parentId: newParentId } : d));
+      if (!canMoveSubDungeonToParent(itemId, newParentId, dungeons, majorDungeons)) return;
+      saveDungeonHistory();
+      setDungeons(dungeons.map(d => d.id === itemId ? { ...d, parentId: newParentId } : d));
     } else {
-       const isMajor = majorDungeons.find(m => m.id === itemId);
-       
-       if (isMajor) {
-           const localNewSub: Dungeon = {
-            id: isMajor.id,
-            name: isMajor.name,
-            description: isMajor.description,
-            status: isMajor.status,
-            parentId: newParentId,
-            rewards: isMajor.rewards,
-            completedAt: isMajor.completedAt,
-            totalSessions: 1,
-            completedSessions: isMajor.status === 'completed' ? 1 : 0,
-            rewardCoins: 0,
-            rewardXP: 0,
-            rewardText: '',
-            isLongTerm: false
-          };
-          
-          setMajorDungeons(majorDungeons.filter(m => m.id !== itemId));
-          setDungeons([...dungeons, localNewSub]);
-       }
+      const isMajor = majorDungeons.find(m => m.id === itemId);
+      if (isMajor) {
+        saveDungeonHistory();
+        const localNewSub: Dungeon = {
+          id: isMajor.id,
+          name: isMajor.name,
+          description: isMajor.description,
+          status: isMajor.status,
+          parentId: newParentId,
+          rewards: isMajor.rewards,
+          completedAt: isMajor.completedAt,
+          totalSessions: 1,
+          completedSessions: isMajor.status === 'completed' ? 1 : 0,
+          rewardCoins: 0,
+          rewardXP: 0,
+          rewardText: '',
+          isLongTerm: false,
+          tags: isMajor.tags
+        };
+        
+        setMajorDungeons(majorDungeons.filter(m => m.id !== itemId));
+        setDungeons([...dungeons, localNewSub]);
+      }
     }
-  }, [dungeons, majorDungeons]);
+  }, [dungeons, majorDungeons, saveDungeonHistory]);
 
 
   const bulkCreateSessions = useCallback((data: { count: number, objectiveId: string, startTime: string, endTime: string, focusDuration?: number, restDuration?: number }) => {
@@ -2481,6 +2512,7 @@ useCallback((amount: number) => {
           timestamp: randomTimestamp,
           coinsEarned: 0,
           xpEarned: 0,
+          tags: getEffectiveDungeonTagIds(data.objectiveId || 'free_study', dungeons, majorDungeons)
         };
         
         newSessions.push(session);
@@ -2496,7 +2528,7 @@ useCallback((amount: number) => {
       
       return newState;
     });
-  }, [getNow]);
+  }, [getNow, dungeons, majorDungeons]);
 
   const bulkDeleteSessions = useCallback((data: { startTime?: string; endTime?: string; sessionIds?: string[] }) => {
     setState(prev => {

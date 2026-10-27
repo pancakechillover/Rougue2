@@ -22,8 +22,10 @@ import { StatsDailySection } from './stats/StatsDailySection';
 import { StatsWeeklySection } from './stats/StatsWeeklySection';
 import { StatsSleepTrackerSection } from './stats/StatsSleepTrackerSection';
 import { StatsWorkstationSection } from './stats/StatsWorkstationSection';
+import { StatsTagAnalyticsSection } from './stats/StatsTagAnalyticsSection';
 import { SharedPopoverContent } from './stats/SharedPopoverContent';
 import { DEFAULT_CHART_LAYERS } from './stats/ChartLayerFilterDropdown';
+import { getSessionEffectiveTagIds } from '../../lib/tags';
 
 export interface ShareConfig {
   showDaily: boolean;
@@ -153,6 +155,7 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     showWeeklyDonut: false,
     showRoutineTracker: true,
     showSleepTracker: true,
+    showTagTracker: true,
     showHeatmap: true,
     dailyDonutMode: 'compact' as const,
     weeklyDonutMode: 'time_of_day' as const,
@@ -238,6 +241,8 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     } catch(e){}
     return DEFAULT_CHART_LAYERS;
   });
+  const [dailySelectedTagIds, setDailySelectedTagIds] = useState<string[]>([]);
+  const [weeklySelectedTagIds, setWeeklySelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     localStorage.setItem('scholar_dungeon_stats_weeklyMode', weeklyMode);
@@ -670,32 +675,54 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
     return { coins, xp, tasks, distractions };
   };
 
+  const filterSessionsByTags = useCallback((sessions: StudySession[], tagIds: string[]) => {
+    if (!tagIds || tagIds.length === 0) return sessions;
+    return sessions.filter(s => {
+      const effective = getSessionEffectiveTagIds(s, dungeons, majorDungeons);
+      return tagIds.some(id => effective.includes(id));
+    });
+  }, [dungeons, majorDungeons]);
+
   const dailyGains = useMemo(() => {
-    const sessions = getSessionsForDate(dailyDate);
+    const sessions = filterSessionsByTags(getSessionsForDate(dailyDate), dailySelectedTagIds);
     const rewards = getRewardsForDate(dailyDate);
     
     const coins = sessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 
-                  rewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+                  (dailySelectedTagIds.length === 0 ? rewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0) : 0);
     const xp = sessions.reduce((acc, s) => acc + (Number(s.xpEarned) || 0), 0) + 
-               rewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+               (dailySelectedTagIds.length === 0 ? rewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0) : 0);
     
     const tasks = Math.floor(sessions.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks), 0));
     const distractions = sessions.reduce((acc, s) => acc + calculateDistractionCount(s.distractions), 0);
 
     return { coins, xp, tasks, distractions };
-  }, [getSessionsForDate, getRewardsForDate, dailyDate, state.includeRestTimeInTasks]);
+  }, [getSessionsForDate, getRewardsForDate, dailyDate, state.includeRestTimeInTasks, filterSessionsByTags, dailySelectedTagIds]);
 
   const weeklyGains = useMemo(() => {
-    const interval = { start: weekStart, end: weekEnd };
-    return getGainsForPeriod(history, state.rewardHistory || [], interval);
-  }, [history, state.rewardHistory, weekStart, weekEnd, processedHistory, processedRewards, state.includeRestTimeInTasks]);
+    const rangeInterval = { start: startOfDay(weekStart), end: endOfDay(weekEnd) };
+    const periodSessions = filterSessionsByTags(
+      processedHistory.filter(s => isWithinInterval(s.assignedDate, rangeInterval)),
+      weeklySelectedTagIds
+    );
+    const periodRewards = processedRewards.filter(r => isWithinInterval(r.assignedDate, rangeInterval));
+
+    const coins = periodSessions.reduce((acc, s) => acc + (Number(s.coinsEarned) || 0), 0) + 
+                  (weeklySelectedTagIds.length === 0 ? periodRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (Number(r.amount) || 0), 0) : 0);
+    const xp = periodSessions.reduce((acc, s) => acc + (Number(s.xpEarned) || 0), 0) + 
+               (weeklySelectedTagIds.length === 0 ? periodRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (Number(r.amount) || 0), 0) : 0);
+    
+    const tasks = Math.floor(periodSessions.reduce((acc, s) => acc + getSessionEffectiveMinutes(s, !!state.includeRestTimeInTasks), 0));
+    const distractions = periodSessions.reduce((acc, s) => acc + calculateDistractionCount(s.distractions), 0);
+
+    return { coins, xp, tasks, distractions };
+  }, [weekStart, weekEnd, processedHistory, processedRewards, state.includeRestTimeInTasks, filterSessionsByTags, weeklySelectedTagIds]);
 
   const getPeriod = (date: Date) => {
     return getPeriodInfo(date).period;
   };
 
   const dailyData = useMemo(() => {
-    const currentDailySessions = getSessionsForDate(dailyDate);
+    const currentDailySessions = filterSessionsByTags(getSessionsForDate(dailyDate), dailySelectedTagIds);
     const dailyCounts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
     const dailyDistractions = {
       Morning: { internal: 0, external: 0, unavoidable: 0, total: 0 },
@@ -772,7 +799,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
         distractions: dailyDistractions.Other.total,
       }] : [])
     ];
-  }, [dailyDate, getSessionsForDate, ts, state.showOtherInActivityLog, state.includeRestTimeInTasks, getPeriodInfo]);
+  }, [dailyDate, getSessionsForDate, ts, state.showOtherInActivityLog, state.includeRestTimeInTasks, getPeriodInfo, filterSessionsByTags, dailySelectedTagIds]);
 
   const dailySessions = getSessionsForDate(dailyDate);
   const dailyCounts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
@@ -854,12 +881,12 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
     return weeklyDays.map(date => {
       const dateStr = format(date, 'yyyy-MM-dd');
       const log = dailyLogs[dateStr];
-      const daySessions = getSessionsForDate(date);
+      const daySessions = filterSessionsByTags(getSessionsForDate(date), weeklySelectedTagIds);
       const dayRewards = getRewardsForDate(date);
       const coins = daySessions.reduce((acc, s) => acc + s.coinsEarned, 0) + 
-                    dayRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (r.amount || 0), 0);
+                    (weeklySelectedTagIds.length === 0 ? dayRewards.filter(r => r.type === 'coins').reduce((acc, r) => acc + (r.amount || 0), 0) : 0);
       const xp = daySessions.reduce((acc, s) => acc + s.xpEarned, 0) + 
-                 dayRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0);
+                 (weeklySelectedTagIds.length === 0 ? dayRewards.filter(r => r.type === 'xp').reduce((acc, r) => acc + (r.amount || 0), 0) : 0);
       const counts = { Morning: 0, Afternoon: 0, Night: 0, Other: 0 };
       
       let dayInternal = 0;
@@ -926,7 +953,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
         timestamp: date.getTime(),
       };
     });
-  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, state.efficiencyRatingConfig?.ratingDisplayPreference, getPeriodInfo]);
+  }, [weeklyDays, dailyLogs, getSessionsForDate, getRewardsForDate, state.includeRestTimeInTasks, state.efficiencyRatingConfig?.ratingDisplayPreference, getPeriodInfo, filterSessionsByTags, weeklySelectedTagIds]);
 
   const isFixedYAxis = viewOpts.yAxisMaxMode === 'fixed';
 
@@ -986,6 +1013,8 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
           <StatsDailySection
             dailyChartLayers={dailyChartLayers}
             setDailyChartLayers={setDailyChartLayers}
+            dailySelectedTagIds={dailySelectedTagIds}
+            setDailySelectedTagIds={setDailySelectedTagIds}
             dailyDate={dailyDate}
             handleDailyDateChange={handleDailyDateChange}
             dateIndicators={dateIndicators}
@@ -998,7 +1027,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             activeChart={activeChart}
             dailyTimeAxis={dailyTimeAxis}
             formatTimeTick={formatTimeTick}
-            dailySessions={getSessionsForDate(dailyDate)}
+            dailySessions={filterSessionsByTags(getSessionsForDate(dailyDate), dailySelectedTagIds)}
             dungeons={dungeons}
             majorDungeons={majorDungeons}
             state={state}
@@ -1017,6 +1046,8 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             setWeeklyMode={setWeeklyMode}
             weeklyChartLayers={weeklyChartLayers}
             setWeeklyChartLayers={setWeeklyChartLayers}
+            weeklySelectedTagIds={weeklySelectedTagIds}
+            setWeeklySelectedTagIds={setWeeklySelectedTagIds}
             weeklyDate={weeklyDate}
             setWeeklyDate={setWeeklyDate}
             weekStart={weekStart}
@@ -1037,15 +1068,31 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             state={state}
             _dungeons={dungeons}
             _majorDungeons={majorDungeons}
-            weeklySessions={processedHistory.filter(s => {
-              return isWithinInterval(s.assignedDate, {
-                start: weekStart,
-                end: weekEnd
-              });
-            })}
+            onUpdateState={onUpdateState}
+            weeklySessions={filterSessionsByTags(
+              processedHistory.filter(s => {
+                return isWithinInterval(s.assignedDate, {
+                  start: weekStart,
+                  end: weekEnd
+                });
+              }),
+              weeklySelectedTagIds
+            )}
           />
         )}
       </div>
+
+      {(viewOpts.showTagTracker ?? true) && (
+        <StatsTagAnalyticsSection
+          history={state.history}
+          dungeons={dungeons}
+          majorDungeons={majorDungeons}
+          tags={state.tags || []}
+          includeRestTimeInStats={!!state.includeRestTimeInTasks}
+          timeSettings={state.timeSettings}
+          dateIndicators={dateIndicators}
+        />
+      )}
 
       {(shareConfig.showRoutine && (viewOpts.showRoutineTracker ?? true)) && (
         <div id="routine-tracker-section" className="w-full">
@@ -1210,6 +1257,8 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
           timeSettings={state.timeSettings}
           period={showDailySessionsPeriod}
           includeRestTimeInTasks={state.includeRestTimeInTasks}
+          tags={state.tags || []}
+          onUpdateTags={(tags) => onUpdateState?.({ tags })}
         />
       )}
     </div>

@@ -27,6 +27,8 @@ import { ChartLayerFilterDropdown, DEFAULT_CHART_LAYERS } from './ChartLayerFilt
 interface StatsDailySectionProps {
   dailyChartLayers?: ChartLayerSelection;
   setDailyChartLayers?: (layers: ChartLayerSelection) => void;
+  dailySelectedTagIds?: string[];
+  setDailySelectedTagIds?: (ids: string[]) => void;
   dailyLayerMode?: 'both' | 'bars' | 'lines';
   setDailyLayerMode?: (mode: 'both' | 'bars' | 'lines') => void;
   dailyDate: Date;
@@ -193,6 +195,8 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, ac
 export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
   dailyChartLayers,
   setDailyChartLayers,
+  dailySelectedTagIds = [],
+  setDailySelectedTagIds,
   dailyLayerMode,
   setDailyLayerMode,
   dailyDate,
@@ -253,6 +257,9 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
           <ChartLayerFilterDropdown
             layers={activeLayers}
             onChange={handleLayersChange}
+            tags={state.tags || []}
+            selectedTagIds={dailySelectedTagIds}
+            onSelectedTagIdsChange={setDailySelectedTagIds}
             title="Daily Chart Layers"
           />
           <div className="flex-1 sm:flex-none flex items-center justify-center gap-1 bg-slate-800/50 rounded-lg p-0.5 sm:p-1">
@@ -409,7 +416,13 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
             sessions={dailySessions} 
             dungeons={dungeons} 
             majorDungeons={majorDungeons} 
+            tags={state.tags || []}
             mode={viewOpts.dailyDonutMode || 'compact'} 
+            onChangeMode={
+              onUpdateState
+                ? (nextMode) => onUpdateState({ statsViewOpts: { ...viewOpts, dailyDonutMode: nextMode } })
+                : undefined
+            }
             includeRestTimeInTasks={!!state.includeRestTimeInTasks}
             timeSettings={state.timeSettings}
           />

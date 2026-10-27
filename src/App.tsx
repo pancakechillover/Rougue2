@@ -1018,7 +1018,7 @@ function App() {
     }
   }, [setMajorDungeons, state.currentDungeonId, dungeons, setState]);
 
-  const handleCreateMajor = (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string) => {
+  const handleCreateMajor = (name: string, description: string, rewards?: DungeonReward[], isRoutine?: boolean, routineType?: 'daily' | 'weekly' | 'monthly', deadline?: string, tags?: string[]) => {
     const newMajor: MajorDungeon = {
       id: Math.random().toString(36).substr(2, 9),
       name,
@@ -1028,6 +1028,7 @@ function App() {
       isRoutine,
       routineType,
       deadline,
+      tags,
       lastRoutineReset: new Date().toISOString()
     };
     setMajorDungeons([...majorDungeons, newMajor]);

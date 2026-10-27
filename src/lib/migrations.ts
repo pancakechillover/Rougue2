@@ -7,7 +7,7 @@
  * treated as v0 and upgraded on read.
  */
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const MAIN_KEY = 'scholars_dungeon_state';
 

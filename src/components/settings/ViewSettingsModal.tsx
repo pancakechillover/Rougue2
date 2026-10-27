@@ -15,8 +15,9 @@ interface ViewSettingsModalProps {
     showRoutineTracker?: boolean;
     showWorkstationTracker?: boolean;
     showSleepTracker?: boolean;
-    dailyDonutMode?: '24h' | 'compact';
-    weeklyDonutMode?: 'time_of_day' | 'day_of_week';
+    showTagTracker?: boolean;
+    dailyDonutMode?: '24h' | 'compact' | 'tags';
+    weeklyDonutMode?: 'time_of_day' | 'day_of_week' | 'tags';
     showHeatmap?: boolean;
     averageCalculationBase?: 'active_days' | 'total_days';
     yAxisMaxMode?: 'dynamic' | 'fixed';
@@ -89,12 +90,12 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
                   onChange={() => onUpdate({ showDailyDonut: !(opts.showDailyDonut ?? false) })}
                 />
                 {opts.showDailyDonut && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     <button
                       onClick={() => onUpdate({ dailyDonutMode: 'compact' })}
                       className={cn(
-                        'py-2 text-xs font-bold rounded-xl border transition-all',
-                        opts.dailyDonutMode !== '24h'
+                        'py-2 px-2 text-xs font-bold rounded-xl border transition-all',
+                        (opts.dailyDonutMode ?? 'compact') === 'compact'
                           ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
                       )}
@@ -104,13 +105,24 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
                     <button
                       onClick={() => onUpdate({ dailyDonutMode: '24h' })}
                       className={cn(
-                        'py-2 text-xs font-bold rounded-xl border transition-all',
+                        'py-2 px-2 text-xs font-bold rounded-xl border transition-all',
                         opts.dailyDonutMode === '24h'
                           ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
                       )}
                     >
                       24h Distribution
+                    </button>
+                    <button
+                      onClick={() => onUpdate({ dailyDonutMode: 'tags' })}
+                      className={cn(
+                        'py-2 px-2 text-xs font-bold rounded-xl border transition-all',
+                        opts.dailyDonutMode === 'tags'
+                          ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                      )}
+                    >
+                      By Tag
                     </button>
                   </div>
                 )}
@@ -134,12 +146,12 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
                   onChange={() => onUpdate({ showWeeklyDonut: !(opts.showWeeklyDonut ?? false) })}
                 />
                 {opts.showWeeklyDonut && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     <button
                       onClick={() => onUpdate({ weeklyDonutMode: 'time_of_day' })}
                       className={cn(
                         'py-2 px-2 text-xs font-bold rounded-xl border transition-all',
-                        opts.weeklyDonutMode === 'time_of_day'
+                        (opts.weeklyDonutMode ?? 'time_of_day') === 'time_of_day'
                           ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
                       )}
@@ -157,6 +169,17 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
                     >
                       Day of Week
                     </button>
+                    <button
+                      onClick={() => onUpdate({ weeklyDonutMode: 'tags' })}
+                      className={cn(
+                        'py-2 px-2 text-xs font-bold rounded-xl border transition-all',
+                        opts.weeklyDonutMode === 'tags'
+                          ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                      )}
+                    >
+                      By Tag
+                    </button>
                   </div>
                 )}
               </div>
@@ -171,6 +194,11 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
                 Modules
               </h3>
               <div className="space-y-3">
+                <ToggleRow
+                  label="Tag Breakdown"
+                  checked={opts.showTagTracker ?? true}
+                  onChange={() => onUpdate({ showTagTracker: !(opts.showTagTracker ?? true) })}
+                />
                 <ToggleRow
                   label="Routine Tracker"
                   checked={opts.showRoutineTracker ?? true}
