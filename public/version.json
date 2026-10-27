@@ -1,65 +1,21 @@
 {
-  "version": "v9.4.0",
-  "date": "2026-10-23",
+  "version": "v9.4.6",
+  "date": "2026-10-27",
   "latestRelease": {
-    "version": "v9.4.0",
-    "date": "2026-10-23",
-    "time": "17:01:00",
-    "title": "Version 9.4: Workstation Session Architecture Consolidation",
+    "version": "v9.4.6",
+    "date": "2026-10-27",
+    "time": "14:40:00",
+    "title": "Version 9.4.6: Heatmap Layout Balance",
     "items": [
       {
-        "category": "Workstation Refactor",
-        "description": "Consolidated four duplicated punch-in / punch-out implementations (header controls, workstation modal, workstation view and the 4-hour timeout effect) into a single useWorkstation hook. Session start, settle, timeout and cloud sync now share one code path."
+        "category": "Heatmap",
+        "description": "The summary card now grows to fill the leftover width instead of sitting at a fixed 288px. A 30-day grid is only five columns wide, so the old layout left roughly 270px of empty space on each side; the stats are now laid out as one full-width row plus a 2x2 block, which finally has room to breathe."
       },
       {
-        "category": "Dependency Fix",
-        "description": "Replaced the unresolved framer-motion import with motion/react, which previously crashed the app under strict package managers."
-      },
-      {
-        "category": "Versioning",
-        "description": "Unified the package.json version with the runtime APP_VERSION so the in-app update checker can no longer drift."
-      },
-      {
-        "category": "Performance",
-        "description": "Stabilized the workstation hook callbacks with a state ref, so the 4-hour timeout interval is no longer torn down and rebuilt on every render."
-      },
-      {
-        "category": "Workstation Status Chip",
-        "description": "Added a top-bar status chip using the user's own location icon: grey when idle, coloured while on duty, click to check in or out. Shows the day total on wide screens. The duplicated Check In / Desk Log controls were removed from the Explore header."
-      },
-      {
-        "category": "Location Management",
-        "description": "The check-in popover now exposes a Manage entry that opens the location editor. Extracted it into a shared ManageLocationsModal, and added a confirmation step with explicit data-loss warning before resetting to the three defaults."
-      },
-      {
-        "category": "Duration Typography",
-        "description": "Durations now render with a bold number and a lighter, smaller unit (e.g. 1h30m) via a shared DurationText component. Applied to the Sanctum today card, Record overview cards, weekly heatmap totals and Journal day summary."
-      },
-      {
-        "category": "Error Boundary",
-        "description": "Added a render-error boundary around the whole app and around the active page. A crashing view now shows a recoverable panel (try again / reload / export data) instead of a blank screen, and the sidebar keeps working."
-      },
-      {
-        "category": "Save Versioning",
-        "description": "Saves now carry a schema version. Loading, cloud restore and file import all go through the same migration path, and the previous save is snapshotted before any migration or import so bad data can be recovered."
-      },
-      {
-        "category": "Cloud Sync Hardening",
-        "description": "Secret codes are now format-validated before any backend work, and cloud sync endpoints apply a per-IP rate limit (60s / 20 requests) on top of the existing 300-user quota."
-      },
-      {
-        "category": "Lint Setup",
-        "description": "Added ESLint 9 flat config (typescript-eslint + react-hooks) and Prettier. The first audit caught a duplicate interface, dead code and a misleading hook-like callback name; lint passes with 0 errors."
-      },
-      {
-        "category": "CI",
-        "description": "Every push and pull request now runs install, typecheck, lint, tests and a full build on GitHub Actions. Failures block the PR and upload the build output for diagnosis."
-      },
-      {
-        "category": "Routing",
-        "description": "Page state now lives in the URL path (/explore, /stats, ...). Refreshing, deep-linking and the mobile back button all work; unknown paths fall back to the dashboard, and legacy #/tab bookmarks are migrated automatically."
+        "category": "Heatmap",
+        "description": "Cells grow to 48px on wide screens, and the card is sized to its content rather than stretched to match the calendar height."
       }
     ]
   },
-  "timestamp": 1792936716488
+  "timestamp": 1793082846605
 }
