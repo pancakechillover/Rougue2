@@ -297,12 +297,15 @@ useMemo(() => {
           )}>
             <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
               <span className={cn(
-                "text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 shrink-0 whitespace-nowrap",
+                // Uppercase tracking plus a long title used to push past the
+                // controls on phones and collide with them. Let it shrink and
+                // fall back to a short label below `sm`.
+                "text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 min-w-0",
                 "text-slate-400"
               )}>
                  <Calendar className={cn("w-3.5 h-3.5 shrink-0", "text-indigo-400")} />
-                 <span className="hidden xs:inline sm:inline">Expedition Horizon</span>
-                 <span className="xs:hidden sm:hidden">Horizon</span>
+                 <span className="hidden sm:inline truncate">Expedition Horizon</span>
+                 <span className="sm:hidden truncate">Horizon</span>
               </span>
               <div className="flex items-center gap-1 sm:gap-2 min-w-0">
                 <select

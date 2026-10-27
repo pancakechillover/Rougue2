@@ -266,7 +266,23 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
       localStorage.setItem('scholar_dungeon_stats_weeklyChartLayers', JSON.stringify(weeklyChartLayers));
     } catch(e){}
   }, [weeklyChartLayers]);
-  const [heatmapMetric, setHeatmapMetric] = useState<'time' | 'efficiency'>('time');
+  // Remember which metric was last shown: re-opening the record page used to
+  // always snap back to "Study Time".
+  const [heatmapMetric, setHeatmapMetric] = useState<'time' | 'efficiency'>(() => {
+    try {
+      return localStorage.getItem('scholars_heatmap_metric') === 'efficiency' ? 'efficiency' : 'time';
+    } catch {
+      return 'time';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('scholars_heatmap_metric', heatmapMetric);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [heatmapMetric]);
   const [heatmapPopoverAnchor, setHeatmapPopoverAnchor] = useState<{ date: number, element: HTMLElement | null } | null>(null);
 
   const [chartKeys, setChartKeys] = useState({
@@ -486,6 +502,7 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
           efficiency={log?.rating}
           mood={log?.mood}
           dateTimestamp={date.getTime()}
+          positioned
       />
     );
   };
@@ -1172,6 +1189,8 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
         onClose={() => setShowViewSettings(false)}
         opts={viewOpts}
         onUpdate={(updates) => onUpdateState?.({ statsViewOpts: { ...viewOpts, ...updates } })}
+        heatmapScaleMax={state.heatmapScaleMax}
+        onHeatmapScaleChange={(value) => onUpdateState?.({ heatmapScaleMax: value })}
       />
 
       {showDailySessionsDate && (

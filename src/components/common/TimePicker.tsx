@@ -61,8 +61,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
         let left = rect.left;
         
         // Prevent going off right edge of screen
-        if (left + popoverWidth > window.innerWidth) {
-            left = window.innerWidth - popoverWidth - 16;
+        if (left + popoverWidth > document.documentElement.clientWidth) {
+            left = document.documentElement.clientWidth - popoverWidth - 16;
         }
         
         // Prevent going off left edge
@@ -71,7 +71,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
         }
 
         // Prevent going off bottom edge
-        if (top + popoverHeight > window.innerHeight) {
+        if (top + popoverHeight > document.documentElement.clientHeight) {
             top = rect.top - popoverHeight - 8;
         }
         

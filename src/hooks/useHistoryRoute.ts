@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 /**
  * History-API routing: page state lives in the URL path (`/explore`).
  *
+ * Only the FIRST path segment identifies the tab, so views can own sub-paths
+ * (`/settings/general`) without teaching this hook about them.
+ *
  * Requires the host to serve index.html for unknown paths:
  * - Vercel: vercel.json rewrites
  * - server.ts: express fallback (already present)
@@ -16,7 +19,8 @@ export function useHistoryRoute(
 ): [string, (tab: string) => void] {
   const parse = useCallback((): string => {
     const raw = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    return validTabs.includes(raw) ? raw : fallback;
+    const segment = raw.split('/')[0];
+    return validTabs.includes(segment) ? segment : fallback;
     // validTabs is a module-level constant in practice; keep it out of deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fallback]);

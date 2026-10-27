@@ -424,14 +424,14 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
             })}
           </div>
 
-          <div id="setting-auto-sync" className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+          <div id="setting-auto-sync" className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-xl transition-colors", autoTheme ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
                 <History size={20} />
               </div>
               <div>
-                <div className="font-bold text-white">Auto Sync System</div>
-                <div className="text-xs text-slate-500">Switch Day/Night themes automatically</div>
+                <div className="text-[13px] font-semibold text-slate-100">Auto Sync System</div>
+                <div className="text-[11px] text-slate-500">Switch Day/Night themes automatically</div>
               </div>
             </div>
             <button
@@ -566,14 +566,14 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
         </div>
 
         <div className="space-y-6">
-          <div id="setting-sound" className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+          <div id="setting-sound" className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-xl", soundEnabled ? "bg-emerald-500/10 text-emerald-400" : "bg-slate-800 text-slate-500")}>
                 {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
               </div>
               <div>
-                <div className="font-bold text-white">Sound Effects</div>
-                <div className="text-xs text-slate-500">Play sounds for actions like gacha and rewards</div>
+                <div className="text-[13px] font-semibold text-slate-100">Sound Effects</div>
+                <div className="text-[11px] text-slate-500">Play sounds for actions like gacha and rewards</div>
               </div>
             </div>
             <button
@@ -593,7 +593,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
           </div>
 
           {soundEnabled && (
-            <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4">
+            <div className="py-3.5 border-b border-slate-800/60 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Volume</label>
                 <span className="text-xs font-bold text-emerald-400">{Math.round(soundVolume * 100)}%</span>
@@ -642,7 +642,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
                   {Math.round(getMaxWorkstationSessionMinutes(state) / 60)}h ({getMaxWorkstationSessionMinutes(state)}m)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-snug">
                 Automatically checks out and saves the interval if a workstation session runs longer than this limit.
               </p>
             </div>
@@ -696,7 +696,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
                   {getWorkstationLocations(state).length} configured
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-snug">
                 Customize the desk, lab, or library locations available in your top-bar workstation menu.
               </p>
             </div>
@@ -739,15 +739,20 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
       </div>
 
       <div className="space-y-6 pt-6 border-t border-slate-800">
-        <div className="space-y-4">
-           <div id="setting-open-ended" className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800 mt-4">
+        <div className="flex items-center gap-2.5 text-indigo-400 mb-6 pb-2">
+          <CalendarCheck size={20} />
+          <h4 className="text-lg font-bold uppercase tracking-widest pr-1">Start/End of the day</h4>
+        </div>
+
+        <div className="space-y-6">
+           <div id="setting-open-ended" className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
              <div className="flex items-center gap-3">
                <div className={cn("p-2 rounded-xl", state.defaultOpenEndedDungeon ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
                  <Clock size={20} />
                </div>
                <div className="flex-1 pr-4">
-                 <div className="text-sm font-bold text-white mb-0.5">Tasks Default to Open-Ended</div>
-                 <div className="text-[11px] text-slate-500 leading-relaxed">
+                 <div className="text-[13px] font-semibold text-slate-100 mb-0.5">Tasks Default to Open-Ended</div>
+                 <div className="text-[11px] text-slate-500 leading-snug">
                    New tasks will not require a "Total Rooms" goal. They will run endlessly and track total focus time until manually completed.
                  </div>
                </div>
@@ -767,14 +772,14 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
                />
              </button>
            </div>
-           <div id="setting-start-of-day" className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800 mt-4">
+           <div id="setting-start-of-day" className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
              <div className="flex items-center gap-3">
                <div className={cn("p-2 rounded-xl", state.enableStartOfDayPrompt ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
                  <Sunrise size={20} />
                </div>
                <div className="flex-1 pr-4">
-                 <div className="text-sm font-bold text-white mb-0.5">Show "Start of the Day" Prompt</div>
-                 <div className="text-[11px] text-slate-500 leading-relaxed">
+                 <div className="text-[13px] font-semibold text-slate-100 mb-0.5">Show "Start of the Day" Prompt</div>
+                 <div className="text-[11px] text-slate-500 leading-snug">
                    When enabled, the app will play a sunrise animation on startup and open directly into the Start of the Day screen on a new day. Disabled by default.
                  </div>
                </div>
@@ -794,73 +799,14 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
                />
              </button>
            </div>
-        </div>
-      </div>
-
-      <div className="space-y-6 pt-6 border-t border-slate-800">
-        <div className="flex items-center gap-2.5 text-indigo-400 mb-6 pb-2">
-          <CalendarCheck size={20} />
-          <h4 className="text-lg font-bold uppercase tracking-widest pr-1">Performance Heatmap</h4>
-        </div>
-
-        <div id="setting-heatmap" className="space-y-4">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Heatmap Saturation Range</label>
-          <p className="text-xs text-slate-500 italic">Adjusts the maximum session count required to reach the darkest color on the heatmap.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button
-              onClick={() => setState(prev => ({ ...prev, heatmapScaleMax: 8 }))}
-              className={cn(
-                "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left",
-                (state.heatmapScaleMax ?? 8) === 8 
-                  ? "bg-indigo-500/10 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]" 
-                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
-              )}
-            >
-              <div className="relative p-2 bg-slate-800 rounded-xl text-slate-400">
-                <Target size={20} />
-              </div>
-              <div>
-                <div className={cn("font-bold", (state.heatmapScaleMax ?? 8) === 8 ? "text-indigo-400" : "text-white")}>[0-8] Mode</div>
-                <div className="text-[10px] text-slate-500">8 sessions = darkest color</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setState(prev => ({ ...prev, heatmapScaleMax: 16 }))}
-              className={cn(
-                "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left",
-                state.heatmapScaleMax === 16 
-                  ? "bg-indigo-500/10 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]" 
-                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
-              )}
-            >
-              <div className="p-2 bg-slate-800 rounded-xl text-slate-400">
-                <Globe size={20} />
-              </div>
-              <div>
-                <div className={cn("font-bold", state.heatmapScaleMax === 16 ? "text-indigo-400" : "text-white")}>[0-16] Mode</div>
-                <div className="text-[10px] text-slate-500">16 sessions = darkest color</div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6 pt-6 border-t border-slate-800">
-        <div className="flex items-center gap-2.5 text-indigo-400 mb-6 pb-2">
-          <CalendarCheck size={20} />
-          <h4 className="text-lg font-bold uppercase tracking-widest pr-1">End of the day</h4>
-        </div>
-
-        <div className="space-y-6">
-          <div id="setting-markdown" className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+          <div id="setting-markdown" className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-xl", defaultMarkdownEnabled ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
                 <Eye size={20} />
               </div>
               <div>
-                <div className="font-bold text-white">Default Markdown</div>
-                <div className="text-xs text-slate-500">Enable Markdown in Daily Reflection by default</div>
+                <div className="text-[13px] font-semibold text-slate-100">Default Markdown</div>
+                <div className="text-[11px] text-slate-500">Enable Markdown in Daily Reflection by default</div>
               </div>
             </div>
             <button
@@ -879,7 +825,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
             </button>
           </div>
 
-          <div id="setting-moods" className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4">
+          <div id="setting-moods" className="py-3.5 border-b border-slate-800/60 space-y-3">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-rose-400">
                 <Smile size={18} />
@@ -930,7 +876,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
             </div>
           </div>
 
-          <div id="setting-daily-goal" className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4">
+          <div id="setting-daily-goal" className="py-3.5 border-b border-slate-800/60 space-y-3">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-amber-400">
@@ -1022,14 +968,14 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
         </div>
 
         <div id="setting-push" className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-800/60">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-xl", state.pushEnabled ? "bg-indigo-500/10 text-indigo-400" : "bg-slate-800 text-slate-500")}>
                 {state.pushEnabled ? <Bell size={20} /> : <BellOff size={20} />}
               </div>
               <div>
-                <div className="font-bold text-white">Push Notifications</div>
-                <div className="text-xs text-slate-500">Alerts for timer ends and rest periods</div>
+                <div className="text-[13px] font-semibold text-slate-100">Push Notifications</div>
+                <div className="text-[11px] text-slate-500">Alerts for timer ends and rest periods</div>
               </div>
             </div>
             <div className="flex items-center gap-2">

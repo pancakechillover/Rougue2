@@ -5,6 +5,7 @@ import { RewardCard, ShopItem, GachaPool } from '../../types';
 import { X, ChevronRight, Sparkles, Trophy, Timer as TimerIcon, Package, AlertTriangle, Scroll, Settings as SettingsIcon, ShoppingBag, Database, Target, User, Layers, Cloud, Wrench, History, Ticket, ArrowLeft, Search } from 'lucide-react';
 import { APP_VERSION, LAST_UPDATE_DATE, RELEASE_HISTORY } from '../../version';
 import { cn } from '../../lib/utils';
+import { SettingsNav, type SettingsNavGroup } from './SettingsNav';
 import { SETTINGS_SEARCH_INDEX } from './SettingsSearchIndex';
 
 // Helper to convert VAPID key
@@ -110,6 +111,14 @@ const VersionGroup: React.FC<VersionGroupProps> = ({ group, logs, isInitialExpan
   );
 };
 
+/** Nav grouping — four buckets, in the order the rail shows them. */
+const SETTINGS_GROUP_LAYOUT: { id: string; label: string; ids: string[] }[] = [
+  { id: 'personal', label: 'Personal', ids: ['general', 'sage'] },
+  { id: 'data', label: 'Data', ids: ['cloud'] },
+  { id: 'gameplay', label: 'Gameplay', ids: ['timer', 'level', 'merchant', 'calculator'] },
+  { id: 'about', label: 'About', ids: ['dev', 'about'] },
+];
+
 const SETTINGS_COMPARTMENTS = [
   {
     id: 'general' as const,
@@ -119,6 +128,15 @@ const SETTINGS_COMPARTMENTS = [
     borderColor: 'hover:border-indigo-500',
     iconColor: 'text-indigo-400',
     bgColor: 'bg-indigo-300/10 border-indigo-500/20'
+  },
+  {
+    id: 'cloud' as const,
+    title: 'Data Management',
+    desc: 'Cloud sync, Scholar Passport, snapshots, and JSON backups.',
+    icon: Database,
+    borderColor: 'hover:border-blue-500',
+    iconColor: 'text-blue-400',
+    bgColor: 'bg-blue-300/10 border-blue-500/20'
   },
   {
     id: 'timer' as const,
@@ -164,15 +182,6 @@ const SETTINGS_COMPARTMENTS = [
     borderColor: 'hover:border-rose-500',
     iconColor: 'text-rose-400',
     bgColor: 'bg-rose-300/10 border-rose-500/20'
-  },
-  {
-    id: 'cloud' as const,
-    title: 'Data Management',
-    desc: 'Cloud sync, Scholar Passport, snapshots, and JSON backups.',
-    icon: Database,
-    borderColor: 'hover:border-blue-500',
-    iconColor: 'text-blue-400',
-    bgColor: 'bg-blue-300/10 border-blue-500/20'
   },
   {
     id: 'dev' as const,
@@ -238,10 +247,9 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  const [activeTab, setActiveTab ] = useState<string>(() => {
-    if (activeSection && activeSection !== 'menu') return activeSection;
-    return localStorage.getItem('settings_last_view') || 'menu';
-  });
+  // The URL owns the sub-page now (see App.tsx), so no localStorage fallback —
+  // a remembered "general" would disagree with an address bar reading /settings.
+  const [activeTab, setActiveTab] = useState<string>(activeSection || 'menu');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -281,23 +289,79 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
 
   const setTabAndSave = (tab: string) => {
     setActiveTab(tab);
-    localStorage.setItem('settings_last_view', tab);
-    setActiveSection(tab as any);
+    setActiveSection(tab); // App pushes /settings/<tab>
   };
 
-  const currentCompartment = SETTINGS_COMPARTMENTS.find(c => c.id === activeTab);
+  // On desktop /settings lands on General; on mobile it is still the entry list.
+  const effectiveTab = activeTab === 'menu' ? 'general' : activeTab;
+
+  const navGroups: SettingsNavGroup[] = SETTINGS_GROUP_LAYOUT.map((group) => ({
+    id: group.id,
+    label: group.label,
+    items: group.ids
+      .map((id) => SETTINGS_COMPARTMENTS.find((c) => c.id === id))
+      .filter(Boolean) as any,
+  }));
+
+  const currentCompartment = SETTINGS_COMPARTMENTS.find(c => c.id === effectiveTab);
   const CurrentIcon = currentCompartment?.icon;
 
-  const filteredCompartments = SETTINGS_COMPARTMENTS.filter(c => {
-    if (!searchQuery.trim()) return true;
-    const term = searchQuery.toLowerCase();
-    return c.title.toLowerCase().includes(term) || c.desc.toLowerCase().includes(term);
-  });
 
   const filteredSettingsItems = searchQuery.trim() ? SETTINGS_SEARCH_INDEX.filter(item => {
     const term = searchQuery.toLowerCase();
     return item.title.toLowerCase().includes(term) || item.description.toLowerCase().includes(term) || item.keywords.some(k => k.includes(term));
   }) : [];
+
+  // One search result list, shared by the desktop content column and the
+  // mobile entry page — otherwise the two would need duplicate markup.
+  const searchResultsNode = searchQuery.trim() ? (
+    filteredSettingsItems.length === 0 ? (
+      <div className="py-12 text-center">
+        <p className="text-slate-500 font-medium text-sm">
+          No settings matched "{searchQuery}".
+        </p>
+      </div>
+    ) : (
+      <div className="border-t border-slate-800/60">
+        {filteredSettingsItems.map((item) => {
+          const compartment = SETTINGS_COMPARTMENTS.find((c) => c.id === item.tab);
+          if (!compartment) return null;
+          const Icon = compartment.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setTabAndSave(item.tab);
+                setTimeout(() => {
+                  const el = document.getElementById(item.id);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900', 'transition-all', 'duration-500');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900'), 1500);
+                  }
+                }, 150);
+              }}
+              className="w-full flex items-center gap-3 px-1 py-3 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors text-left"
+            >
+              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center border shrink-0', compartment.bgColor)}>
+                <Icon size={15} className={compartment.iconColor} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 truncate">
+                  {compartment.title}
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100 truncate">{item.title}</div>
+                <div className="text-[11px] text-slate-500 truncate">{item.description}</div>
+              </div>
+              <ChevronRight size={15} className="text-slate-600 shrink-0" />
+            </button>
+          );
+        })}
+      </div>
+    )
+  ) : null;
 
   const handleExportData = () => {
     const data = {
@@ -319,11 +383,24 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
 
 
 
+  // 73px = 顶部状态栏 41 + App wrapper 的 pb-8(32)。整页高度必须框死在视口内，
+  // 否则鼠标停在左栏滚轮时会把整个页面带着滚 —— 左栏内容不够长，滚轮事件会冒泡。
   return (
-    <div className="p-6 space-y-8">
-      <div className="bg-slate-900/50 rounded-3xl border border-slate-800 p-6 sm:p-8 backdrop-blur-sm">
-        {activeTab === 'menu' ? (
-          <div className="space-y-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:h-[calc(100dvh-73px)] lg:overflow-hidden">
+      <div className="lg:flex lg:gap-10 lg:h-full">
+        <SettingsNav
+          variant="sidebar"
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar"
+          groups={navGroups}
+          activeId={effectiveTab}
+          onSelect={setTabAndSave}
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSearchSubmit={() => handleSearchSubmit()}
+        />
+        <div className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar">
+        {activeTab === 'menu' && (
+          <div className="space-y-6 lg:hidden">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-100 tracking-tighter uppercase italic flex items-center gap-3">
                 <SettingsIcon className="text-indigo-500 w-6 h-6 sm:w-8 sm:h-8" />
@@ -372,83 +449,26 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 max-w-4xl">
-              {!searchQuery.trim() ? (
-                // Normal Compartment View
-                filteredCompartments.map(compartment => (
-                  <button 
-                    key={compartment.id}
-                    onClick={() => setTabAndSave(compartment.id)} 
-                    className={cn(
-                      "flex items-center gap-4 p-5 bg-slate-900/40 hover:bg-slate-900/80 rounded-3xl border border-slate-800/80 transition-all text-left group w-full",
-                      compartment.borderColor
-                    )}
-                  >
-                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform shrink-0", compartment.bgColor)}>
-                      <compartment.icon size={22} className={compartment.iconColor} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-white uppercase tracking-widest text-xs sm:text-sm truncate">{compartment.title}</h3>
-                      <p className="text-xs text-slate-500 font-medium mt-1 leading-normal sm:line-clamp-1 line-clamp-2">{compartment.desc}</p>
-                    </div>
-                    <div className="ml-auto w-8 h-8 shrink-0 rounded-full bg-white/5 flex items-center justify-center transition-opacity transition-opacity">
-                      <ChevronRight className={compartment.iconColor} size={16} />
-                    </div>
-                  </button>
-                ))
-              ) : (
-                // Search Results View
-                filteredSettingsItems.length === 0 ? (
-                  <div className="py-12 text-center bg-slate-900/20 rounded-3xl border border-slate-800/50 border-dashed">
-                    <p className="text-slate-500 font-medium">No settings matched "{searchQuery}".</p>
-                  </div>
-                ) : (
-                  filteredSettingsItems.map(item => {
-                    const compartment = SETTINGS_COMPARTMENTS.find(c => c.id === item.tab);
-                    if (!compartment) return null;
-                    return (
-                      <button 
-                        key={item.id}
-                        onClick={() => {
-                          setTabAndSave(item.tab);
-                          setTimeout(() => {
-                            const el = document.getElementById(item.id);
-                            if (el) {
-                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900', 'transition-all', 'duration-500');
-                              setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'ring-offset-slate-900'), 1500);
-                            }
-                          }, 150);
-                        }} 
-                        className={cn(
-                          "flex items-start gap-4 p-5 bg-slate-900/40 hover:bg-slate-900/80 rounded-3xl border border-slate-800/80 transition-all text-left group w-full",
-                          compartment.borderColor
-                        )}
-                      >
-                        <div className={cn("w-10 h-10 mt-1 rounded-2xl flex items-center justify-center border shrink-0", compartment.bgColor)}>
-                          <compartment.icon size={18} className={compartment.iconColor} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{compartment.title}</span>
-                          </div>
-                          <h3 className="font-bold text-white tracking-tight text-sm sm:text-base truncate">{item.title}</h3>
-                          <p className="text-xs text-slate-400 font-medium mt-1 leading-normal sm:line-clamp-1 line-clamp-2">{item.description}</p>
-                        </div>
-                        <div className="ml-auto w-8 h-8 shrink-0 rounded-full bg-white/5 flex items-center justify-center transition-opacity transition-opacity self-center">
-                          <ChevronRight className={compartment.iconColor} size={16} />
-                        </div>
-                      </button>
-                    );
-                  })
-                )
+            <div>
+              {searchResultsNode ?? (
+                <SettingsNav
+                  variant="list"
+                  groups={navGroups}
+                  activeId={effectiveTab}
+                  onSelect={setTabAndSave}
+                  searchValue={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onSearchSubmit={() => handleSearchSubmit()}
+                />
               )}
             </div>
           </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Header style matching our active custom compartments */}
-            <div className="flex flex-row items-center justify-between gap-4 border-b border-slate-800/80 pb-6 mb-8">
+        )}
+        <div className={cn('max-w-[760px]', activeTab === 'menu' && 'hidden lg:block')}>
+          {searchResultsNode}
+          <div className={cn('space-y-8', searchResultsNode && 'hidden')}>
+            {/* Mobile only — on desktop the rail already shows where you are. */}
+            <div className="lg:hidden flex flex-row items-center justify-between gap-4 border-b border-slate-800/80 pb-6 mb-8">
               <div className="flex items-center gap-3 min-w-0">
                 <div className={cn("w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center border shrink-0", currentCompartment?.bgColor || "bg-indigo-500/10 border-indigo-500/20")}>
                   {CurrentIcon && <CurrentIcon className={currentCompartment?.iconColor || "text-indigo-400"} size={22} />}
@@ -471,10 +491,10 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
 
             {/* Sub-Contents rendering */}
             <div>
-              {activeTab === 'general' && (
+              {effectiveTab === 'general' && (
                 <GeneralSettings state={state} setState={setState} />
               )}
-              {activeTab === 'timer' && (
+              {effectiveTab === 'timer' && (
                 <TimerSettingsSection 
                   state={state} 
                   setState={setState} 
@@ -484,7 +504,7 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                   onTabChange={onTabChange}
                 />
               )}
-              {activeTab === 'cloud' && (
+              {effectiveTab === 'cloud' && (
                 <CloudSettingsSection 
                   state={state}
                   setState={setState}
@@ -496,10 +516,10 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                   setShowClearConfirm={setShowClearConfirm}
                 />
               )}
-              {(activeTab === 'level' || activeTab === 'levelRewards') && (
+              {(effectiveTab === 'level' || effectiveTab === 'levelRewards') && (
                 <LevelRewardsSettings state={state} setState={setState} />
               )}
-              {activeTab === 'merchant' && (
+              {effectiveTab === 'merchant' && (
                 <div className="space-y-12">
                   <ShopSettings items={shopItems} onUpdate={onUpdateShop} />
                   
@@ -615,16 +635,16 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                   </div>
                 </div>
               )}
-              {activeTab === 'calculator' && (
+              {effectiveTab === 'calculator' && (
                 <CalcSettingsSection state={state} _setState={setState} />
               )}
-              {activeTab === 'sage' && (
+              {effectiveTab === 'sage' && (
                 <SageSettingsSection state={state} setState={setState} />
               )}
-              {activeTab === 'dev' && (
+              {effectiveTab === 'dev' && (
                 <DeveloperSettings state={state} setState={setState} addXP={addXP} getNow={getNow} />
               )}
-              {activeTab === 'about' && (
+              {effectiveTab === 'about' && (
                 <div className="space-y-8 py-4">
                   <div className="flex flex-col items-center text-center space-y-4">
                     <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-600/20">
@@ -762,7 +782,7 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
               )}
             </div>
           </div>
-        )}
+        </div>
 
       {createPortal(
         <AnimatePresence>
@@ -847,6 +867,7 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
         </AnimatePresence>,
         document.body
       )}
+        </div>
       </div>
     </div>
   );

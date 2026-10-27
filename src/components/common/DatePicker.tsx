@@ -78,8 +78,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
         const popoverHeight = 360;
         
         // Prevent going off right edge
-        if (left + popoverWidth > window.innerWidth) {
-            left = window.innerWidth - popoverWidth - 16;
+        if (left + popoverWidth > document.documentElement.clientWidth) {
+            left = document.documentElement.clientWidth - popoverWidth - 16;
         }
         
         // Prevent going off left edge
@@ -88,7 +88,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
         }
 
         // Prevent going off bottom edge
-        if (top + popoverHeight > window.innerHeight) {
+        if (top + popoverHeight > document.documentElement.clientHeight) {
             top = rect.top - popoverHeight - 8;
         }
         

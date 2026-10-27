@@ -48,14 +48,14 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
   const calculatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    const popoverWidth = Math.min(280, window.innerWidth - 24);
+    const popoverWidth = Math.min(280, document.documentElement.clientWidth - 24);
 
     // Initial left alignment with button
     let left = rect.left;
 
     // Check right viewport boundary
-    if (left + popoverWidth > window.innerWidth - 12) {
-      left = window.innerWidth - 12 - popoverWidth;
+    if (left + popoverWidth > document.documentElement.clientWidth - 12) {
+      left = document.documentElement.clientWidth - 12 - popoverWidth;
     }
     // Check left viewport boundary (e.g. adjacent to sidebar)
     if (left < 12) {
@@ -66,7 +66,7 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
     let top = rect.bottom + 6;
     const estimatedHeight = weekMode && onWeekModeChange ? 410 : 350;
     // Flip upward if overflowing bottom viewport and enough space on top
-    if (top + estimatedHeight > window.innerHeight - 12 && rect.top > estimatedHeight + 12) {
+    if (top + estimatedHeight > document.documentElement.clientHeight - 12 && rect.top > estimatedHeight + 12) {
       top = rect.top - estimatedHeight - 6;
     }
 

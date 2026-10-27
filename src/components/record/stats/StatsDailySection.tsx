@@ -65,8 +65,8 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, ac
 
       const rect = el.getBoundingClientRect();
       const padding = 12;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
 
       let shiftX = 0;
       if (rect.right > viewportWidth - padding) {
@@ -100,7 +100,9 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, ac
       window.removeEventListener('resize', clamp);
       window.removeEventListener('scroll', clamp);
     };
-  });
+    // Only re-clamp when the content actually changes; without deps this ran on
+    // every render and forced a synchronous layout each time.
+  }, [label, dateTimestamp]);
 
   if (active && (!activeChart || activeChart === chartId)) {
     let data = payload && payload.length ? payload[0].payload : null;

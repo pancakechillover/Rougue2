@@ -22,9 +22,19 @@ interface ViewSettingsModalProps {
     yAxisMaxMode?: 'dynamic' | 'fixed';
   };
   onUpdate: (updates: Partial<ViewSettingsModalProps['opts']>) => void;
+  /** Heatmap colour saturation ceiling — lives on the main state, not in opts. */
+  heatmapScaleMax?: number;
+  onHeatmapScaleChange?: (value: number) => void;
 }
 
-export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({ isOpen, onClose, opts, onUpdate }) => {
+export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({
+  isOpen,
+  onClose,
+  opts,
+  onUpdate,
+  heatmapScaleMax,
+  onHeatmapScaleChange,
+}) => {
   if (!isOpen) return null;
 
   return createPortal(
@@ -181,6 +191,33 @@ export const ViewSettingsModal: React.FC<ViewSettingsModalProps> = ({ isOpen, on
                   checked={opts.showHeatmap ?? true}
                   onChange={() => onUpdate({ showHeatmap: !(opts.showHeatmap ?? true) })}
                 />
+                {/* Moved here from Settings → General: it is a heatmap display
+                    concern, so it belongs with the rest of the layout options. */}
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-300">Saturation Range</div>
+                    <div className="text-[11px] text-slate-500 leading-snug">
+                      Sessions needed to reach the darkest cell
+                    </div>
+                  </div>
+                  <div className="flex gap-0.5 shrink-0 rounded-lg bg-slate-900 p-0.5 border border-slate-800">
+                    {[8, 16].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => onHeatmapScaleChange?.(value)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors',
+                          (heatmapScaleMax ?? 8) === value
+                            ? 'bg-indigo-500 text-white'
+                            : 'text-slate-400 hover:text-slate-200'
+                        )}
+                      >
+                        0–{value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -84,6 +84,21 @@ const getNextTalentLevel = (currentLvl: number, levelRewards?: any[]) => {
   }
 };
 
+/** Settings sub-pages live in the URL as /settings/<id>. */
+const SETTINGS_SECTIONS = [
+  'menu', 'general', 'cloud', 'timer', 'rewards', 'shop', 'gacha', 'dev',
+  'levelRewards', 'about', 'level', 'merchant', 'calculator', 'sage',
+] as const;
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
+const readSettingsSectionFromUrl = (): SettingsSection => {
+  const segments = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/');
+  if (segments[0] !== 'settings' || !segments[1]) return 'menu';
+  return (SETTINGS_SECTIONS as readonly string[]).includes(segments[1])
+    ? (segments[1] as SettingsSection)
+    : 'menu';
+};
+
 function App() {
   const [appReady, setAppReady] = useState(false);
   const [activeTab, setActiveTab] = useHistoryRoute(
@@ -114,7 +129,33 @@ function App() {
     return () => window.removeEventListener('nav-to-explore', handleNavToExplore);
   }, []);
 
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'menu' | 'general' | 'timer' | 'rewards' | 'shop' | 'gacha' | 'dev' | 'levelRewards' | 'about' | 'level' | 'merchant' | 'cloud' | 'calculator' | 'sage'>('menu');
+  // Sub-page is part of the URL so a refresh (or a shared link) reopens the
+  // same compartment instead of dropping back to the menu.
+  const [activeSettingsSection, setActiveSettingsSectionState] =
+    useState<SettingsSection>(readSettingsSectionFromUrl);
+
+  const setActiveSettingsSection = useCallback((section: string) => {
+    const next = (SETTINGS_SECTIONS as readonly string[]).includes(section)
+      ? (section as SettingsSection)
+      : 'menu';
+    setActiveSettingsSectionState(next);
+    const target = next === 'menu' ? '/settings' : `/settings/${next}`;
+    if (window.location.pathname !== target) {
+      window.history.pushState(null, '', target);
+    }
+  }, []);
+
+  // Browser back / forward has to restore the sub-page too.
+  useEffect(() => {
+    const onPop = () => {
+      const first = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0];
+      if (first === 'settings') {
+        setActiveSettingsSectionState(readSettingsSectionFromUrl());
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const canPip = 'documentPictureInPicture' in window && window.self === window.top;
   const isPWA = window.matchMedia('(display-mode: standalone)').matches;

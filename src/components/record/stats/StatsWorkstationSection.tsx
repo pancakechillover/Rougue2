@@ -493,7 +493,7 @@ export const StatsWorkstationSection: React.FC<StatsWorkstationSectionProps> = (
           className="lg:col-span-6 h-full flex flex-col items-center justify-between p-2 sm:p-3 relative lg:border-r lg:border-slate-800/50 lg:pr-6"
           onClick={() => setSelectedRingItem(null)}
         >
-          <div className="w-full flex items-center justify-between">
+          <div className="w-full flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               24h Presence & Focus Ring
             </span>
