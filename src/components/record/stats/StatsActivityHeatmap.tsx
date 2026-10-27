@@ -258,7 +258,10 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           "flex flex-col gap-6 w-full mt-4",
           heatmapMode === 'year'
             ? "items-center justify-center"
-            : "lg:flex-row lg:items-start justify-between"
+            : // stretch (not start) so the calendar and the summary share one
+              // top edge and one bottom edge instead of the summary card
+              // floating short of the grid.
+              "lg:flex-row lg:items-stretch justify-between"
         )}
       >
         <style>{`
@@ -339,7 +342,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           }
         `}</style>
 
-        <div className="overflow-x-auto pb-4 custom-scrollbar w-full lg:w-auto flex justify-start lg:justify-center">
+        <div className="overflow-x-auto pb-4 lg:pb-0 custom-scrollbar w-full lg:w-auto flex justify-start lg:justify-center lg:items-start">
           <div className={cn("min-w-max flex mx-auto", heatmapMode === 'year' ? "heatmap-year gap-1.5" : "heatmap-responsive gap-2")}>
             <div
               className="grid grid-rows-7 text-slate-500 font-medium pr-1 text-right mt-6"
@@ -430,8 +433,11 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               "shrink-0 flex flex-col bg-slate-950/40 p-4 sm:p-5 rounded-2xl border border-slate-800/60 mb-4",
               // Non-year views let the summary absorb the leftover width: the
               // 30-day grid is only five columns wide, so a fixed 288px card left
-              // ~270px of dead space on each side.
-              heatmapMode === 'year' ? "w-full max-w-2xl mx-auto" : "w-full lg:flex-1 lg:min-w-0 lg:max-w-2xl lg:mb-0"
+              // ~270px of dead space on each side. h-full + the stretched row
+              // above keep its bottom edge flush with the calendar.
+              heatmapMode === 'year'
+                ? "w-full max-w-2xl mx-auto"
+                : "w-full lg:flex-1 lg:min-w-0 lg:max-w-2xl lg:mb-0 lg:self-stretch"
             )}
           >
             <div className="flex items-center justify-center gap-2 pb-3 border-b border-slate-800/50 mb-4">
@@ -444,7 +450,12 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
             <div
               className={cn(
                 "grid gap-3",
-                heatmapMode === 'year' ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-2"
+                // The two stat rows split whatever height the card has, so a
+                // card stretched to match the calendar does not end up with a
+                // band of dead space underneath.
+                heatmapMode === 'year'
+                  ? "grid-cols-1 sm:grid-cols-2"
+                  : "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] lg:flex-1"
               )}
             >
               <div
@@ -466,7 +477,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Time/Task Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
+                  "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
                   heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
@@ -495,7 +506,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Gold Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
+                  "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
                   heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
@@ -518,7 +529,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged EXP Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
+                  "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
                   heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
@@ -541,7 +552,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Distractions Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
+                  "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
                   heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >

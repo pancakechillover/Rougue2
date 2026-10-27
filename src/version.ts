@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.6';
+export const APP_VERSION = 'v9.4.7';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '14:40:00';
+export const LAST_UPDATE_TIME = '15:10:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.7',
+    date: '2026-10-27',
+    time: '15:10:00',
+    title: 'Version 9.4.7: Heatmap Alignment',
+    items: [
+      { category: 'Heatmap', description: 'The calendar and the summary card now share a single top edge and a single bottom edge. The row used to be top-aligned only, so the summary card ended roughly 40px short of the grid and the two blocks looked like they were floating at different heights.' },
+      { category: 'Heatmap', description: 'The stat rows inside the summary split the leftover height instead of leaving a band of dead space, and the calendar column no longer reserves extra padding below the last row of cells.' }
+    ]
+  },
   {
     version: 'v9.4.6',
     date: '2026-10-27',
