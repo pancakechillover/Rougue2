@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.9';
+export const APP_VERSION = 'v9.4.10';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '17:00:00';
+export const LAST_UPDATE_TIME = '17:50:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,17 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.10',
+    date: '2026-10-27',
+    time: '17:50:00',
+    title: 'Version 9.4.10: No Scrollbar, Responsive Year Grid',
+    items: [
+      { category: 'Heatmap', description: 'The year view no longer spills into a horizontal scrollbar. Its wrapper was still pinned to max-content width, so the 53 columns pushed past the card; it now shares the same shrinkable grid as the other views and stays inside its container.' },
+      { category: 'Heatmap', description: 'Cell size follows the space actually available, so collapsing the sidebar makes every cell grow to fill the extra width instead of leaving it unused.' },
+      { category: 'Heatmap', description: 'The year summary card now spans the full row with its stat blocks flowing into up to five columns, and the month labels span two tracks so they are no longer clipped to a single letter.' }
+    ]
+  },
   {
     version: 'v9.4.9',
     date: '2026-10-27',

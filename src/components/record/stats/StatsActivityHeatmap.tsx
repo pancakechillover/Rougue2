@@ -110,6 +110,14 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
     return labels;
   }, [heatmapDays]);
 
+  // Number of week-columns the grid occupies. The padding cells of the first
+  // week are grid items too, so it is not simply days / 7.
+  const heatmapColumnCount = useMemo(() => {
+    if (heatmapDays.length === 0) return 1;
+    const offset = (heatmapDays[0].getDay() + 6) % 7;
+    return Math.max(1, Math.ceil((offset + heatmapDays.length) / 7));
+  }, [heatmapDays]);
+
   const getIntensity = (date: Date) => {
     if (heatmapMetric === 'time') {
       const count = getSessionsForDate(date).length;
@@ -334,7 +342,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           @media (min-width: 1280px) {
              .heatmap-year {
                --cell-size: 16px;
-               --cell-gap: 4px;
+               --cell-gap: 3px;
                --cell-radius: 3px;
                --label-size: 12px;
                --mood-size: 14px;
@@ -352,8 +360,8 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
             className={cn(
               "mx-auto",
               heatmapMode === 'year'
-                ? "min-w-max flex gap-1.5 heatmap-year"
-                : "w-full grid gap-2 heatmap-responsive"
+                ? "w-full min-w-0 grid heatmap-year"
+                : "w-full min-w-0 grid heatmap-responsive"
             )}
             style={{
               gridTemplateColumns:
@@ -380,8 +388,9 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                 style={{
                   // Same column tracks as the cell grid, so a month label always
                   // sits over its own week — also when the columns resize.
-                  gridAutoColumns:
-                    heatmapMode === 'year' ? 'minmax(0, 1fr)' : 'var(--cell-size)',
+                  ...(heatmapMode === 'year'
+                    ? { gridTemplateColumns: `repeat(${heatmapColumnCount}, minmax(0, 1fr))` }
+                    : { gridAutoColumns: 'var(--cell-size)' }),
                 }}
               >
                 {heatmapMonthLabels.map((label, i) => (
@@ -389,7 +398,9 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                     key={i}
                     className="text-slate-500 font-medium min-w-0 truncate"
                     style={{
-                      gridColumn: label.colIndex + 1,
+                      // Span two columns: a single year-mode column (~13px) is
+                      // too narrow for "Jan" and would truncate it.
+                      gridColumn: `${label.colIndex + 1} / span 2`,
                       fontSize: 'var(--label-size)',
                     }}
                   >
@@ -403,8 +414,9 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                   gap: 'var(--cell-gap)',
                   // The year view has 53 narrow columns: letting them share
                   // the row fills the width without inflating the height.
-                  gridAutoColumns:
-                    heatmapMode === 'year' ? 'minmax(0, 1fr)' : 'var(--cell-size)',
+                  ...(heatmapMode === 'year'
+                    ? { gridTemplateColumns: `repeat(${heatmapColumnCount}, minmax(0, 1fr))` }
+                    : { gridAutoColumns: 'var(--cell-size)' }),
                 }}
               >
                 {Array.from({ length: (heatmapDays[0].getDay() + 6) % 7 }).map((_, i) => (
@@ -489,7 +501,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               // fill the column. The summary keeps a floor so its stat
               // blocks never get crushed on narrower screens.
               heatmapMode === 'year'
-                  ? "w-full max-w-2xl mx-auto"
+                  ? "w-full"
                   : "w-full lg:flex-1 lg:min-w-0 lg:mb-0 lg:self-stretch"
             )}
           >
@@ -507,7 +519,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                 // card stretched to match the calendar does not end up with a
                 // band of dead space underneath.
                 heatmapMode === 'year'
-                  ? "grid-cols-1 sm:grid-cols-2"
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5"
                   : "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] 2xl:grid-cols-4 2xl:grid-rows-[auto_1fr] lg:flex-1"
               )}
             >
