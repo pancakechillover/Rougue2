@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.7';
+export const APP_VERSION = 'v9.4.8';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '15:10:00';
+export const LAST_UPDATE_TIME = '16:35:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.8',
+    date: '2026-10-27',
+    time: '16:35:00',
+    title: 'Version 9.4.8: Flexible Heatmap Cells',
+    items: [
+      { category: 'Heatmap', description: 'The calendar cells now size themselves to the space they are given instead of a fixed pixel value. The weekday column and the cell grid share one set of column tracks, so the month labels stay locked over their own week at any width.' },
+      { category: 'Heatmap', description: 'The dead space between the calendar and the summary card is gone. The two columns now split the row, leaving only the regular gap between them, and a floor on the summary width keeps its stat blocks readable on narrower screens.' }
+    ]
+  },
   {
     version: 'v9.4.7',
     date: '2026-10-27',

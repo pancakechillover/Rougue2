@@ -343,7 +343,19 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
         `}</style>
 
         <div className="overflow-x-auto pb-4 lg:pb-0 custom-scrollbar w-full lg:w-auto flex justify-start lg:justify-center lg:items-start">
-          <div className={cn("min-w-max flex mx-auto", heatmapMode === 'year' ? "heatmap-year gap-1.5" : "heatmap-responsive gap-2")}>
+          <div
+            className={cn(
+              "mx-auto",
+              heatmapMode === 'year'
+                ? "min-w-max flex gap-1.5 heatmap-year"
+                : "w-full grid gap-2 heatmap-responsive"
+            )}
+            style={
+              heatmapMode === 'year'
+                ? undefined
+                : { gridTemplateColumns: 'auto auto', columnGap: 'var(--cell-gap)' }
+            }
+          >
             <div
               className="grid grid-rows-7 text-slate-500 font-medium pr-1 text-right mt-6"
               style={{ rowGap: 'var(--cell-gap)', fontSize: 'var(--label-size)' }}
@@ -357,25 +369,60 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               <div style={{ height: 'var(--cell-size)' }} className="invisible" />
             </div>
 
-            <div className="flex flex-col">
-              <div className="h-6 relative">
+            <div className="flex flex-col min-w-0">
+              <div
+                className={cn("h-6", heatmapMode === 'year' ? "relative" : "grid items-end")}
+                style={
+                  heatmapMode === 'year'
+                    ? undefined
+                    : { gridAutoColumns: 'var(--cell-size)' }
+                }
+              >
                 {heatmapMonthLabels.map((label, i) => (
                   <span
                     key={i}
-                    className="absolute text-slate-500 font-medium"
-                    style={{
-                      left: `calc(${label.colIndex} * (var(--cell-size) + var(--cell-gap)))`,
-                      bottom: '4px',
-                      fontSize: 'var(--label-size)',
-                    }}
+                    className={cn("text-slate-500 font-medium", heatmapMode === 'year' ? "absolute" : "min-w-0 truncate")}
+                    style={
+                      heatmapMode === 'year'
+                        ? {
+                            left: `calc(${label.colIndex} * (var(--cell-size) + var(--cell-gap)))`,
+                            bottom: '4px',
+                            fontSize: 'var(--label-size)',
+                          }
+                        : {
+                            // Same column track as the cell grid, so the label
+                            // always sits over its own week.
+                            gridColumn: label.colIndex + 1,
+                            fontSize: 'var(--label-size)',
+                          }
+                    }
                   >
                     {label.month}
                   </span>
                 ))}
               </div>
-              <div className="grid grid-rows-7 grid-flow-col justify-start auto-cols-max" style={{ gap: 'var(--cell-gap)' }}>
+              <div
+                className={cn(
+                  "grid grid-rows-7 grid-flow-col",
+                  heatmapMode === 'year' ? "justify-start auto-cols-max" : "justify-stretch"
+                )}
+                style={{
+                  gap: 'var(--cell-gap)',
+                  ...(heatmapMode === 'year'
+                    ? {}
+                    : { gridAutoColumns: 'var(--cell-size)' }),
+                }}
+              >
                 {Array.from({ length: (heatmapDays[0].getDay() + 6) % 7 }).map((_, i) => (
-                  <div key={`empty-${i}`} className="border border-transparent" style={{ width: 'var(--cell-size)', height: 'var(--cell-size)' }} />
+                  <div
+                    key={`empty-${i}`}
+                    className="border border-transparent"
+                    style={
+                      heatmapMode === 'year'
+                        ? { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                        : { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                    }
+                  />
                 ))}
                 {heatmapDays.map((date, i) => {
                   const log = dailyLogs[format(date, 'yyyy-MM-dd')];
@@ -386,7 +433,11 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                     <div
                       key={i}
                       className="relative heatmap-cell-container flex items-center justify-center"
-                      style={{ width: 'var(--cell-size)', height: 'var(--cell-size)' }}
+                      style={
+                        heatmapMode === 'year'
+                          ? { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                          : { width: 'var(--cell-size)', height: 'var(--cell-size)' }
+                      }
                     >
                       <button
                         type="button"
@@ -415,7 +466,12 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md text-white"
                             color="white"
                             strokeWidth={2.5}
-                            style={{ width: 'var(--mood-size)', height: 'var(--mood-size)' }}
+                            style={
+                              heatmapMode === 'year'
+                                ? { width: 'var(--mood-size)', height: 'var(--mood-size)' }
+                                // Follows the cell width, which now flexes.
+                                : { width: 'var(--mood-size)', height: 'var(--mood-size)' }
+                            }
                           />
                         )}
                       </button>
@@ -435,9 +491,12 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               // 30-day grid is only five columns wide, so a fixed 288px card left
               // ~270px of dead space on each side. h-full + the stretched row
               // above keep its bottom edge flush with the calendar.
+              // The calendar takes the leftover width, so its cells flex to
+              // fill the column. The summary keeps a floor so its stat
+              // blocks never get crushed on narrower screens.
               heatmapMode === 'year'
-                ? "w-full max-w-2xl mx-auto"
-                : "w-full lg:flex-1 lg:min-w-0 lg:max-w-2xl lg:mb-0 lg:self-stretch"
+                  ? "w-full max-w-2xl mx-auto"
+                  : "w-full lg:flex-1 lg:min-w-0 lg:mb-0 lg:self-stretch"
             )}
           >
             <div className="flex items-center justify-center gap-2 pb-3 border-b border-slate-800/50 mb-4">
@@ -455,13 +514,13 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                 // band of dead space underneath.
                 heatmapMode === 'year'
                   ? "grid-cols-1 sm:grid-cols-2"
-                  : "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] lg:flex-1"
+                  : "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] 2xl:grid-cols-4 2xl:grid-rows-[auto_1fr] lg:flex-1"
               )}
             >
               <div
                 className={cn(
                   "flex justify-between items-center bg-slate-900/50 px-3 py-2.5 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 2xl:col-span-4"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -478,7 +537,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               <div
                 className={cn(
                   "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
@@ -487,7 +546,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                     {heatmapMetric === 'time' ? 'Study Time' : 'Tasks Completed'}
                   </span>
                 </div>
-                <div className="flex items-center justify-center gap-10 sm:gap-16 py-0.5">
+                <div className="flex items-center justify-center gap-8 sm:gap-12 py-0.5">
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Total</span>
                     <span className="text-base font-black font-mono text-sky-400">
@@ -507,14 +566,14 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               <div
                 className={cn(
                   "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
                   <Coins size={14} className="text-amber-500" />
                   <span className="text-xs font-bold text-slate-500 uppercase">Gold Earnings</span>
                 </div>
-                <div className="flex items-center justify-center gap-10 sm:gap-16 py-0.5">
+                <div className="flex items-center justify-center gap-8 sm:gap-12 py-0.5">
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Total</span>
                     <span className="text-base font-black font-mono text-amber-400">+{heatmapSummary.totalGold}</span>
@@ -530,14 +589,14 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               <div
                 className={cn(
                   "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
                   <Zap size={14} className="text-indigo-400" />
                   <span className="text-xs font-bold text-slate-500 uppercase">EXP Earnings</span>
                 </div>
-                <div className="flex items-center justify-center gap-10 sm:gap-16 py-0.5">
+                <div className="flex items-center justify-center gap-8 sm:gap-12 py-0.5">
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Total</span>
                     <span className="text-base font-black font-mono text-indigo-400">+{heatmapSummary.totalExp}</span>
@@ -553,14 +612,14 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               <div
                 className={cn(
                   "flex flex-col justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
                   <Zap size={14} className="text-rose-400" />
                   <span className="text-xs font-bold text-slate-500 uppercase">Distractions</span>
                 </div>
-                <div className="flex items-center justify-center gap-10 sm:gap-16 py-0.5">
+                <div className="flex items-center justify-center gap-8 sm:gap-12 py-0.5">
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 leading-none">Total</span>
                     <span className="text-base font-black font-mono text-rose-400">{heatmapSummary.totalDistractions}</span>
