@@ -258,7 +258,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           "flex flex-col gap-6 w-full mt-4",
           heatmapMode === 'year'
             ? "items-center justify-center"
-            : "lg:flex-row lg:items-stretch justify-center"
+            : "lg:flex-row lg:items-start justify-between"
         )}
       >
         <style>{`
@@ -292,6 +292,15 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                --cell-radius: 8px;
                --label-size: 12px;
                --mood-size: 24px;
+             }
+          }
+          @media (min-width: 1280px) {
+             .heatmap-responsive {
+               --cell-size: 48px;
+               --cell-gap: 8px;
+               --cell-radius: 9px;
+               --label-size: 13px;
+               --mood-size: 28px;
              }
           }
           .heatmap-year {
@@ -419,7 +428,10 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           <div
             className={cn(
               "shrink-0 flex flex-col bg-slate-950/40 p-4 sm:p-5 rounded-2xl border border-slate-800/60 mb-4",
-              heatmapMode === 'year' ? "w-full max-w-2xl mx-auto" : "w-full lg:w-72 lg:mb-0"
+              // Non-year views let the summary absorb the leftover width: the
+              // 30-day grid is only five columns wide, so a fixed 288px card left
+              // ~270px of dead space on each side.
+              heatmapMode === 'year' ? "w-full max-w-2xl mx-auto" : "w-full lg:flex-1 lg:min-w-0 lg:max-w-2xl lg:mb-0"
             )}
           >
             <div className="flex items-center justify-center gap-2 pb-3 border-b border-slate-800/50 mb-4">
@@ -432,13 +444,13 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
             <div
               className={cn(
                 "grid gap-3",
-                heatmapMode === 'year' ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-1"
+                heatmapMode === 'year' ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-2"
               )}
             >
               <div
                 className={cn(
                   "flex justify-between items-center bg-slate-900/50 px-3 py-2.5 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2"
                 )}
               >
                 <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.5';
+export const APP_VERSION = 'v9.4.6';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '13:50:00';
+export const LAST_UPDATE_TIME = '14:40:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.6',
+    date: '2026-10-27',
+    time: '14:40:00',
+    title: 'Version 9.4.6: Heatmap Layout Balance',
+    items: [
+      { category: 'Heatmap', description: 'The summary card now grows to fill the leftover width instead of sitting at a fixed 288px. A 30-day grid is only five columns wide, so the old layout left roughly 270px of empty space on each side; the stats are now laid out as one full-width row plus a 2x2 block, which finally has room to breathe.' },
+      { category: 'Heatmap', description: 'Cells grow to 48px on wide screens, and the card is sized to its content rather than stretched to match the calendar height.' }
+    ]
+  },
   {
     version: 'v9.4.5',
     date: '2026-10-27',
