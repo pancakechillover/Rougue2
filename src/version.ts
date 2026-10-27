@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.22';
+export const APP_VERSION = 'v9.4.25';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '01:10:00';
+export const LAST_UPDATE_TIME = '02:05:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,36 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.25',
+    date: '2026-10-28',
+    time: '02:05:00',
+    title: 'Version 9.4.25: Real Heatmap Equal Height',
+    items: [
+      { category: 'Record', description: 'The calendar and the summary still did not match on iPad. They were never going to: five columns by six rows at 40px cells tops out around 270px while the summary needs roughly 400px, so no amount of alignment fixes the column height. Cells now scale with the breakpoint (56px from 1024, 60px from 1280) and the two measure exactly equal.' },
+      { category: 'Settings', description: 'Locking body overflow alone did not stop iOS Safari from scrolling the document. The root element is locked too now, and overscroll behaviour is disabled while Settings is open.' }
+    ]
+  },
+  {
+    version: 'v9.4.24',
+    date: '2026-10-28',
+    time: '01:55:00',
+    title: 'Version 9.4.24: Heatmap Alignment and iOS Scroll Lock',
+    items: [
+      { category: 'Record', description: 'The 30-day calendar and the summary card now share a top and bottom edge. The row already stretched, but the calendar column aligned its grid to the top, leaving a strip of dead space underneath. It is centred and fills the column now, and the gap between the two is tighter.' },
+      { category: 'Settings', description: 'Measuring the pane height was not enough on iOS Safari — the page stayed scrollable and a swipe over the rail still dragged it. On desktop widths the body scroll is now locked while Settings is open, so the gesture has nothing to move, and the scroll position is restored on the way out.' }
+    ]
+  },
+  {
+    version: 'v9.4.23',
+    date: '2026-10-28',
+    time: '01:25:00',
+    title: 'Version 9.4.23: Settings Panes on iOS',
+    items: [
+      { category: 'Settings', description: 'On iPad the rail and content still scrolled together. The pane height was a hard-coded calc(100dvh - 73px): Safari resolves dvh against the viewport with its toolbars hidden and the chrome above the panel is a different height, so the page stayed taller than the screen and a swipe over the rail dragged the whole page. The pane now measures its own available height, and re-measures when the toolbar slides or the device rotates.' },
+      { category: 'Settings', description: 'Both panes also stop scroll chaining, so a swipe that reaches the end of one pane no longer pulls the page behind it.' }
+    ]
+  },
   {
     version: 'v9.4.22',
     date: '2026-10-28',

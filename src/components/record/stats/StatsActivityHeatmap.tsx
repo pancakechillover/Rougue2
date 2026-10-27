@@ -322,7 +322,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
 
       <div
         className={cn(
-          "flex flex-col gap-6 w-full mt-4",
+          "flex flex-col gap-6 lg:gap-4 w-full mt-4",
           heatmapMode === 'year'
             ? "items-center justify-center"
             : // stretch (not start) so the calendar and the summary share one
@@ -364,11 +364,25 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                --mood-size: 24px;
              }
           }
+          /* The 30-day grid is five columns by six rows, so its natural height
+             is (6 * cell + 5 * gap). The summary card next to it needs ~400px,
+             which 40px cells could never reach — that is why the two never lined
+             up. Sizing the cells against that height fixes the column at the
+             source instead of hiding the gap with vertical centring. */
+          @media (min-width: 1024px) {
+             .heatmap-responsive {
+               --cell-size: 56px;
+               --cell-gap: 6px;
+               --cell-radius: 9px;
+               --label-size: 12px;
+               --mood-size: 26px;
+             }
+          }
           @media (min-width: 1280px) {
              .heatmap-responsive {
-               --cell-size: 48px;
+               --cell-size: 60px;
                --cell-gap: 8px;
-               --cell-radius: 9px;
+               --cell-radius: 10px;
                --label-size: 13px;
                --mood-size: 28px;
              }
@@ -413,7 +427,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           className={cn(
             // overflow-visible：选中格子会放大 25% 并带 2px 光圈，任何 overflow
             // 都会把最右/最下那一圈切掉。各模式都自适应宽度，不需要横向滚动。
-            "overflow-visible pb-4 lg:pb-0 w-full flex justify-start lg:justify-center lg:items-start",
+            "overflow-visible pb-4 lg:pb-0 w-full flex justify-start lg:justify-center lg:items-center",
             heatmapMode === 'year' ? "lg:w-full" : "lg:w-auto"
           )}
         >

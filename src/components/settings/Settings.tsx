@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { RewardCard, ShopItem, GachaPool } from '../../types';
@@ -292,6 +292,67 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
     setActiveSection(tab); // App pushes /settings/<tab>
   };
 
+  /**
+   * Height for the two panes on desktop.
+   *
+   * Hard-coding `calc(100dvh - 73px)` worked on the desktop build but not on
+   * iOS: Safari's toolbars shrink the *visible* viewport while `100dvh`
+   * resolves against the larger one, and the chrome above the panel differs
+   * per device. The page then stayed taller than the screen and a swipe over
+   * the rail scrolled the whole page again.
+   *
+   * Measuring beats guessing: take the pane's distance from the top of the
+   * visible viewport and subtract it from the viewport height.
+   */
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [paneHeight, setPaneHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = paneRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      // clientHeight excludes the iOS toolbars; innerHeight does not.
+      const available = document.documentElement.clientHeight - top;
+      setPaneHeight(Math.max(Math.round(available), 280));
+    };
+    measure();
+
+    // Belt and braces for iOS: measuring alone was not enough there. Safari
+    // still let a swipe over the rail drag the page, because the page itself
+    // remained scrollable. Locking the body removes that possibility entirely —
+    // there is nothing left for the gesture to scroll.
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const savedScroll = window.scrollY;
+    const applyLock = () => {
+      // iOS Safari ignores overflow:hidden on body alone — it keeps the
+      // document scrollable. Both the root element and body have to be locked.
+      const locked = desktop.matches;
+      document.documentElement.style.overflow = locked ? 'hidden' : '';
+      document.body.style.overflow = locked ? 'hidden' : '';
+      document.documentElement.style.overscrollBehavior = locked ? 'none' : '';
+      if (locked) window.scrollTo(0, 0);
+    };
+    applyLock();
+
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    desktop.addEventListener('change', applyLock);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', measure);
+
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+      desktop.removeEventListener('change', applyLock);
+      vv?.removeEventListener('resize', measure);
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      window.scrollTo(0, savedScroll);
+    };
+  }, []);
+
   // On desktop /settings lands on General; on mobile it is still the entry list.
   const effectiveTab = activeTab === 'menu' ? 'general' : activeTab;
 
@@ -386,11 +447,15 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
   // 73px = 顶部状态栏 41 + App wrapper 的 pb-8(32)。整页高度必须框死在视口内，
   // 否则鼠标停在左栏滚轮时会把整个页面带着滚 —— 左栏内容不够长，滚轮事件会冒泡。
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:h-[calc(100dvh-73px)] lg:overflow-hidden">
+    <div
+      ref={paneRef}
+      className="px-4 sm:px-6 lg:px-8 py-6 lg:h-[var(--pane-h,calc(100svh-73px))] lg:overflow-hidden overscroll-none"
+      style={paneHeight ? ({ '--pane-h': `${paneHeight}px` } as React.CSSProperties) : undefined}
+    >
       <div className="lg:flex lg:gap-10 lg:h-full">
         <SettingsNav
           variant="sidebar"
-          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar"
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar overscroll-contain"
           groups={navGroups}
           activeId={effectiveTab}
           onSelect={setTabAndSave}
@@ -398,7 +463,7 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
           onSearchChange={setSearchQuery}
           onSearchSubmit={() => handleSearchSubmit()}
         />
-        <div className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar">
+        <div className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-2 custom-scrollbar overscroll-contain">
         {activeTab === 'menu' && (
           <div className="space-y-6 lg:hidden">
             <div>
