@@ -144,7 +144,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
         description={dungeonSubTab === 'list' ? "Manage your study goals" : dungeonSubTab === 'quests' ? "Complete tasks for extra rewards" : dungeonSubTab === 'achievements' ? "Your legendary milestones" : "Chronicle of your completed deeds"} 
         icon={dungeonSubTab === 'list' ? Sword : dungeonSubTab === 'quests' ? Target : dungeonSubTab === 'achievements' ? Trophy : Archive} 
       >
-        <div className="flex flex-wrap items-center gap-3 mt-4">
+        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 mt-4 -mx-2 px-2 py-2 bg-slate-950/95 backdrop-blur-sm">
           <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setDungeonSubTab('list')}
