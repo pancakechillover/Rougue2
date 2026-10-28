@@ -179,7 +179,7 @@ export const ReflectionHeaderControls: React.FC<ReflectionHeaderControlsProps> =
             immersiveVariant === 'indigo' && (immersiveLabel ? "gap-1.5 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-600/20 text-xs font-semibold" : "w-7 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-md shadow-indigo-600/20"),
             immersiveVariant === 'icon-only' && "w-7 bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/70 hover:border-slate-600"
           )}
-          title="Fullscreen Immersive Writing Mode"
+          title="Open in Fullscreen Journal (/journal)"
         >
           <Maximize2 size={13} />
           {immersiveLabel && <span>{immersiveLabel}</span>}

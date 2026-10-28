@@ -1,6 +1,7 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { format, parseISO } from 'date-fns';
 import { 
 
   X, 
@@ -29,7 +30,6 @@ import { AppState, Dungeon, MajorDungeon } from '../../types';
 
 import { createPortal } from 'react-dom';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
 import { MoodSelector } from '../common/MoodSelector';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
@@ -41,26 +41,25 @@ interface DailySummaryModalProps {
   majorDungeons: MajorDungeon[];
   onClose: () => void;
   onNavigateToStats: () => void;
+  onOpenJournal?: (dateStr: string) => void;
   onSave: (date: string, rating: number, reflection: string, mood?: string, title?: string) => void;
   onUpdateState?: (update: Partial<AppState>) => void;
 }
 
-export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dungeons, majorDungeons, onClose, onNavigateToStats, onSave, onUpdateState }) => {
+export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dungeons, majorDungeons, onClose, onNavigateToStats, onOpenJournal, onSave, onUpdateState }) => {
   useScrollLock(true);
   const [rating, setRating] = useState(() => Number(localStorage.getItem('scholar_rating_draft')) || 0);
   const [reflection, setReflection] = useState(() => localStorage.getItem('scholar_reflection_draft') || '');
   const [mood, setMood] = useState(() => localStorage.getItem('scholar_mood_draft') || '');
   const [title, setTitle] = useState(() => localStorage.getItem('scholar_title_draft') || '');
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
-  const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(state.defaultMarkdownEnabled ?? true);
-  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
 
   // Efficiency Calculation State
   const [customTargetHours, setCustomTargetHours] = useState<number | null>(null);
   const [showEfficiencyDetails, setShowEfficiencyDetails] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
-useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false);
+  const hasInitializedFromLog = useRef(false);
 
   const today = useMemo(() => {
     const ts = state.timeSettings || {
@@ -340,6 +339,7 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
   React.useEffect(() => {
     if (!hasInitializedFromLog.current && today.dateString) {
       const existingLog = state.dailyLogs?.[today.dateString];
+      if (existingLog?.title) setTitle(existingLog.title);
       if (existingLog && existingLog.reflection?.trim()) {
         setReflection(existingLog.reflection);
         if (existingLog.mood) setMood(existingLog.mood);
@@ -476,7 +476,7 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
               className="w-full flex items-center justify-between hover:text-white transition-colors group"
             >
               <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 group-hover:text-white transition-colors">
-                <Calendar size={16} className="text-emerald-400" /> Today's Record
+                <Calendar size={16} className="text-indigo-400" /> Today's Record
               </h3>
               <div className="text-slate-500 group-hover:text-white transition-colors">
                 {isStatsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -495,7 +495,7 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                       <StatCard icon={Sword} label={"Time"} value={formatDuration(dailyStats.effectiveMinutes)} color="text-indigo-400" />
                       <StatCard icon={Coins} label="Gold" value={dailyStats.gold} color="text-amber-400" />
-                      <StatCard icon={Zap} label="XP" value={dailyStats.xp} color="text-emerald-400" />
+                      <StatCard icon={Zap} label="XP" value={dailyStats.xp} color="text-indigo-400" />
                       <StatCard icon={Calendar} label="Streak" value={`${dailyStats.streak} Days`} color="text-orange-400" />
                     </div>
 
@@ -613,10 +613,30 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
           <div className="space-y-4 flex flex-col lg:w-1/2 lg:flex-1 min-h-[500px] lg:h-full">
           {/* Daily Reflection */}
           <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-6 border border-slate-700/30 space-y-3 flex flex-col flex-1">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
-                <MessageSquare size={15} className="text-sky-400" /> Daily Reflection
-              </h3>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <MessageSquare size={15} className="text-sky-400 shrink-0" />
+                <div className="flex items-center gap-1 min-w-0 flex-1">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={format(parseISO(today.dateString), 'MMM dd')}
+                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-200 placeholder:text-slate-300 placeholder:font-bold outline-none hover:bg-slate-800/40 focus:bg-slate-800/60 px-2 py-1 rounded-lg border border-transparent focus:border-indigo-500/50 transition-all truncate"
+                    title="Journal Title (Click to customize)"
+                  />
+                  {title && (
+                    <button
+                      type="button"
+                      onClick={() => setTitle('')}
+                      className="p-1 text-slate-500 hover:text-slate-300 rounded transition-colors shrink-0"
+                      title="Reset to default date title"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
               <ReflectionHeaderControls
                 reflection={reflection}
                 onSelectTemplate={setReflection}
@@ -630,7 +650,16 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
                     autoLoadTemplateMode: mode || 'empty'
                   });
                 }}
-                onOpenImmersive={() => setIsImmersiveMode(true)}
+                onOpenImmersive={() => {
+                  localStorage.removeItem('scholar_reflection_draft');
+                  localStorage.removeItem('scholar_rating_draft');
+                  localStorage.removeItem('scholar_mood_draft');
+                  localStorage.removeItem('scholar_mood_score_draft');
+                  localStorage.removeItem('scholar_title_draft');
+                  onSave(today.dateString, rating, reflection, mood, title);
+                  onClose();
+                  onOpenJournal?.(today.dateString);
+                }}
                 showCopy={true}
                 showImportExport={true}
                 onImportReflection={setReflection}
@@ -657,7 +686,7 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
               onSave(today.dateString, rating, reflection, mood, title);
               onNavigateToStats();
             }}
-            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 flex-shrink-0"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 flex-shrink-0"
           >
             <span>Save & Rest</span>
             <ArrowRight size={20} />
@@ -671,28 +700,6 @@ useRef<HTMLTextAreaElement>(null);;  const hasInitializedFromLog = useRef(false)
 
   return (
     <>
-      <ImmersiveReflectionModal
-        isOpen={isImmersiveMode}
-        onClose={() => setIsImmersiveMode(false)}
-        dateString={today.dateString}
-        reflection={reflection}
-        setReflection={setReflection}
-        title={title}
-        onTitleChange={setTitle}
-        isMarkdownEnabled={isMarkdownEnabled}
-        setIsMarkdownEnabled={setIsMarkdownEnabled}
-        templates={state.reflectionTemplates}
-        onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
-        efficiencyRatingConfig={state.efficiencyRatingConfig}
-        autoLoadTemplateId={state.autoLoadTemplateId}
-        autoLoadTemplateMode={state.autoLoadTemplateMode}
-        onSetAutoLoadTemplate={(templateId, mode) => {
-          onUpdateState?.({
-            autoLoadTemplateId: templateId,
-            autoLoadTemplateMode: mode || 'empty'
-          });
-        }}
-      />
       {showEfficiencyDetails && (
         <EfficiencyDetailsModal
           effectiveMinutes={dailyStats.effectiveMinutes}

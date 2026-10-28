@@ -16,7 +16,7 @@ interface StatsViewProps {
   majorDungeons?: MajorDungeon[];
   setShowStartOfDayModal?: (val: string | boolean) => void;
   /** Opens the journal as its own full-screen page. */
-  onOpenJournalPage?: () => void;
+  onOpenJournalPage?: (dateStr?: string) => void;
 }
 
 export const StatsView: React.FC<StatsViewProps> = ({ 
@@ -56,7 +56,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               dungeons={dungeons}
               majorDungeons={majorDungeons}
               _setShowStartOfDayModal={setShowStartOfDayModal}
-              onOpenJournal={() => onOpenJournalPage?.()}
+              onOpenJournal={(dateStr) => onOpenJournalPage?.(dateStr)}
             />
           </motion.div>
         )}

@@ -30,7 +30,6 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { cn, sortAgendaTodos, getSettlementDay, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
-import { ImmersiveReflectionModal } from '../journal/ImmersiveReflectionModal';
 import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 
@@ -39,10 +38,11 @@ interface StartOfDayModalProps {
   dungeons: Dungeon[];
   majorDungeons?: MajorDungeon[];
   onClose: () => void;
-  onSave: (date: string, sleepTime: string, wakeTime: string, sleepDurationMin: number, reflection: string, mood?: string) => void;
+  onSave: (date: string, sleepTime: string, wakeTime: string, sleepDurationMin: number, reflection: string, mood?: string, title?: string) => void;
   repairStreak?: (dateStr: string) => void;
   initialDateStr?: string;
   onUpdateState?: (update: Partial<AppState>) => void;
+  onOpenJournal?: (dateStr: string) => void;
 }
 
 interface DraggableStartOfDayTodoItemProps {
@@ -139,7 +139,8 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
   onSave, 
   initialDateStr, 
   onUpdateState, 
-  repairStreak 
+  repairStreak,
+  onOpenJournal
 }) => {
   useScrollLock(true);
   
@@ -231,10 +232,9 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     }
     return '';
   });
-  const [mood, _setMood] = useState(dailyLog?.mood || '');
+  const [mood, setMood] = useState(dailyLog?.mood || '');
+  const [title, setTitle] = useState(dailyLog?.title || '');
 
-  const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(state.defaultMarkdownEnabled ?? true);
-  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [showNoMedalAlert, setShowNoMedalAlert] = useState(false);
 
   // Agenda / Todo States & Handlers
@@ -538,7 +538,7 @@ useMemo(() => {
   const availableMedals = state.deathDefyingMedals || 0;
 
   const handleSave = () => {
-    onSave(todayStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood);
+    onSave(todayStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title);
     onClose();
   };
 
@@ -1097,10 +1097,30 @@ useMemo(() => {
              <div className="space-y-6 flex flex-col min-h-[500px] h-full">
              {/* Morning Reflection / Intentions */}
              <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-6 border border-slate-700/30 space-y-4 flex flex-col flex-1">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3">
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-2 shrink-0">
-                    <MessageSquare size={15} className="text-sky-400" /> Daily Reflection
-                  </h3>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700/40 gap-3 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <MessageSquare size={15} className="text-sky-400 shrink-0" />
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder={format(parseISO(todayStr), 'MMM dd')}
+                        className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-200 placeholder:text-slate-300 placeholder:font-bold outline-none hover:bg-slate-800/40 focus:bg-slate-800/60 px-2 py-1 rounded-lg border border-transparent focus:border-indigo-500/50 transition-all truncate"
+                        title="Journal Title (Click to customize)"
+                      />
+                      {title && (
+                        <button
+                          type="button"
+                          onClick={() => setTitle('')}
+                          className="p-1 text-slate-500 hover:text-slate-300 rounded transition-colors shrink-0"
+                          title="Reset to default date title"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   
                   <ReflectionHeaderControls
                     reflection={reflection}
@@ -1121,7 +1141,11 @@ useMemo(() => {
                         });
                       }
                     }}
-                    onOpenImmersive={() => setIsImmersiveMode(true)}
+                    onOpenImmersive={() => {
+                      onSave(todayStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title);
+                      onClose();
+                      onOpenJournal?.(todayStr);
+                    }}
                     showCopy={true}
                     showImportExport={true}
                     onImportReflection={setReflection}
@@ -1188,24 +1212,5 @@ useMemo(() => {
     </AnimatePresence>
   );
 
-  return (
-    <>
-      <ImmersiveReflectionModal
-        isOpen={isImmersiveMode}
-        onClose={() => setIsImmersiveMode(false)}
-        dateString={today.dateString}
-        reflection={reflection}
-        setReflection={setReflection}
-        isMarkdownEnabled={isMarkdownEnabled}
-        setIsMarkdownEnabled={setIsMarkdownEnabled}
-        templates={state.reflectionTemplates}
-        onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
-        efficiencyRatingConfig={state.efficiencyRatingConfig}
-      />
-      {createPortal(
-        modalContent, 
-        document.body
-      )}
-    </>
-  );
+  return createPortal(modalContent, document.body);
 };

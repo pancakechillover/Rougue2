@@ -97,67 +97,138 @@ export const Shop = React.memo<ShopProps>(({
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'shop' && (
-          <motion.div
-            key="shop"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="w-full border-[8px] border-slate-800 rounded-3xl overflow-hidden bg-slate-800"
-          >
-            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {shopItems.map(item => {
-              const IconComponent = (item.icon && ICON_MAP[item.icon]) || ShoppingBag;
-              const isOutOfStock = item.stock !== undefined && item.stock === 0;
+        {activeTab === 'shop' && (() => {
+          const count = shopItems.length;
+          const totalSm = Math.max(2, Math.ceil(count / 2) * 2);
+          const totalMd = Math.max(4, Math.ceil(count / 4) * 4);
+          const totalLg = Math.max(5, Math.ceil(count / 5) * 5);
+          const maxTotal = Math.max(totalSm, totalMd, totalLg);
+          const placeholderIndices = Array.from(
+            { length: Math.max(0, maxTotal - count) },
+            (_, idx) => count + idx
+          );
 
-              return (
-                <div key={item.id} className={cn(
-                  "relative flex flex-col group transition-all bg-slate-950",
-                  isOutOfStock ? "opacity-50 grayscale" : ""
-                )}>
-                  {/* Item Display on Shelf */}
-                  <div className="w-full relative pt-8 pb-3 border-b-[4px] border-slate-800 group-hover:border-indigo-500/50 transition-colors flex flex-col items-center justify-end z-10">
-                    <div className="relative z-10 p-3 bg-indigo-500/10 text-indigo-400 rounded-xl group-hover:-translate-y-2 transition-transform duration-300">
-                      <IconComponent size={32} />
-                    </div>
-                  </div>
-                  
-                  {/* Details as Hanging Sign */}
-                  <div className="w-full flex-grow relative bg-slate-900/50 pt-3 pb-6 flex flex-col">
-                    <div className="w-[85%] mx-auto relative pt-4 flex flex-col flex-grow text-center px-2 sm:px-3 pb-3 bg-slate-800 border-2 border-slate-700/50 rounded-b-xl group-hover:border-indigo-500/50 transition-colors">
-                      {/* Hanging Chains */}
-                      <div className="absolute -top-[14px] left-3 sm:left-4 w-[2px] h-[14px] bg-slate-600 group-hover:bg-indigo-500/50 transition-colors"></div>
-                      <div className="absolute -top-[14px] right-3 sm:right-4 w-[2px] h-[14px] bg-slate-600 group-hover:bg-indigo-500/50 transition-colors"></div>
+          return (
+            <motion.div
+              key="shop"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="w-full border-[8px] border-slate-800 rounded-3xl overflow-hidden bg-slate-800"
+            >
+              <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {shopItems.map(item => {
+                  const IconComponent = (item.icon && ICON_MAP[item.icon]) || ShoppingBag;
+                  const isOutOfStock = item.stock !== undefined && item.stock === 0;
+                  const itemName = item.name?.trim() || 'Unnamed Item';
+                  const itemDesc = item.description?.trim() || 'No description provided.';
 
-                      <h3 className="text-sm font-bold text-slate-100 mb-1 truncate mt-1">{item.name}</h3>
-                      <p className="text-[10px] text-slate-400 mb-4 flex-grow line-clamp-2 leading-relaxed">{item.description}</p>
-                      
-                      <div className="flex items-center gap-1 mt-auto">
-                        <div className="flex-none px-1.5 sm:px-2 py-1.5 bg-slate-900 border border-slate-700/50 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
-                          {item.stock !== undefined && item.stock !== -1 ? `Lmt ${item.stock}` : '∞'} 
+                  return (
+                    <div key={item.id} className={cn(
+                      "relative flex flex-col group transition-all bg-slate-950",
+                      isOutOfStock ? "opacity-50 grayscale" : ""
+                    )}>
+                      {/* Item Display on Shelf */}
+                      <div className="w-full relative pt-8 pb-3 border-b-[4px] border-slate-800 group-hover:border-indigo-500/50 transition-colors flex flex-col items-center justify-end z-10">
+                        <div className="relative z-10 p-3 bg-indigo-500/10 text-indigo-400 rounded-xl group-hover:-translate-y-2 transition-transform duration-300">
+                          <IconComponent size={32} />
                         </div>
-                        <button
-                          onClick={() => onPurchase(item.id)}
-                          disabled={coins < item.price || isOutOfStock}
-                          className={cn(
-                            "flex-1 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 min-w-0 border",
-                            (coins >= item.price && !isOutOfStock)
-                              ? "bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/30 group-hover:bg-indigo-500 group-hover:scale-105" 
-                              : "bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed"
+                      </div>
+                      
+                      {/* Details as Hanging Sign */}
+                      <div className="w-full flex-grow relative bg-slate-900/50 pt-3 pb-6 flex flex-col">
+                        <div className="w-[85%] mx-auto relative pt-4 flex flex-col flex-grow text-center px-2 sm:px-3 pb-3 bg-slate-800 border-2 border-slate-700/50 rounded-b-xl group-hover:border-indigo-500/50 transition-colors">
+                          {/* Hanging Chains */}
+                          <div className="absolute -top-[14px] left-3 sm:left-4 w-[2px] h-[14px] bg-slate-600 group-hover:bg-indigo-500/50 transition-colors"></div>
+                          <div className="absolute -top-[14px] right-3 sm:right-4 w-[2px] h-[14px] bg-slate-600 group-hover:bg-indigo-500/50 transition-colors"></div>
+
+                          <h3 className={cn("text-sm font-bold mb-1 truncate mt-1", item.name?.trim() ? "text-slate-100" : "text-slate-500 italic pr-1")}>
+                            {itemName}
+                          </h3>
+                          <p className={cn("text-[10px] mb-4 flex-grow line-clamp-2 leading-relaxed", item.description?.trim() ? "text-slate-400" : "text-slate-500 italic pr-1")}>
+                            {itemDesc}
+                          </p>
+                          
+                          <div className="flex items-center gap-1 mt-auto">
+                            <div className="flex-none px-1.5 sm:px-2 py-1.5 bg-slate-900 border border-slate-700/50 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                              {item.stock !== undefined && item.stock !== -1 ? `Lmt ${item.stock}` : '∞'} 
+                            </div>
+                            <button
+                              onClick={() => onPurchase(item.id)}
+                              disabled={coins < item.price || isOutOfStock}
+                              className={cn(
+                                "flex-1 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 min-w-0 border",
+                                (coins >= item.price && !isOutOfStock)
+                                  ? "bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/30 group-hover:bg-indigo-500 group-hover:scale-105" 
+                                  : "bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed"
+                              )}
+                            >
+                              <Coins size={12} className={cn("opacity-90 shrink-0", (coins >= item.price && !isOutOfStock) && "text-amber-300 group-hover:text-amber-200")} />
+                              <span className="truncate">{isOutOfStock ? 'Sold' : item.price}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {placeholderIndices.map(slotIndex => (
+                  <div
+                    key={`placeholder-${slotIndex}`}
+                    className={cn(
+                      "relative flex-col group transition-all bg-slate-950/90",
+                      slotIndex < totalSm ? "flex" : "hidden",
+                      slotIndex < totalMd ? "md:flex" : "md:hidden",
+                      slotIndex < totalLg ? "lg:flex" : "lg:hidden"
+                    )}
+                  >
+                    {/* Empty Shelf Display */}
+                    <div className="w-full relative pt-8 pb-3 border-b-[4px] border-slate-800 group-hover:border-slate-700 transition-colors flex flex-col items-center justify-end z-10">
+                      <div className="relative z-10 p-3 bg-slate-900/50 text-slate-700 border border-dashed border-slate-800 rounded-xl group-hover:border-indigo-500/30 group-hover:text-indigo-400/60 transition-all duration-300">
+                        <Package size={32} />
+                      </div>
+                    </div>
+
+                    {/* Empty Hanging Sign Placeholder */}
+                    <div className="w-full flex-grow relative bg-slate-900/30 pt-3 pb-6 flex flex-col">
+                      <div className="w-[85%] mx-auto relative pt-4 flex flex-col flex-grow text-center px-2 sm:px-3 pb-3 bg-slate-900/50 border-2 border-dashed border-slate-800/80 rounded-b-xl group-hover:border-indigo-500/30 transition-colors">
+                        {/* Hanging Chains */}
+                        <div className="absolute -top-[14px] left-3 sm:left-4 w-[2px] h-[14px] bg-slate-800 group-hover:bg-indigo-500/30 transition-colors"></div>
+                        <div className="absolute -top-[14px] right-3 sm:right-4 w-[2px] h-[14px] bg-slate-800 group-hover:bg-indigo-500/30 transition-colors"></div>
+
+                        <h3 className="text-sm font-bold text-slate-600 mb-1 truncate mt-1">Empty Slot</h3>
+                        <p className="text-[10px] text-slate-600 mb-4 flex-grow line-clamp-2 leading-relaxed">
+                          No item configured in this shelf slot.
+                        </p>
+
+                        <div className="flex items-center gap-1 mt-auto">
+                          <div className="flex-none px-1.5 sm:px-2 py-1.5 bg-slate-950/60 border border-slate-800/70 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-widest shrink-0">
+                            --
+                          </div>
+                          {onOpenSettings ? (
+                            <button
+                              type="button"
+                              onClick={onOpenSettings}
+                              className="flex-1 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 min-w-0 border bg-slate-900/80 hover:bg-indigo-500/15 border-slate-800 hover:border-indigo-500/40 text-slate-500 hover:text-indigo-300"
+                            >
+                              <Plus size={12} className="shrink-0" />
+                              <span className="truncate">Stock</span>
+                            </button>
+                          ) : (
+                            <div className="flex-1 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 min-w-0 border bg-slate-950/50 border-slate-800/60 text-slate-700 select-none">
+                              <span className="truncate">Unstocked</span>
+                            </div>
                           )}
-                        >
-                          <Coins size={12} className={cn("opacity-90 shrink-0", (coins >= item.price && !isOutOfStock) && "text-amber-300 group-hover:text-amber-200")} />
-                          <span className="truncate">{isOutOfStock ? 'Sold' : item.price}</span>
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            </div>
-          </motion.div>
-        )}
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {activeTab === 'gacha' && (
           <motion.div

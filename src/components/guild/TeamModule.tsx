@@ -187,6 +187,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   const [unlockError, setUnlockError] = useState('');
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<string | null>(null);
+  const [viewingFallbackMember, setViewingFallbackMember] = useState<TeamMember | null>(null);
   const [showPlazaModal, setShowPlazaModal] = useState(false);
   const [showDetailedGoal, setShowDetailedGoal] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -291,7 +292,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
       const data = await res.json();
       if (data.team) {
         setTeam(data.team);
-        setMessages(data.messages || []);
+        setMessages(prev => {
+          const serverMsgs: TeamMessage[] = data.messages || [];
+          const pendingMsgs = prev.filter(m => m.id.startsWith('temp-'));
+          return [...pendingMsgs, ...serverMsgs];
+        });
         setEvents(data.events || []);
         setView('team');
         setState(s => ({ ...s, lastTeamData: { team: data.team, messages: data.messages, events: data.events } }));
@@ -428,7 +433,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
     setChatInput('');
     setIsSendingMessage(true);
     
-    const fakeId = "temp-" + Date.now();
+    const fakeId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     // Optimistic UI update
     const fakeMessage: TeamMessage = {
       id: fakeId,
@@ -475,6 +480,35 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
       customAlert(e.message || "Message failed to send. Please try again.", "Send Failed");
     } finally {
       setIsSendingMessage(false);
+    }
+  };
+
+  const openProfileForMessage = (m: TeamMessage, isMe: boolean) => {
+    const matchedMember = team?.members?.find(
+      member =>
+        member.userId === m.userId ||
+        (isMe && member.userId === team?.myUserId) ||
+        (isMe && !!state.userUniqueId && member.uniqueId === state.userUniqueId) ||
+        member.name === m.name
+    );
+    if (matchedMember) {
+      setViewingFallbackMember(null);
+      setViewingProfile(matchedMember.userId);
+    } else {
+      const fallback: TeamMember = {
+        userId: m.userId,
+        name: m.name || 'Scholar',
+        avatar: m.avatar || 'User',
+        level: isMe ? (state.level || 1) : 1,
+        title: isMe ? (state.userTitle || getTitleForLevel(state.level || 1)) : 'Wandering Scholar',
+        bio: isMe ? state.userBio : undefined,
+        uniqueId: isMe ? state.userUniqueId : undefined,
+        totalFocusTime: isMe ? calculateUserTotalFocus(state.history, state.includeRestTimeInTasks) : 0,
+        joinedAt: m.timestamp || Date.now(),
+        isCaptain: false,
+      };
+      setViewingFallbackMember(fallback);
+      setViewingProfile(m.userId);
     }
   };
 
@@ -900,7 +934,8 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
                 {activeTab === 'chat' ? (
                   <div className="flex flex-col space-y-1 pb-2">
                     {([...messages].sort((a, b) => a.timestamp - b.timestamp)).map((m, idx, sortedArr) => {
-                      const isMe = m.userId === team?.myUserId;
+                      const isPending = m.id.startsWith('temp-');
+                      const isMe = m.userId === team?.myUserId || isPending;
                       const senderMember = team?.members?.find(member => member.userId === m.userId);
                       const rawId = senderMember?.uniqueId || (isMe ? state.userUniqueId : null);
                       const senderUniqueId = rawId ? (rawId.startsWith('SD-') ? rawId.replace('SD-', 'ID-') : rawId) : null;
@@ -940,37 +975,62 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
                                 isMe ? "flex-row-reverse mr-10" : "flex-row ml-10"
                               )}>
                                 <div className={cn(
-                                  "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words transition-colors shadow-xs",
+                                  "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words transition-all shadow-xs",
                                   isMe 
                                     ? "bg-indigo-600 text-white rounded-r-md" 
-                                    : "bg-slate-800 text-slate-300 rounded-l-md border border-slate-700/50"
+                                    : "bg-slate-800 text-slate-300 rounded-l-md border border-slate-700/50",
+                                  isPending && "opacity-80"
                                 )}>
                                   {m.content}
                                 </div>
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] text-slate-500 font-mono select-none shrink-0 px-1">
-                                  {formatChatTime(m.timestamp)}
-                                </span>
+                                {isPending ? (
+                                  <span className="flex items-center justify-center shrink-0 px-1" title="Sending...">
+                                    <RefreshCw size={13} className="animate-spin text-indigo-400" />
+                                  </span>
+                                ) : (
+                                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] text-slate-500 font-mono select-none shrink-0 px-1">
+                                    {formatChatTime(m.timestamp)}
+                                  </span>
+                                )}
                               </div>
                             ) : (
                               /* First message in group with avatar and header */
                               <div className={cn("flex items-end gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
-                                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/50 overflow-hidden shrink-0 translate-y-1 flex items-center justify-center shadow-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => openProfileForMessage(m, isMe)}
+                                  title={`View ${m.name}'s profile`}
+                                  className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/50 hover:border-indigo-500/60 hover:ring-2 hover:ring-indigo-500/20 overflow-hidden shrink-0 translate-y-1 flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+                                >
                                   {renderAvatar(m.avatar, 14)}
-                                </div>
+                                </button>
                                 <div className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
                                   <div className={cn("flex items-center gap-2 mb-1", isMe ? "flex-row-reverse" : "flex-row")}>
-                                    <span className="text-xs font-bold text-slate-300">
+                                    <button
+                                      type="button"
+                                      onClick={() => openProfileForMessage(m, isMe)}
+                                      title={`View ${m.name}'s profile`}
+                                      className="text-xs font-bold text-slate-300 hover:text-indigo-400 transition-colors cursor-pointer"
+                                    >
                                       {m.name} {senderUniqueId ? <span className="text-[10px] text-slate-500 font-mono font-normal">({senderUniqueId})</span> : ''}
-                                    </span>
+                                    </button>
                                     <span className="text-[9px] text-slate-500 font-mono">{formatChatTime(m.timestamp)}</span>
                                   </div>
-                                  <div className={cn(
-                                    "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words shadow-xs",
-                                    isMe 
-                                      ? "bg-indigo-600 text-white rounded-br-none" 
-                                      : "bg-slate-800 text-slate-300 rounded-bl-none border border-slate-700/50"
-                                  )}>
-                                    {m.content}
+                                  <div className={cn("flex items-center gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
+                                    <div className={cn(
+                                      "text-sm p-2.5 sm:p-3 rounded-2xl w-fit max-w-[280px] sm:max-w-[340px] break-words shadow-xs transition-all",
+                                      isMe 
+                                        ? "bg-indigo-600 text-white rounded-br-none" 
+                                        : "bg-slate-800 text-slate-300 rounded-bl-none border border-slate-700/50",
+                                      isPending && "opacity-80"
+                                    )}>
+                                      {m.content}
+                                    </div>
+                                    {isPending && (
+                                      <span className="flex items-center justify-center shrink-0 px-0.5" title="Sending...">
+                                        <RefreshCw size={13} className="animate-spin text-indigo-400" />
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1042,15 +1102,14 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !isSendingMessage && sendMessage()}
                     placeholder="Message the guild..."
-                    disabled={isSendingMessage}
-                    className="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-xl pl-4 pr-10 py-2.5 outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+                    className="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-xl pl-4 pr-10 py-2.5 outline-none focus:border-indigo-500 transition-colors"
                   />
                   <button 
                     onClick={sendMessage} 
-                    disabled={isSendingMessage}
+                    disabled={isSendingMessage || !chatInput.trim()}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 p-1.5 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send size={14} />
+                    {isSendingMessage ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
                   </button>
                 </div>
               </div>
@@ -1208,10 +1267,13 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
       
       {viewingProfile && team && (
         <TeamMemberProfileModal 
-           member={team.members.find(m => m.userId === viewingProfile)!}
-           onClose={() => setViewingProfile(null)}
+           member={(team.members.find(m => m.userId === viewingProfile) || viewingFallbackMember)!}
+           onClose={() => {
+             setViewingProfile(null);
+             setViewingFallbackMember(null);
+           }}
            isCurrentUserCaptain={team.members.find(m => m.userId === team.myUserId || (!!m.uniqueId && !!state.userUniqueId && m.uniqueId === state.userUniqueId))?.isCaptain}
-           isTargetSelf={viewingProfile === team.myUserId || (!!state.userUniqueId && team.members.find(m => m.userId === viewingProfile)?.uniqueId === state.userUniqueId)}
+           isTargetSelf={viewingProfile === team.myUserId || (!!state.userUniqueId && (team.members.find(m => m.userId === viewingProfile) || viewingFallbackMember)?.uniqueId === state.userUniqueId)}
            onTransferCaptain={(targetId) => {
               customConfirm("Are you sure you want to transfer guild leadership? You will become a regular member.", async () => {
                  const identityCode = getOrGenerateIdentity();

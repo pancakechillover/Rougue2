@@ -327,6 +327,21 @@ function App() {
   const [guideInitialPage, setGuideInitialPage] = useState(0);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [showStartOfDayModal, setShowStartOfDayModal] = useState<string | boolean>(false);
+  const [journalInitialDate, setJournalInitialDate] = useState<Date | undefined>(undefined);
+  const [journalReturnTab, setJournalReturnTab] = useState<string>('stats');
+
+  const handleOpenJournalPage = useCallback((dateStr?: string) => {
+    if (dateStr) {
+      const parsed = parseISO(dateStr);
+      if (isValid(parsed)) {
+        setJournalInitialDate(parsed);
+      }
+    } else {
+      setJournalInitialDate(undefined);
+    }
+    setJournalReturnTab(activeTab === 'journal' ? 'stats' : activeTab);
+    setActiveTab('journal');
+  }, [activeTab, setActiveTab]);
   const [showCloudSync, setShowCloudSync] = useState(false);
   const [passportInitialTab, setPassportInitialTab] = useState<'login' | 'register'>('login');
   const [passportPromptMessage, setPassportPromptMessage] = useState<string | null>(null);
@@ -2098,7 +2113,7 @@ function App() {
                 dungeons={dungeons}
                 majorDungeons={majorDungeons}
                 setShowStartOfDayModal={setShowStartOfDayModal}
-                onOpenJournalPage={() => setActiveTab('journal')}
+                onOpenJournalPage={handleOpenJournalPage}
               />
             )}
 
@@ -2109,7 +2124,8 @@ function App() {
                 onUpdateState={(update) => setState(prev => ({ ...prev, ...update }))}
                 dungeons={dungeons}
                 majorDungeons={majorDungeons}
-                onBack={() => setActiveTab('stats')}
+                initialDate={journalInitialDate}
+                onBack={() => setActiveTab((journalReturnTab as any) || 'stats')}
               />
             )}
 
@@ -2148,6 +2164,10 @@ function App() {
               setShowDailySummary(false);
               setActiveTab('stats');
             }}
+            onOpenJournal={(dateStr) => {
+              setShowDailySummary(false);
+              handleOpenJournalPage(dateStr);
+            }}
             onSave={saveDailyLog}
             onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
           />
@@ -2161,7 +2181,11 @@ function App() {
             repairStreak={repairStreak}
             onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
             onClose={() => setShowStartOfDayModal(false)}
-            onSave={(dateStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood) => {
+            onOpenJournal={(dateStr) => {
+              setShowStartOfDayModal(false);
+              handleOpenJournalPage(dateStr);
+            }}
+            onSave={(dateStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title) => {
               const logs = state.dailyLogs || {};
               const current = logs[dateStr] || { rating: 0, reflection: '' };
               setState(s => ({
@@ -2175,7 +2199,8 @@ function App() {
                     wakeTime,
                     sleepDurationMin,
                     reflection,
-                    mood: mood || current.mood
+                    mood: mood || current.mood,
+                    ...(title !== undefined ? { title: title.trim() || undefined } : {})
                   }
                 }
               }));

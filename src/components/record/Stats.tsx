@@ -49,7 +49,7 @@ interface StatsProps {
   dungeons?: Dungeon[];
   majorDungeons?: MajorDungeon[];
   _setShowStartOfDayModal?: (val: string | boolean) => void;
-  onOpenJournal?: () => void;
+  onOpenJournal?: (dateStr?: string) => void;
 }
 
 const formatDuration = (val: number) => {
