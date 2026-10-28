@@ -576,7 +576,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
+          className="w-full flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-8 space-y-4"
         >
           <PageHeader 
             title="Explore"

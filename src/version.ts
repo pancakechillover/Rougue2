@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.6.0';
+export const APP_VERSION = 'v9.6.1';
 export const LAST_UPDATE_DATE = '2026-10-29';
-export const LAST_UPDATE_TIME = '01:00:00';
+export const LAST_UPDATE_TIME = '01:35:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,17 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.6.1',
+    date: '2026-10-29',
+    time: '01:35:00',
+    title: 'Version 9.6.1: Tighter Expedition Spacing',
+    items: [
+      { category: 'Dungeons', description: 'A goal\'s tags are shown once, on the goal. Its tiers used to repeat every inherited tag as a second, dimmer pill, so a branch of five tiers read as five copies of the same label down the column.' },
+      { category: 'Dungeons', description: 'The tab bar sits against the header instead of floating below it, the filter bar hugs the list it filters, and the space between a goal\'s title and its progress and actions is tighter.' },
+      { category: 'Explore', description: 'The gap between the page title and the timer is one step smaller, in line with the rest of the app.' }
+    ]
+  },
   {
     version: 'v9.6.0',
     date: '2026-10-29',

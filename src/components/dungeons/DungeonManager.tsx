@@ -741,20 +741,19 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       )}
 
                       {(() => {
+                        // Only this task's own tags. The parent's tags used to be
+                        // repeated on every descendant as "inherited" chips, which
+                        // turned a list of five sub-tasks into five copies of the
+                        // same pill stacked down the column. The branch reads as
+                        // one group under the goal that carries the tag.
                         const ownTagIds = sub.tags || [];
-                        const inheritedIds = getInheritedTagIds(sub.parentId, dungeons, majorDungeons).filter(id => !ownTagIds.includes(id));
-                        if (ownTagIds.length === 0 && inheritedIds.length === 0) return null;
+                        if (ownTagIds.length === 0) return null;
                         return (
                           <div className="flex flex-wrap items-center gap-1">
                             {ownTagIds.map(tId => {
                               const tagObj = validTags.find(t => t.id === tId);
                               if (!tagObj) return null;
                               return <TagBadge key={tId} tag={tagObj} size="xs" />;
-                            })}
-                            {inheritedIds.map(tId => {
-                              const tagObj = validTags.find(t => t.id === tId);
-                              if (!tagObj) return null;
-                              return <TagBadge key={tId} tag={tagObj} size="xs" inherited />;
                             })}
                           </div>
                         );
@@ -1022,7 +1021,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
   }, [majorDungeons, dungeons, editingSub]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {(editingMajor || editingSub || isAddingMajor || isAddingSub) && createPortal(
         <AnimatePresence>
           <motion.div
@@ -1881,7 +1880,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                 data-id={major.id}
                 data-drop-target="true"
                 className={cn(
-                  "p-3.5 flex items-center justify-between gap-3 cursor-pointer rounded-xl transition-colors",
+                  "p-3.5 flex items-center justify-between gap-2 cursor-pointer rounded-xl transition-colors",
                   expandedMajors.includes(major.id) ? "bg-slate-800/20 shadow-inner" : "hover:bg-slate-800/10"
                 )}
                 onClick={() => toggleMajor(major.id)}
