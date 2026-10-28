@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.25';
+export const APP_VERSION = 'v9.4.26';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '02:05:00';
+export const LAST_UPDATE_TIME = '12:20:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,17 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.26',
+    date: '2026-10-28',
+    time: '12:20:00',
+    title: 'Version 9.4.26: Expedition Actions Move Into a Menu',
+    items: [
+      { category: 'Expedition', description: 'Each task row carried seven permanent icons — move to top, move up, move down, add sub-task, edit, delete, complete. Reordering already had a drag handle, so three of those were a second entrance to the same operation. Rows now show the drag handle, the checkbox and a single menu button.' },
+      { category: 'Expedition', description: 'The menu holds edit, add sub-task, the three reorder commands and delete. It is rendered against the viewport, so it cannot be clipped by the scrolling list.' },
+      { category: 'Expedition', description: 'Dungeon goals got the same treatment. The edit toggle in the toolbar is now a Select button that only governs batch selection; undo is available without entering a mode first.' }
+    ]
+  },
   {
     version: 'v9.4.25',
     date: '2026-10-28',

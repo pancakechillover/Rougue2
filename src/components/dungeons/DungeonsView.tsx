@@ -5,7 +5,8 @@ import {
   Target, 
   Trophy, 
   Plus, 
-  Edit2, 
+  CheckSquare,
+
   Archive,
   CheckCheck,
   Undo2,
@@ -185,7 +186,7 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {isDungeonEditMode && dungeonSubTab === 'list' && (
+            {dungeonSubTab === 'list' && (
               <button
                 onClick={undoDungeonDrag}
                 disabled={!canUndoDrag}
@@ -209,9 +210,9 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
                   ? "bg-indigo-600 text-white shadow-indigo-500/20" 
                   : "bg-slate-800 text-slate-400 hover:text-white"
               )}
-              title={isDungeonEditMode ? "Exit Edit Mode" : "Enter Edit Mode"}
+              title={isDungeonEditMode ? "Done selecting" : "Select tasks for batch actions"}
             >
-              <Edit2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <CheckSquare size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
 
             {dungeonSubTab === 'list' && (

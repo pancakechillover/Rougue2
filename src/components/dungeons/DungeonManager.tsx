@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
 import { Dungeon, MajorDungeon, DungeonReward, Tag, TagColor } from '../../types';
 import { Plus, Target, Sword, CheckCircle2, ChevronRight, Trash2, ChevronDown, Gift, X, Edit2, Coins, Zap, Trophy, Square, CheckSquare, Archive, Search, Calendar, GripVertical, Scroll, RefreshCcw, ArrowUp, ArrowDown, ArrowUpToLine, Tags, FolderInput } from 'lucide-react';
+import { RowActionsMenu } from './RowActionsMenu';
 import { cn, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -827,73 +828,61 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   </div>
 
                   <div className="flex items-center justify-end shrink-0 gap-1">
-                    {isEditMode && (
-                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                        {idx > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'top'); }}
-                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-indigo-400 rounded transition-all"
-                            title="Move to Top"
-                          >
-                            <ArrowUpToLine size={11} />
-                          </button>
-                        )}
-                        {idx > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'up'); }}
-                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-white rounded transition-all"
-                            title="Move Up"
-                          >
-                            <ArrowUp size={11} />
-                          </button>
-                        )}
-                        {idx < parentSubs.length - 1 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderSub(sub.id, 'down'); }}
-                            className="p-1 bg-slate-800/50 text-slate-500 hover:text-white rounded transition-all"
-                            title="Move Down"
-                          >
-                            <ArrowDown size={11} />
-                          </button>
-                        )}
-                        {currentDepth < 3 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setIsAddingSub({ parentId: sub.id }); }}
-                            className="p-1 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded transition-all"
-                            title={`ADD TIER ${currentDepth + 1}`}
-                          >
-                            <Plus size={11} />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditingSub(sub); }}
-                          className={cn(
-                            "p-1 rounded transition-all",
-                            (sub.status === 'completed' || majorDungeons.find(m => m.id === (typeof sub.parentId === 'string' && sub.parentId.length > 10 ? dungeons.find(d => d.id === sub.parentId)?.parentId : sub.parentId))?.isFinalized)
-                              ? "bg-amber-500/10 text-amber-500"
-                              : "bg-slate-800/50 text-slate-500 hover:text-white"
-                          )}
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setModalConfig({
-                              isOpen: true,
-                              title: `Delete ${getSubDungeonDepth(sub.id) > 1 ? 'Tier' : 'Sub-Dungeon'}`,
-                              message: `Are you sure you want to delete "${sub.name}"? This action cannot be undone.`,
-                              confirmText: "Delete",
-                              type: "danger",
-                              onConfirm: () => onDeleteSub(sub.id)
-                            });
-                          }}
-                          className="p-1 bg-slate-800/50 text-slate-500 hover:text-red-400 rounded transition-all"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    )}
+                    <RowActionsMenu
+                      actions={[
+                        {
+                          key: 'edit',
+                          label: 'Edit',
+                          icon: Edit2,
+                          onClick: () => setEditingSub(sub),
+                        },
+                        {
+                          key: 'add',
+                          label: 'Add sub-task',
+                          icon: Plus,
+                          hidden: currentDepth >= 3,
+                          onClick: () => setIsAddingSub({ parentId: sub.id }),
+                        },
+                        {
+                          key: 'top',
+                          label: 'Move to top',
+                          icon: ArrowUpToLine,
+                          hidden: idx === 0,
+                          separatorBefore: true,
+                          onClick: () => { onDragStart?.(); _onReorderSub(sub.id, 'top'); },
+                        },
+                        {
+                          key: 'up',
+                          label: 'Move up',
+                          icon: ArrowUp,
+                          hidden: idx === 0,
+                          onClick: () => { onDragStart?.(); _onReorderSub(sub.id, 'up'); },
+                        },
+                        {
+                          key: 'down',
+                          label: 'Move down',
+                          icon: ArrowDown,
+                          hidden: idx >= parentSubs.length - 1,
+                          onClick: () => { onDragStart?.(); _onReorderSub(sub.id, 'down'); },
+                        },
+                        {
+                          key: 'delete',
+                          label: 'Delete',
+                          icon: Trash2,
+                          danger: true,
+                          separatorBefore: true,
+                          onClick: () => setModalConfig({
+                            isOpen: true,
+                            title: `Delete ${getSubDungeonDepth(sub.id) > 1 ? 'Tier' : 'Sub-Dungeon'}`,
+                            message: `Are you sure you want to delete "${sub.name}"? This action cannot be undone.`,
+                            confirmText: 'Delete',
+                            type: 'danger',
+                            onConfirm: () => onDeleteSub(sub.id),
+                          }),
+                        },
+                      ]}
+                    />
+
 
                     <div className="shrink-0 flex items-center justify-center w-6 h-6">
                       <div className={currentDungeonId === sub.id ? "text-indigo-500" : "text-slate-800"}>
@@ -2063,73 +2052,55 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                   </div>
                   
                   <div className="flex items-center justify-end shrink-0 gap-1">
-                    {isEditMode && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        {majorIdx > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'top'); }}
-                            className="p-1 bg-slate-800 text-slate-500 hover:text-indigo-400 rounded-md transition-all"
-                            title="Move Goal to Top"
-                          >
-                            <ArrowUpToLine size={13} />
-                          </button>
-                        )}
-                        {majorIdx > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'up'); }}
-                            className="p-1 bg-slate-800 text-slate-500 hover:text-white rounded-md transition-all"
-                            title="Move Goal Up"
-                          >
-                            <ArrowUp size={13} />
-                          </button>
-                        )}
-                        {majorIdx < filteredMajors.length - 1 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDragStart?.(); _onReorderMajor(major.id, 'down'); }}
-                            className="p-1 bg-slate-800 text-slate-500 hover:text-white rounded-md transition-all"
-                            title="Move Goal Down"
-                          >
-                            <ArrowDown size={13} />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditingMajor(major); }}
-                          className={cn(
-                            "p-1 rounded-md transition-all",
-                            (major.status === 'completed' || major.isFinalized)
-                              ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
-                              : "bg-slate-800 text-slate-500 hover:text-white"
-                          )}
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        
-                        <button
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            if (major.isFinalized) return;
-                            setModalConfig({
-                              isOpen: true,
-                              title: "Delete Dungeon Goal",
-                              message: `Are you sure you want to delete "${major.name}"? This action cannot be undone.`,
-                              confirmText: "Delete",
-                              type: "danger",
-                              onConfirm: () => onDeleteMajor(major.id)
-                            });
-                          }}
-                          className={cn(
-                            "p-1 rounded-md transition-all",
-                            major.isFinalized 
-                              ? "bg-slate-800/30 text-slate-600 cursor-not-allowed" 
-                              : "bg-slate-800 text-slate-500 hover:text-red-400"
-                          )}
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
+                    <RowActionsMenu
+                      actions={[
+                        {
+                          key: 'edit',
+                          label: 'Edit',
+                          icon: Edit2,
+                          onClick: () => setEditingMajor(major),
+                        },
+                        {
+                          key: 'top',
+                          label: 'Move to top',
+                          icon: ArrowUpToLine,
+                          hidden: majorIdx === 0,
+                          separatorBefore: true,
+                          onClick: () => { onDragStart?.(); _onReorderMajor(major.id, 'top'); },
+                        },
+                        {
+                          key: 'up',
+                          label: 'Move up',
+                          icon: ArrowUp,
+                          hidden: majorIdx === 0,
+                          onClick: () => { onDragStart?.(); _onReorderMajor(major.id, 'up'); },
+                        },
+                        {
+                          key: 'down',
+                          label: 'Move down',
+                          icon: ArrowDown,
+                          hidden: majorIdx >= filteredMajors.length - 1,
+                          onClick: () => { onDragStart?.(); _onReorderMajor(major.id, 'down'); },
+                        },
+                        {
+                          key: 'delete',
+                          label: 'Delete',
+                          icon: Trash2,
+                          danger: true,
+                          hidden: !!major.isFinalized,
+                          separatorBefore: true,
+                          onClick: () => setModalConfig({
+                            isOpen: true,
+                            title: 'Delete Dungeon Goal',
+                            message: `Are you sure you want to delete "${major.name}"? This action cannot be undone.`,
+                            confirmText: 'Delete',
+                            type: 'danger',
+                            onConfirm: () => onDeleteMajor(major.id),
+                          }),
+                        },
+                      ]}
+                    />
+
 
                     {major.status === 'completed' && (
                       <button
