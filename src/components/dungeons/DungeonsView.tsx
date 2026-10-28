@@ -128,6 +128,11 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
     setState(prev => ({ ...prev, tags: updatedTags }));
   };
 
+  const archivedCount = React.useMemo(
+    () => majorDungeons.filter((m) => m.status === 'archived').length,
+    [majorDungeons]
+  );
+
   const exportText = React.useMemo(() => {
     return exportExpeditionsToMarkdown(majorDungeons, dungeons, state.tags || []);
   }, [majorDungeons, dungeons, state.tags, isImportExportOpen]);
@@ -192,8 +197,8 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
                 disabled={!canUndoDrag}
                 className={cn(
                   "flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all shadow-lg shrink-0",
-                  canUndoDrag 
-                    ? "bg-amber-600 text-white hover:bg-amber-500 shadow-amber-500/20" 
+                  canUndoDrag
+                    ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-500/20"
                     : "bg-slate-800 text-slate-600 cursor-not-allowed opacity-50"
                 )}
                 title="Undo Last Operation"
@@ -239,12 +244,12 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
               <button
                 onClick={() => setIsArchiveView(!isArchiveView)}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all shadow-lg border shrink-0",
-                  isArchiveView 
-                    ? "bg-amber-600 border-amber-500 text-white" 
+                  "relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all shadow-lg border shrink-0",
+                  isArchiveView
+                    ? "bg-indigo-600 border-indigo-500 text-white"
                     : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
                 )}
-                title="Toggle Archive"
+                title={isArchiveView ? `Back to active (${archivedCount} archived)` : `View archive (${archivedCount})`}
               >
                 <Archive size={18} />
               </button>

@@ -37,12 +37,13 @@ const DraggableItem = ({ item, isEditMode, children, className, handleClassName,
       <div className="flex items-start w-full gap-2">
         {isEditMode && (
           <div 
-            className={cn("cursor-grab active:cursor-grabbing touch-none p-1.5 flex items-center justify-center shrink-0 text-slate-500 hover:text-white transition-colors z-20 pointer-events-auto mt-1", handleClassName)}
+            className={cn("cursor-grab active:cursor-grabbing touch-none select-none p-1.5 flex items-center justify-center shrink-0 text-slate-500 hover:text-white transition-colors z-20 pointer-events-auto mt-1", handleClassName)}
             onPointerDown={(e) => {
-              // Prevent default to help with mobile scrolling spikes
-              if (e.pointerType === 'touch') {
-                e.preventDefault(); 
-              }
+              // Unconditionally — with a mouse, the browser's default action on
+              // pointerdown is to start a text selection, which is what made
+              // dragging feel broken. Touch needs it blocked for a different
+              // reason: otherwise the page scrolls instead of dragging.
+              e.preventDefault();
               onDragStart?.();
               controls.start(e);
             }}
@@ -655,7 +656,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                 data-id={sub.id}
                 data-drop-target="true"
                 className={cn(
-                  "p-2.5 sm:px-2.5 flex items-center justify-between gap-2.5 transition-colors group/sub rounded-lg relative bg-slate-900/40",
+                  "p-2.5 sm:px-2.5 flex items-center justify-between gap-2.5 transition-colors group/sub rounded-lg relative bg-slate-900/40 select-none",
                   currentDungeonId === sub.id ? "bg-indigo-500/10" : "hover:bg-slate-800/40"
                 )}
                 onClick={() => onSelect(sub.id)}
@@ -2197,30 +2198,29 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
             </div>
 
             {/* Table */}
-            <div className="bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl">
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800/50 bg-slate-900/50">
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest italic pr-1">
+                    <tr className="border-b border-slate-800">
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         <div className="flex items-center gap-2">
                           <Archive size={14} className="text-slate-600" />
                           <span>Dungeon Goal</span>
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest italic pr-1">
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         <div className="flex items-center gap-2">
                           <Calendar size={14} className="text-slate-600" />
                           <span>Completion Date</span>
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest italic pr-1">
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         <div className="flex items-center gap-2">
                           <Trophy size={14} className="text-slate-600" />
                           <span>Rewards</span>
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest italic pr-1 text-right">Actions</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
@@ -2228,7 +2228,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       const associatedSubDungeons = dungeons.filter(d => d.parentId === major.id);
                       return (
                         <tr key={major.id} className="group hover:bg-slate-800/10 transition-colors">
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-3">
                             <div className="min-w-0">
                                 <p className="font-bold text-slate-200 text-sm tracking-tight">{major.name}</p>
                                 {associatedSubDungeons.length > 0 && (
@@ -2242,12 +2242,12 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                                 )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-3">
                             <span className="text-xs font-mono text-slate-500 whitespace-nowrap">
                               {major.completedAt ? new Date(major.completedAt).toLocaleDateString() : '—'}
                             </span>
                           </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1.5">
                             {major.rewards?.map((r, i) => (
                               <div key={i} className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter tabular-nums whitespace-nowrap">
@@ -2262,10 +2262,10 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                             )}
                           </div>
                         </td>
-                          <td className="px-6 py-5 text-right">
+                          <td className="px-4 py-3 text-right">
                             <button 
                               onClick={() => onUpdateMajor(major.id, { status: 'completed' })}
-                              className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 text-xs font-bold rounded-lg transition-all border border-slate-700 uppercase tracking-widest"
+                              className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-wider transition-colors"
                             >
                               Unarchive
                             </button>
@@ -2287,7 +2287,6 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                     )}
                   </tbody>
                 </table>
-              </div>
             </div>
           </div>
         )}

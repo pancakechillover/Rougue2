@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Stats } from './Stats';
-import { JournalView } from '../journal/JournalView';
 import { AppState, Dungeon, MajorDungeon, StudySession } from '../../types';
 
 interface StatsViewProps {
@@ -16,6 +15,8 @@ interface StatsViewProps {
   dungeons?: Dungeon[];
   majorDungeons?: MajorDungeon[];
   setShowStartOfDayModal?: (val: string | boolean) => void;
+  /** Opens the journal as its own full-screen page. */
+  onOpenJournalPage?: () => void;
 }
 
 export const StatsView: React.FC<StatsViewProps> = ({ 
@@ -29,39 +30,13 @@ export const StatsView: React.FC<StatsViewProps> = ({
   completeSession,
   dungeons,
   majorDungeons,
-  setShowStartOfDayModal
+  setShowStartOfDayModal,
+  onOpenJournalPage
 }) => {
-  const [showJournalView, setShowJournalView] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('record_showJournalView') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('record_showJournalView', String(showJournalView));
-    } catch (e) {}
-  }, [showJournalView]);
-
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
       <AnimatePresence mode="wait">
-        {showJournalView ? (
-          <JournalView
-            key="journal-view"
-            state={state}
-            saveDailyLog={saveDailyLog}
-            onUpdateState={onUpdateState}
-            dungeons={dungeons}
-            majorDungeons={majorDungeons}
-            onBack={() => {
-              setShowJournalView(false);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        ) : (
+        {(
           <motion.div
             key="stats-overview"
             initial={{ opacity: 0, y: 15 }}
@@ -81,10 +56,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               dungeons={dungeons}
               majorDungeons={majorDungeons}
               _setShowStartOfDayModal={setShowStartOfDayModal}
-              onOpenJournal={() => {
-                setShowJournalView(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onOpenJournal={() => onOpenJournalPage?.()}
             />
           </motion.div>
         )}

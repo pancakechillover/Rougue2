@@ -1,5 +1,4 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
-import { useEditorTypography } from "../../hooks/useEditorTypography";
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
 
@@ -8,14 +7,12 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, ArrowLeft, ChevronLeft, ChevronRight, 
+  PanelLeftClose, PanelLeftOpen,
   Star, Calculator, SlidersHorizontal, Heart, 
-  Maximize2, Save, Download, Edit3, 
+  Maximize2, Download, Edit3, 
   Clock, Target, Zap, 
-  Compass, Feather, Bookmark, BookmarkCheck, Trash2, Calendar, X, FileText
+  Compass, Bookmark, BookmarkCheck, Trash2, Calendar, X, FileText
 } from 'lucide-react';
-import Markdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
 import { DurationText } from '../common/DurationText';
@@ -77,7 +74,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialPeakDate());
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const { fontSize, _lineHeight: __lineHeight, lineMultiplier } = useEditorTypography();
   const [pageFlipDirection, setPageFlipDirection] = useState<'left' | 'right'>('right');
 
   // Logs state
@@ -123,7 +119,20 @@ export const JournalView: React.FC<JournalViewProps> = ({
   // Sync editor when switching dates
   const isSwitchingDateRef = useRef(false);
 
+  /**
+   * Only a real date change may reset the editor.
+   *
+   * This effect also depends on `dailyLogs`, which the 800ms autosave updates —
+   * so it used to re-run right after every save and call setIsQuickEditing(false),
+   * kicking the user out of the editor a second after they started typing.
+   */
+  const lastLoadedDateRef = useRef(selectedDateStr);
+
   useEffect(() => {
+    const dateChanged = lastLoadedDateRef.current !== selectedDateStr;
+    if (!dateChanged) return;
+    lastLoadedDateRef.current = selectedDateStr;
+
     isSwitchingDateRef.current = true;
     const log = dailyLogs[selectedDateStr];
     setRating(log?.rating || 0);
@@ -149,7 +158,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setTimeout(() => {
       isSwitchingDateRef.current = false;
     }, 50);
-  }, [selectedDateStr, dailyLogs, state.autoLoadTemplateId, state.autoLoadTemplateMode, state.reflectionTemplates]);
+    // dailyLogs / template settings are read here but must not retrigger a reset
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDateStr]);
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -422,21 +433,159 @@ export const JournalView: React.FC<JournalViewProps> = ({
     return et;
   }, [viewStartTime]);
 
+  /** Every day that actually has content — reflection, rating or mood. */
+  const entryDates = React.useMemo(() => {
+    const logs = state.dailyLogs || {};
+    return Object.keys(logs)
+      .filter((d) => {
+        const log = logs[d];
+        if (!log) return false;
+        return Boolean((log.reflection || '').trim() || log.rating || log.mood || (log.title || '').trim());
+      })
+      .sort((a, b) => b.localeCompare(a));
+  }, [state.dailyLogs]);
+
+  const [railCollapsed, setRailCollapsed] = React.useState(false);
+  const [entrySearch, setEntrySearch] = React.useState('');
+  const [entryFilter, setEntryFilter] = React.useState<'all' | 'notes' | 'starred'>('all');
+
+  const visibleEntries = React.useMemo(() => {
+    return entryDates.filter((d) => {
+      const log = state.dailyLogs?.[d];
+      if (entryFilter === 'starred' && !bookmarks.includes(d)) return false;
+      if (entryFilter === 'notes' && !(log?.reflection || '').trim()) return false;
+      if (entrySearch.trim()) {
+        const q = entrySearch.toLowerCase();
+        const hay = `${d} ${log?.title || ''} ${log?.reflection || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [entryDates, entryFilter, entrySearch, bookmarks, state.dailyLogs]);
+
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: 'easeOut' }}
+      className="flex w-full h-[100dvh] overflow-hidden bg-slate-950"
+    >
+      {/* Date navigator — typography mirrors the main sidebar so entering the
+          journal reads as the sidebar switching content, not a modal on top. */}
+      <aside className={cn(
+        'hidden md:flex shrink-0 border-slate-800 flex-col bg-slate-950 transition-[width,border] duration-300 ease-out overflow-hidden',
+        railCollapsed ? 'w-0 border-r-0' : 'w-[218px] border-r'
+      )}>
+        <div className="px-3 py-3.5 border-b border-slate-800 flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 truncate">Entries</span>
+            <span className="text-[11px] font-mono text-indigo-400 tabular-nums shrink-0">{entryDates.length}</span>
+          </div>
+          <button
+            onClick={() => setRailCollapsed(true)}
+            title="Collapse entries"
+            className="shrink-0 p-1 rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <PanelLeftClose size={14} />
+          </button>
+        </div>
+
+        <div className="px-3 py-3 space-y-2 border-b border-slate-800">
+          <input
+            value={entrySearch}
+            onChange={(e) => setEntrySearch(e.target.value)}
+            placeholder="Search"
+            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-colors"
+          />
+          <div className="flex gap-0.5">
+            {(['all', 'notes', 'starred'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setEntryFilter(f)}
+                className={cn(
+                  'flex-1 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors',
+                  entryFilter === f ? 'bg-indigo-500/15 text-indigo-300' : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar py-1">
+          {visibleEntries.length === 0 && (
+            <p className="px-4 py-6 text-[11px] text-slate-600 italic text-center">No entries</p>
+          )}
+          {visibleEntries.map((d) => {
+            const log = state.dailyLogs?.[d];
+            const isSelected = d === selectedDateStr;
+            const parsed = parseISO(d);
+            const valid = isValid(parsed);
+            const words = (log?.reflection || '').trim() ? (log?.reflection || '').trim().split(/\s+/).length : 0;
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => { if (d !== selectedDateStr) setSelectedDate(parsed); }}
+                className={cn(
+                  'w-full text-left px-3 py-2 transition-colors',
+                  isSelected ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-900'
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn('text-xs font-bold truncate', isSelected ? 'text-white' : 'text-slate-200')}>
+                    {log?.title?.trim() || (valid ? format(parsed, 'MMM dd') : d)}
+                  </span>
+                  <span className={cn('text-[10px] shrink-0', isSelected ? 'text-white/80' : 'text-slate-500')}>
+                    {valid ? format(parsed, 'EEE') : ''}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-0.5">
+                  <span className={cn('text-[10px] truncate', isSelected ? 'text-white/75' : 'text-slate-500')}>
+                    {log?.mood || (words > 0 ? `${words}w` : 'Empty')}
+                  </span>
+                  {typeof log?.rating === 'number' && log.rating > 0 && (
+                    <span className={cn('text-[10px] font-mono tabular-nums shrink-0', isSelected ? 'text-white/85' : 'text-indigo-400')}>
+                      {Math.round((log.rating / 5) * 100)}%
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 lg:px-8 py-5">
     <div className="w-full space-y-6 max-w-7xl mx-auto pb-10">
       {/* Top Banner Header & Date Navigator (Aligned with Agenda / TodayView) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-black text-slate-50 tracking-tighter uppercase italic pr-3 flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="sticky top-0 z-20 py-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 relative overflow-hidden shrink-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
+          <BookOpen size={80} />
+        </div>
+        <div className="min-w-0 flex items-center gap-2">
+          {railCollapsed && (
+            <button
+              onClick={() => setRailCollapsed(false)}
+              title="Show entries"
+              className="hidden md:flex shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors relative z-10"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+          )}
+          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tighter uppercase italic pr-1 flex items-center gap-3 min-w-0 relative z-10">
             <BookOpen className="text-indigo-400 w-5 h-5 sm:w-7 sm:h-7 shrink-0" />
             <span className="leading-none whitespace-nowrap pr-2">Journal</span>
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-0.5">
+          <p className="text-[10px] sm:text-xs font-medium text-slate-500 tracking-wider mt-1.5 relative z-10 font-mono">
             {format(viewStartTime, 'MMM do, HH:mm')} - {format(viewEndTime, 'MMM do, HH:mm')}
           </p>
         </div>
           
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap sm:flex-nowrap relative z-10">
           <button
             onClick={() => setShowBatchExport(true)}
             className="h-10 px-3 bg-slate-800 hover:bg-slate-700/90 border border-slate-700/70 text-slate-300 hover:text-slate-100 rounded-xl flex items-center justify-center transition-all shrink-0 gap-2 font-bold text-sm shadow-sm"
@@ -480,20 +629,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* ========================================================================= */}
       {/* PATCHOULI / OPEN TOME SPREAD (摊开的学者日记圣典)                          */}
       {/* ========================================================================= */}
-      <div className="relative pr-0 md:pr-14">
+      <div className="relative overflow-hidden">
         {/* Tome Main Container */}
-        <div className="relative rounded-[2rem] bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-2 sm:p-4 md:p-6 border border-slate-800/90 shadow-2xl overflow-visible">
+        <div className="relative rounded-xl bg-slate-900/30 p-1.5 sm:p-2 border border-slate-800/50 overflow-hidden">
           {/* Decorative Leather Tome Outer Binding Header Ornaments */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+          <div className="absolute top-0 inset-x-0 h-px bg-slate-800/40" />
           
           {/* Book Spread Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 relative min-h-[580px] rounded-3xl bg-slate-950/70 border border-slate-800/80 overflow-hidden shadow-inner">
+          <div className="grid grid-cols-1 md:grid-cols-2 relative min-h-[420px] rounded-lg bg-slate-950/40 border border-slate-800/40 overflow-hidden">
             {/* Central Book Spine Crease & Stitching (Desktop Only, Stationary) */}
             <div className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-20">
-              <div className="w-full h-full bg-gradient-to-r from-black/50 via-slate-950/90 to-black/50 opacity-90" />
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-800/80 shadow-[0_0_8px_rgba(0,0,0,0.8)]" />
-              {/* Decorative Book Ribbon / Bookmark hanging at the top */}
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3.5 h-10 bg-indigo-500/80 rounded-b-md shadow-md border-b-2 border-indigo-400" />
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-700/50" />
+              {/* Slim bookmark ribbon at the top of the gutter */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-7 bg-indigo-500/60 rounded-b-sm" />
             </div>
 
             {/* --------------------------------------------------------------------- */}
@@ -792,125 +940,16 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
                     {/* Main Reflection Content Area (Reading / Markdown Display) */}
                     <div className="flex-1 min-h-[360px] flex flex-col justify-start">
-                      {isQuickEditing ? (
-                        <div className="flex-1 flex flex-col space-y-2">
-                          <MarkdownEditor 
-                            value={reflection}
-                            onChange={handleReflectionChange}
-                            placeholder="Write your reflection for this day... (Markdown supported)"
-                            autoFocus
-                            className="flex-1 min-h-[300px]"
-                          />
-                          <div className="flex items-center justify-end pt-1">
-                            <button
-                              onClick={handleSave}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all shadow-sm active:scale-95"
-                            >
-                              <Save size={13} />
-                              <span>Save</span>
-                            </button>
-                          </div>
-                        </div>
-                      ) : reflection.trim() ? (
-                        <div className="w-full h-full p-4 sm:p-5 bg-slate-950/40 rounded-2xl border border-slate-800/60 overflow-y-auto max-h-[440px] custom-scrollbar">
-                          <div 
-                            className="markdown-content text-slate-200 selection:bg-indigo-500/30"
-                            style={{
-                              fontSize: `${fontSize}px`,
-                              lineHeight: lineMultiplier,
-                            }}
-                          >
-                            <Markdown 
-                              remarkPlugins={[remarkGfm, remarkBreaks]}
-                              components={{
-                                h1: ({ node, ...props }) => (
-                                  <h1 
-                                    className="font-black text-slate-100 mt-4 mb-2 pb-1 border-b border-slate-800/80 tracking-tight" 
-                                    style={{ fontSize: `${Math.round(fontSize * 1.55)}px`, lineHeight: 1.3 }}
-                                    {...props} 
-                                  />
-                                ),
-                                h2: ({ node, ...props }) => (
-                                  <h2 
-                                    className="font-bold text-slate-100 mt-3.5 mb-1.5 tracking-tight flex items-center gap-1.5" 
-                                    style={{ fontSize: `${Math.round(fontSize * 1.3)}px`, lineHeight: 1.35 }}
-                                    {...props} 
-                                  />
-                                ),
-                                h3: ({ node, ...props }) => (
-                                  <h3 
-                                    className="font-bold text-indigo-300 mt-3 mb-1 tracking-tight" 
-                                    style={{ fontSize: `${Math.round(fontSize * 1.15)}px`, lineHeight: 1.4 }}
-                                    {...props} 
-                                  />
-                                ),
-                                p: ({ node, ...props }) => (
-                                  <p className="my-1.5 text-slate-200" style={{ lineHeight: lineMultiplier }} {...props} />
-                                ),
-                                ul: ({ node, ...props }) => (
-                                  <ul className="list-disc [&_ul]:list-[circle] [&_ul_ul]:list-[square] pl-5 my-1.5 space-y-0.5 marker:text-indigo-400" {...props} />
-                                ),
-                                ol: ({ node, ...props }) => (
-                                  <ol className="list-decimal [&_ol]:list-[lower-alpha] [&_ol_ol]:list-[lower-roman] pl-5 my-1.5 space-y-0.5 marker:text-indigo-400 font-medium" {...props} />
-                                ),
-                                li: ({ node, ...props }) => (
-                                  <li className="text-slate-200 pl-0.5" style={{ lineHeight: lineMultiplier }} {...props} />
-                                ),
-                                blockquote: ({ node, ...props }) => (
-                                  <blockquote className="border-l-4 border-indigo-500/70 bg-indigo-500/5 pl-3 py-1 my-2 rounded-r italic text-slate-300" {...props} />
-                                ),
-                                code: ({ node, className, children, ...props }: any) => {
-                                  const isInline = !className?.includes('language-');
-                                  return isInline ? (
-                                    <code className="px-1.5 py-0.5 mx-0.5 bg-slate-900 border border-slate-800 text-indigo-300 rounded text-[0.9em] font-mono" {...props}>
-                                      {children}
-                                    </code>
-                                  ) : (
-                                    <pre className="p-3 my-2 bg-slate-950 border border-slate-800 rounded-xl overflow-x-auto text-[0.9em] font-mono text-slate-200">
-                                      <code {...props}>{children}</code>
-                                    </pre>
-                                  );
-                                },
-                                hr: ({ node, ...props }) => (
-                                  <hr className="my-3 border-slate-800/80" {...props} />
-                                ),
-                                table: ({ node, ...props }) => (
-                                  <div className="overflow-x-auto my-2 rounded-lg border border-slate-800">
-                                    <table className="w-full text-left border-collapse text-xs" {...props} />
-                                  </div>
-                                ),
-                                th: ({ node, ...props }) => (
-                                  <th className="p-2 bg-slate-900 font-bold border-b border-slate-800 text-slate-300" {...props} />
-                                ),
-                                td: ({ node, ...props }) => (
-                                  <td className="p-2 border-b border-slate-800/60 text-slate-300" {...props} />
-                                ),
-                                a: ({ node, ...props }) => (
-                                  <a className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank" rel="noreferrer" {...props} />
-                                ),
-                              }}
-                            >
-                              {reflection}
-                            </Markdown>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Empty Parchment State (Atmospheric Patchouli Theme) */
-                        <div className="flex-1 min-h-[320px] flex flex-col items-center justify-center p-6 bg-slate-950/30 rounded-2xl border border-dashed border-slate-800/80 text-center space-y-3">
-                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                            <Feather size={24} className="opacity-80" />
-                          </div>
-                          
-                          <div className="space-y-1 max-w-xs">
-                            <h4 className="text-sm font-bold text-slate-300">
-                              Unwritten Parchment
-                            </h4>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                              No reflection has been written for {format(selectedDate, 'MMM do')}. Record your thoughts, lessons, or achievements.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      {/* The page embeds the editor directly — the rendered
+                          view and the source are the same surface, so a single
+                          click on any line starts writing. No pencil button,
+                          no separate reading mode. */}
+                      <MarkdownEditor
+                        value={reflection}
+                        onChange={handleReflectionChange}
+                        placeholder={`Write your reflection for ${format(selectedDate, 'MMM do')}...`}
+                        className="flex-1 min-h-[320px]"
+                      />
                     </div>
                   </div>
 
@@ -1135,5 +1174,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
         />
       )}
     </div>
+        </div>
+      </div>
+    </motion.div>
   );
 };

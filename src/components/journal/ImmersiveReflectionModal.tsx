@@ -10,6 +10,8 @@ import { format, subDays, parseISO, isValid } from 'date-fns';
 import { DailyLog, EfficiencyRatingConfig, ReflectionTemplate, StudySession } from '../../types';
 import { ReflectionTemplatesDropdown } from '../common/ReflectionTemplatesDropdown';
 import { MarkdownEditor } from '../common/MarkdownEditor';
+import { MoodSelector } from '../common/MoodSelector';
+import { StarRating } from '../common/StarRating';
 import { cn } from '../../lib/utils';
 
 export interface ImmersiveReflectionModalProps {
@@ -34,6 +36,15 @@ export interface ImmersiveReflectionModalProps {
   autoLoadTemplateMode?: 'empty' | 'example';
   onSetAutoLoadTemplate?: (templateId: string | null, mode?: 'empty' | 'example') => void;
   renderTemplateControls?: () => React.ReactNode;
+  /** Efficiency rating for the currently open day (0–5). */
+  rating?: number;
+  onRatingChange?: (rating: number) => void;
+  /** Mood id for the currently open day. */
+  mood?: string;
+  onMoodChange?: (mood: string | undefined) => void;
+  /** Focus/distraction snapshot shown beside the rating controls. */
+  vitalsSlot?: React.ReactNode;
+  enabledMoods?: string[];
 }
 
 export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> = ({
@@ -55,7 +66,13 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
   autoLoadTemplateId,
   autoLoadTemplateMode,
   onSetAutoLoadTemplate,
-  renderTemplateControls
+  renderTemplateControls,
+  rating = 0,
+  onRatingChange,
+  mood,
+  onMoodChange,
+  vitalsSlot,
+  enabledMoods,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -500,7 +517,55 @@ export const ImmersiveReflectionModal: React.FC<ImmersiveReflectionModalProps> =
 
             {/* Fullscreen Editor Area */}
             <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-5 md:p-6 min-w-0">
-              <div className="flex-1 max-w-6xl mx-auto w-full h-full flex flex-col overflow-hidden">
+              <div className="flex-1 max-w-6xl mx-auto w-full h-full flex flex-col overflow-hidden gap-3">
+                {/* Vitals: title, efficiency, mood — folded in from the old
+                    inline DailyRecordCard so the fullscreen window is the one
+                    place a day gets recorded. */}
+                <div className="shrink-0 space-y-3">
+                  {onTitleChange && (
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => onTitleChange(e.target.value)}
+                      placeholder={dateString}
+                      className="w-full bg-transparent border-0 border-b border-slate-800 focus:border-indigo-500 outline-none text-lg font-bold text-slate-100 placeholder:text-slate-600 pb-1.5 transition-colors"
+                    />
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    {onRatingChange && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Efficiency
+                        </span>
+                        <StarRating value={rating} onChange={onRatingChange} size="sm" />
+                        <span className={cn(
+                          'text-[11px] font-mono font-bold px-1.5 py-0.5 rounded',
+                          rating > 0 ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-600 bg-slate-800/50'
+                        )}>
+                          {rating > 0 ? `${Math.round((rating / 5) * 100)}%` : '—'}
+                        </span>
+                      </div>
+                    )}
+
+                    {onMoodChange && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Feelings
+                        </span>
+                        <MoodSelector
+                          value={mood}
+                          onChange={onMoodChange}
+                          enabledMoods={enabledMoods}
+                          variant="chips"
+                        />
+                      </div>
+                    )}
+
+                    {vitalsSlot}
+                  </div>
+                </div>
+
                 <MarkdownEditor
                   value={reflection}
                   onChange={setReflection}

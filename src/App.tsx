@@ -28,6 +28,7 @@ import { DungeonsView } from './components/dungeons/DungeonsView';
 import { VaultView } from './components/vault/VaultView';
 import { TalentsView } from './components/talents/TalentsView';
 import { ShopView } from './components/shop/ShopView';
+import { JournalView } from './components/journal/JournalView';
 import { StatsView } from './components/record/StatsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { ProfileModal } from './components/settings/ProfileModal';
@@ -102,7 +103,7 @@ const readSettingsSectionFromUrl = (): SettingsSection => {
 function App() {
   const [appReady, setAppReady] = useState(false);
   const [activeTab, setActiveTab] = useHistoryRoute(
-    ['dashboard', 'explore', 'dungeons', 'talents', 'shop', 'stats', 'settings', 'vault'],
+    ['dashboard', 'explore', 'dungeons', 'talents', 'shop', 'stats', 'journal', 'settings', 'vault'],
     'dashboard'
   );
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -577,27 +578,60 @@ function App() {
     playSound('click');
   };
 
+  /**
+   * Guards the archive comparison so it is offered once per launch.
+   * Without it, dismissing the comparison while local changes are still
+   * unsynced would immediately reopen it, and Start of the Day would never
+   * get a chance to appear.
+   */
+  const archivePromptOfferedRef = React.useRef(false);
+
   // Auto show start of day modal
   useEffect(() => {
     if (!appReady) return;
     if (!state.enableStartOfDayPrompt) return;
-    
-    if (!state.lastStartOfDayPrompt) {
-      setShowStartOfDayModal(true);
+
+    let dueToday = true;
+    if (state.lastStartOfDayPrompt) {
+      let now = new Date();
+      if (state.timezone) {
+        try {
+          const str = now.toLocaleString('en-US', { timeZone: state.timezone });
+          now = new Date(str);
+        } catch (e) {}
+      }
+      const todayStr = getSettlementDay(now, state.timeSettings);
+      dueToday = state.lastStartOfDayPrompt !== todayStr;
+    }
+    if (!dueToday) return;
+
+    // Archive comparison comes first: if this device has changes the cloud has
+    // not seen, let the user reconcile before the day starts.
+    const syncConfigured =
+      !!state.account?.token ||
+      !!state.secretCode ||
+      state.syncProvider === 'WebDAV' ||
+      state.syncProvider === 'Google Drive';
+
+    if (!archivePromptOfferedRef.current && syncConfigured && hasUnsyncedChanges) {
+      archivePromptOfferedRef.current = true;
+      setShowCloudSync(true);
       return;
     }
-    let now = new Date();
-    if (state.timezone) {
-      try {
-        const str = now.toLocaleString('en-US', { timeZone: state.timezone });
-        now = new Date(str);
-      } catch (e) {}
-    }
-    const todayStr = getSettlementDay(now, state.timeSettings);
-    if (state.lastStartOfDayPrompt !== todayStr) {
-      setShowStartOfDayModal(true);
-    }
-  }, [state.lastStartOfDayPrompt, state.enableStartOfDayPrompt, state.timezone, state.timeSettings, appReady]);
+
+    setShowStartOfDayModal(true);
+  }, [
+    state.lastStartOfDayPrompt,
+    state.enableStartOfDayPrompt,
+    state.timezone,
+    state.timeSettings,
+    appReady,
+    state.account?.token,
+    state.secretCode,
+    state.syncProvider,
+    hasUnsyncedChanges,
+    showCloudSync,
+  ]);
 
   React.useEffect(() => {
     localStorage.setItem('scholars_dungeon_unsynced', hasUnsyncedChanges.toString());
@@ -1072,6 +1106,8 @@ function App() {
   };
 
   const handleDeleteMajor = (id: string) => {
+    // Snapshot before mutating so the toolbar's undo can bring it back.
+    saveDungeonHistory();
     const dungeonsToDelete = new Set<string>([id]);
     const rootSubs = dungeons.filter(d => d.parentId === id);
     
@@ -1104,6 +1140,8 @@ function App() {
   };
 
   const handleDeleteSub = (id: string) => {
+    // Same as above — delete has to be undoable too.
+    saveDungeonHistory();
     const dungeonsToDelete = new Set<string>();
     
     const collectAllDescendants = (parentId: string) => {
@@ -1136,6 +1174,13 @@ function App() {
 
   const unclaimedQuestsCount = (state.quests || []).filter(q => !q.isAchievement && q.completed && !q.claimed).length;
   const unclaimedAchievementsCount = (state.quests || []).filter(q => q.isAchievement && q.completed && !q.claimed).length;
+
+  // Both Explore and Journal take the whole screen; the global sidebar would
+  // otherwise eat 256px of a page that is itself a workspace.
+  const hideSidebar = isFullscreenExplore || activeTab === 'journal';
+  // The journal is a writing surface — the global header (level bar, timer,
+  // streaks) is noise there, so it goes too. Explore keeps its header.
+  const hideHeader = activeTab === 'journal';
 
   const navItems = [
     { id: 'dashboard', label: 'Sanctum', icon: LayoutDashboard },
@@ -1433,7 +1478,7 @@ function App() {
 
       <div className="min-h-[100dvh] w-full max-w-full bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 relative">
       {/* Sidebar Navigation - Hidden on mobile, visible on tablet/desktop */}
-      {!isFullscreenExplore && (
+      {!hideSidebar && (
         <nav className={cn(
           "hidden md:flex fixed left-0 top-0 h-[100dvh] bg-slate-900 border-r border-slate-800 z-[70] flex-col transition-all duration-300 pt-[env(safe-area-inset-top)]",
           isSidebarCollapsed ? "w-20" : "w-64"
@@ -1513,9 +1558,9 @@ function App() {
       {/* Main Content - Adjust margin based on sidebar visibility */}
       <main className={cn(
         "min-h-[100dvh] flex flex-col md:pb-0",
-        isFullscreenExplore ? "m-0 p-0" : (isSidebarCollapsed ? "md:ml-20" : "md:ml-64")
+        hideSidebar ? "m-0 p-0" : (isSidebarCollapsed ? "md:ml-20" : "md:ml-64")
       )}>
-        {!isFullscreenExplore && (
+        {!isFullscreenExplore && !hideHeader && (
           <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-3 sm:px-8 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] flex items-center justify-between gap-2">
           {/* Persistent Active Dungeon Widget - Simplified */}
           {currentDungeon ? (
@@ -2053,6 +2098,18 @@ function App() {
                 dungeons={dungeons}
                 majorDungeons={majorDungeons}
                 setShowStartOfDayModal={setShowStartOfDayModal}
+                onOpenJournalPage={() => setActiveTab('journal')}
+              />
+            )}
+
+            {activeTab === 'journal' && (
+              <JournalView
+                state={state}
+                saveDailyLog={saveDailyLog}
+                onUpdateState={(update) => setState(prev => ({ ...prev, ...update }))}
+                dungeons={dungeons}
+                majorDungeons={majorDungeons}
+                onBack={() => setActiveTab('stats')}
               />
             )}
 

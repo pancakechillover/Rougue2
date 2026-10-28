@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -42,6 +42,62 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Active editing line index (null when entire editor is blurred and fully rendered)
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(autoFocus ? 0 : null);
   const pendingCursorPosRef = useRef<number | null>(null);
+  /** True while the whole document is selected (second Ctrl+A). */
+  const [docSelected, setDocSelected] = useState(false);
+  /** Index of the multi-line block (fence / table) currently being edited. */
+  const [activeBlockStart, setActiveBlockStart] = useState<number | null>(null);
+
+  /**
+   * Group raw lines into renderable blocks.
+   *
+   * Fenced code blocks and tables span multiple lines; rendering them line by
+   * line tore them into fragments (a three-line code block appeared as three
+   * separate paragraphs). Grouping first lets each one render as a single block.
+   */
+  const lineBlocks = useMemo(() => {
+    type Block =
+      | { kind: 'line'; index: number }
+      | { kind: 'fence' | 'table'; start: number; end: number; content: string };
+
+    const out: Block[] = [];
+    let i = 0;
+    while (i < lines.length) {
+      const current = lines[i] ?? '';
+
+      if (/^\s*```/.test(current)) {
+        let j = i + 1;
+        while (j < lines.length && !/^\s*```/.test(lines[j] ?? '')) j++;
+        const end = Math.min(j, lines.length - 1);
+        out.push({ kind: 'fence', start: i, end, content: lines.slice(i, end + 1).join('\n') });
+        i = end + 1;
+        continue;
+      }
+
+      if (/^\s*\|/.test(current)) {
+        let j = i;
+        while (j < lines.length && /^\s*\|/.test(lines[j] ?? '')) j++;
+        if (j - i >= 2) {
+          out.push({ kind: 'table', start: i, end: j - 1, content: lines.slice(i, j).join('\n') });
+          i = j;
+          continue;
+        }
+      }
+
+      out.push({ kind: 'line', index: i });
+      i++;
+    }
+    return out;
+  }, [lines]);
+
+  /** Replace a whole block's source, keeping the rest of the document intact. */
+  const replaceBlock = (start: number, end: number, nextContent: string) => {
+    const updated = [...lines];
+    updated.splice(start, end - start + 1, ...nextContent.split('\n'));
+    return updated.join('\n');
+  };
+  const lastCtrlARef = useRef<{ line: number; time: number } | null>(null);
+  /** Read-only overlay shown while the whole document is selected. */
+  const docSelectionRef = useRef<HTMLTextAreaElement>(null);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   // References
@@ -146,6 +202,68 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     onChange(updated.join('\n'));
   };
 
+  // Selecting the overlay text gives real, visible selection — the whole
+  // point of Ctrl+A. A border alone reads as "nothing happened".
+  useEffect(() => {
+    if (!docSelected) return;
+    const el = docSelectionRef.current;
+    const container = containerRef.current;
+    if (!el) return;
+
+    // preventScroll matters: focusing scrolls the element into view, which
+    // reads as the whole editor jumping the moment Ctrl+A lands.
+    const scrollTop = container?.scrollTop ?? 0;
+    el.focus({ preventScroll: true });
+    el.select();
+    if (container) container.scrollTop = scrollTop;
+    el.scrollTop = scrollTop;
+  }, [docSelected]);
+
+  /* Container-level keys while the whole document is selected. The per-line
+     textareas are unmounted in that state, so these have to be caught here. */
+  useEffect(() => {
+    if (!docSelected) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+
+      if (key === 'Escape') {
+        e.preventDefault();
+        setDocSelected(false);
+        return;
+      }
+
+      if (key === 'Backspace' || key === 'Delete') {
+        e.preventDefault();
+        saveHistorySnapshot(value);
+        onChange('');
+        setDocSelected(false);
+        return;
+      }
+
+      // Copy/cut are left to the browser: the overlay really is selected, so
+      // the native handlers already do the right thing.
+      if (e.ctrlKey || e.metaKey) {
+        if (key.toLowerCase() === 'x') {
+          // Cut must also empty the document, which readOnly blocks natively.
+          saveHistorySnapshot(value);
+          onChange('');
+          setDocSelected(false);
+        }
+        return;
+      }
+
+      // Typing replaces the whole document, like a normal selection would.
+      if (key.length === 1) {
+        e.preventDefault();
+        saveHistorySnapshot(value);
+        onChange(key);
+        setDocSelected(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [docSelected, value, onChange, saveHistorySnapshot]);
+
   // Keyboard navigation & smart list typing in active line
   const handleLineKeyDown = (index: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = activeInputRef.current;
@@ -154,6 +272,27 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const currentLine = lines[index] || '';
+
+    /* Two-stage Ctrl+A — the per-line textarea can only ever select its own
+       line, so "select all" has to be modelled explicitly. First press selects
+       the line, a repeat press switches the whole editor into a selected state
+       that the container-level handler below treats as select-all. */
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+      e.preventDefault();
+      const lineFullySelected = start === 0 && end === currentLine.length && currentLine.length > 0;
+      const last = lastCtrlARef.current;
+      const repeated = lineFullySelected || (!!last && last.line === index && Date.now() - last.time < 1500);
+
+      if (repeated && lines.length > 1) {
+        setDocSelected(true);
+        setActiveLineIndex(null);
+        lastCtrlARef.current = null;
+      } else {
+        textarea.setSelectionRange(0, currentLine.length);
+        lastCtrlARef.current = { line: index, time: Date.now() };
+      }
+      return;
+    }
 
     // Undo / Redo
     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
@@ -402,6 +541,21 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       onChange(updated.join('\n'));
       pendingCursorPosRef.current = 0;
       setActiveLineIndex(index + 1);
+      return;
+    }
+
+    // Backspace at column 0 -> merge into the end of the previous line
+    if (e.key === 'Backspace' && start === 0 && end === 0 && index > 0) {
+      e.preventDefault();
+      saveHistorySnapshot(value);
+      const prevLine = lines[index - 1] || '';
+      const mergedLine = prevLine + currentLine;
+      const updated = [...lines];
+      updated[index - 1] = mergedLine;
+      updated.splice(index, 1);
+      onChange(updated.join('\n'));
+      pendingCursorPosRef.current = prevLine.length;
+      setActiveLineIndex(index - 1);
       return;
     }
 
@@ -694,7 +848,61 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           lineHeight: lineMultiplier,
         }}
       >
-        {lines.map((line, index) => {
+        {docSelected && (
+          <textarea
+            ref={docSelectionRef}
+            value={value}
+            readOnly
+            spellCheck={false}
+            onBlur={() => setDocSelected(false)}
+            className="absolute inset-0 w-full h-full p-3 sm:p-4 bg-slate-900/95 text-slate-100 resize-none outline-none custom-scrollbar z-20"
+            style={{ fontSize: `${fontSize}px`, lineHeight: lineMultiplier }}
+          />
+        )}
+        {lineBlocks.map((block) => {
+          /* ---- multi-line block: code fence or table ---- */
+          if (block.kind !== 'line') {
+            const isEditingBlock = activeBlockStart === block.start;
+
+            if (isEditingBlock) {
+              return (
+                <div key={`block-${block.start}`} className="relative w-full py-0.5">
+                  <textarea
+                    value={block.content}
+                    onChange={(e) => {
+                      saveHistorySnapshot(value);
+                      onChange(replaceBlock(block.start, block.end, e.target.value));
+                    }}
+                    onBlur={() => setActiveBlockStart(null)}
+                    rows={Math.max(block.content.split('\n').length, 2)}
+                    style={{ fontSize: `${fontSize}px`, lineHeight: lineMultiplier }}
+                    className="w-full block bg-slate-950/70 border border-indigo-500/40 rounded-md outline-none p-2 text-slate-100 resize-y font-mono"
+                    spellCheck="false"
+                    autoFocus
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={`block-${block.start}`}
+                onClick={() => {
+                  setActiveLineIndex(null);
+                  setActiveBlockStart(block.start);
+                }}
+                className="relative w-full py-1 cursor-text rounded-md hover:ring-1 hover:ring-slate-700/60 transition-all select-text"
+                title={block.kind === 'fence' ? 'Click to edit code block' : 'Click to edit table'}
+              >
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                  {block.content}
+                </ReactMarkdown>
+              </div>
+            );
+          }
+
+          const index = block.index;
+          const line = lines[index] ?? '';
           const isActive = activeLineIndex === index;
 
           if (isActive) {
@@ -731,6 +939,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               key={index}
               onClick={() => {
                 pendingCursorPosRef.current = line.length;
+                setActiveBlockStart(null);
                 setActiveLineIndex(index);
               }}
               className="relative w-full py-0.5 cursor-text text-slate-200 hover:text-slate-100 transition-colors select-text"

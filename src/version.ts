@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.4.26';
+export const APP_VERSION = 'v9.5.7';
 export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '12:20:00';
+export const LAST_UPDATE_TIME = '13:20:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,45 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.4.30',
+    date: '2026-10-28',
+    time: '12:45:00',
+    title: 'Version 9.4.30: Compare Archives Before the Day Starts',
+    items: [
+      { category: 'Startup', description: 'Start of the Day could open on top of unsynced local changes without ever offering the archive comparison. The comparison now comes first when sync is configured and this device holds changes the cloud has not seen; dismissing it lets Start of the Day proceed.' }
+    ]
+  },
+  {
+    version: 'v9.4.29',
+    date: '2026-10-28',
+    time: '12:15:00',
+    title: 'Version 9.4.29: Quieter Archive',
+    items: [
+      { category: 'Expedition', description: 'Undo and the archive toggle were amber, which read as a warning next to the indigo toolbar. Both use the accent colour now.' },
+      { category: 'Expedition', description: 'The archive count badge is gone.' },
+      { category: 'Expedition', description: 'The archive view is a plain table again — no outer card, no 32px corners, no heavy shadow. Rows are shorter and the Unarchive action is a text button instead of a bordered box.' }
+    ]
+  },
+  {
+    version: 'v9.4.28',
+    date: '2026-10-28',
+    time: '13:30:00',
+    title: 'Version 9.4.28: Undo Covers Deletes, Archive Shows Its Count',
+    items: [
+      { category: 'Expedition', description: 'Undo only ever recorded drag and move operations, so after deleting a goal or a task the button stayed grey and could not bring it back. Both delete paths now snapshot first.' },
+      { category: 'Expedition', description: 'The archive button now carries a count of what is in there, and its tooltip says which direction it switches. It previously looked like an action ("archive this") while actually being a view toggle.' }
+    ]
+  },
+  {
+    version: 'v9.4.27',
+    date: '2026-10-28',
+    time: '11:50:00',
+    title: 'Version 9.4.27: Drag Without Selecting Text',
+    items: [
+      { category: 'Expedition', description: 'Dragging a row highlighted its text instead of moving it. The handle only blocked the browser default for touch input, so with a mouse the browser started a text selection first. It is blocked for every input type now, and rows no longer allow text selection at all.' }
+    ]
+  },
   {
     version: 'v9.4.26',
     date: '2026-10-28',
