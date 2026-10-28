@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Moon, X, Sun, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
 import { TimePicker } from '../common/TimePicker';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -13,12 +13,20 @@ interface BulkSleepModalProps {
   state: AppState;
   onClose: () => void;
   onSave: (date: string, sleepTime: string, wakeTime: string, sleepDurationMin: number) => void;
+  /** Pre-selects the night being edited (from a chart tooltip). Defaults to today. */
+  initialDate?: string;
 }
 
-export const BulkSleepModal: React.FC<BulkSleepModalProps> = ({ state, onClose, onSave }) => {
+export const BulkSleepModal: React.FC<BulkSleepModalProps> = ({ state, onClose, onSave, initialDate }) => {
   useScrollLock(true);
   
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    if (initialDate) {
+      const parsed = parseISO(initialDate);
+      if (isValid(parsed)) return parsed;
+    }
+    return new Date();
+  });
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   
   // Load existing if any

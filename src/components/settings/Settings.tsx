@@ -132,7 +132,7 @@ const SETTINGS_COMPARTMENTS = [
   {
     id: 'cloud' as const,
     title: 'Data Management',
-    desc: 'Cloud sync, Scholar Passport, snapshots, and JSON backups.',
+    desc: 'Cloud sync, Scholar Passport, and backups.',
     icon: Database,
     borderColor: 'hover:border-blue-500',
     iconColor: 'text-blue-400',
@@ -521,9 +521,9 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
                   groups={navGroups}
                   activeId={effectiveTab}
                   onSelect={setTabAndSave}
-                  searchValue={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  onSearchSubmit={() => handleSearchSubmit()}
+                  // No search props on purpose: the mobile menu already renders
+                  // its own search field above this list, and passing them here
+                  // drew a second, slightly different box right under it.
                 />
               )}
             </div>

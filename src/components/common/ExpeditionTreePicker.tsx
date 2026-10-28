@@ -162,11 +162,6 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
               <span className="text-xs font-semibold truncate">
                 {tier.name}
               </span>
-              {isCompleted && (
-                <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0 uppercase tracking-wider">
-                  Completed
-                </span>
-              )}
             </div>
           </div>
 
@@ -215,12 +210,14 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
     <div className={cn("bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50", className)}>
       {/* Header */}
       <div className="p-3 border-b border-slate-800 bg-slate-900/90 flex flex-col gap-2 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Layers size={14} className="text-indigo-400" />
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Select from Expedition</span>
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap">
+              Select from Expedition
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {includeCompleted && (
               <div className="flex items-center gap-0.5 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[10px]">
                 <button
@@ -241,13 +238,10 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
                     filterMode === 'active' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
                   )}
                 >
-                  Active
+                  Incomplete
                 </button>
               </div>
             )}
-            <span className="text-[10px] font-mono text-slate-500 font-medium">
-              {activeDungeons.length} {includeCompleted && filterMode === 'all' ? 'Tiers' : 'Active'}
-            </span>
             {onClose && (
               <button
                 type="button"
@@ -323,7 +317,6 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
               const isExpanded = !!expandedNodes[major.id] || searchTerm.trim().length > 0;
               const hasTiers = rootTiers.length > 0;
               const isSelected = selectedId === major.id;
-              const isCompleted = major.status === 'completed';
 
               if (searchTerm.trim() && !matchesSearch(major)) {
                 return null;
@@ -368,28 +361,9 @@ export const ExpeditionTreePicker: React.FC<ExpeditionTreePickerProps> = ({
                       <span className="text-xs font-bold text-slate-200 truncate group-hover:text-indigo-300 transition-colors">
                         {major.name}
                       </span>
-                      {isCompleted && (
-                        <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0 uppercase tracking-wider">
-                          Completed
-                        </span>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {hasTiers && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelect({ id: major.id, name: major.name, depth: 0 });
-                            if (onClose) onClose();
-                          }}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800/80 hover:bg-indigo-600 text-slate-400 hover:text-white transition-colors border border-slate-700/60"
-                          title={`Select ${major.name}`}
-                        >
-                          Select
-                        </button>
-                      )}
                       {isSelected && (
                         <span className="text-indigo-400 flex items-center">
                           <Check size={12} />

@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useMemo } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -6,13 +6,15 @@ import {
   CartesianGrid,
   XAxis,
   YAxis,
-  Tooltip,
   Bar,
   Line,
+  LabelList,
 } from 'recharts';
 import { format, parseISO, subDays, addDays } from 'date-fns';
 import { Moon, Edit2 } from 'lucide-react';
 import { DatePicker } from '../../common/DatePicker';
+import { PopoverPortal } from '../../common/PopoverPortal';
+import { resolveChartPoint, useAnchoredPopover } from '../../../hooks/useAnchoredPopover';
 
 interface StatsSleepTrackerSectionProps {
   sleepData: any[];
@@ -25,8 +27,7 @@ interface StatsSleepTrackerSectionProps {
   dateIndicators?: Record<string, { highlight?: boolean; star?: boolean }>;
   chartKey: number;
   handleChartClick: (state: any, chartId: string) => void;
-  activeChart: string | null;
-  onOpenBulkSleepModal?: () => void;
+  onOpenBulkSleepModal?: (dateStr?: string) => void;
   setShowBulkSleepModal?: React.Dispatch<React.SetStateAction<boolean>> | ((show: boolean) => void);
 }
 
@@ -42,7 +43,29 @@ const formatClock = (val: number | null) => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-const CustomSleepTooltip = ({ active, payload, activeChart, chartId }: any) => {
+// One night runs from 18:00 to 18:00 the next evening. Hours are stored as
+// "hours since midnight, plus 24 for anything past midnight", so a 01:30 bedtime
+// arrives as 25.5. Rebasing everything into that 24-hour window keeps the axis
+// monotonic in clock terms — the old 04:00→16:00 domain wrapped at midnight and
+// printed 20:00 above 01:00.
+//
+// The window below is only a fallback for an empty week. With data the axis
+// hugs the actual bedtimes and wake-ups, two hours clear on either side, so a
+// week of 23:00–07:00 nights uses the axis for those eight hours instead of
+// leaving three quarters of a fixed 24-hour band empty.
+const SLEEP_CYCLE_START = 18;
+const SLEEP_CYCLE_END = 42; // 18:00 next day
+const SLEEP_AXIS_PADDING = 2;
+
+// Tick spacing follows the window: a tight week of similar nights gets 1-hour
+// ticks, a wide one 3-hour ticks, and either way the labels stay on the hour so
+// they read as clock times rather than as 22.5.
+const pickSleepTickStep = (span: number) => (span <= 7 ? 1 : span <= 14 ? 2 : 3);
+
+const intoSleepCycle = (val: number | null) =>
+  val === null || val === undefined ? null : val < SLEEP_CYCLE_START ? val + 24 : val;
+
+const CustomSleepTooltip = ({ active, payload, activeChart, chartId, onEdit }: any) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -90,7 +113,7 @@ const CustomSleepTooltip = ({ active, payload, activeChart, chartId }: any) => {
     // every render and forced a synchronous layout each time.
   }, [activeChart, chartId]);
 
-  if (active && activeChart === chartId && payload && payload.length) {
+  if (active && (!activeChart || activeChart === chartId) && payload && payload.length) {
     const data = payload[0].payload;
     if (!data.hasRecord) return null;
     return (
@@ -106,6 +129,22 @@ const CustomSleepTooltip = ({ active, payload, activeChart, chartId }: any) => {
           <span className="text-right font-mono">{formatClock(data.wakeTime)}</span>
           <span className="text-emerald-400 font-bold">Duration:</span>
           <span className="text-right font-mono">{data.duration}h</span>
+        </div>
+
+        {/* Entry point into the editor for this exact night, without hunting for the header button */}
+        <div className="pt-2 mt-0.5 border-t border-slate-700/60 flex justify-end">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.(data.dateStr);
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/20 hover:bg-indigo-500/30 text-white text-[10px] font-bold uppercase tracking-wider leading-none transition-colors cursor-pointer"
+            title={`Edit sleep record for ${data.fullName}`}
+          >
+            <Edit2 size={11} />
+            <span>Edit</span>
+          </button>
         </div>
       </div>
     );
@@ -133,13 +172,92 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
   dateIndicators,
   chartKey,
   handleChartClick,
-  activeChart,
   onOpenBulkSleepModal,
   setShowBulkSleepModal,
 }) => {
-  const openEditor = () => {
-    if (onOpenBulkSleepModal) onOpenBulkSleepModal();
+  const openEditor = (dateStr?: string) => {
+    if (onOpenBulkSleepModal) onOpenBulkSleepModal(dateStr);
     else if (setShowBulkSleepModal) setShowBulkSleepModal(true);
+  };
+
+  // Times in a single 18:00→18:00 window so the line reads left-to-right in
+  // clock order instead of jumping back at midnight.
+  const timesData = useMemo(
+    () =>
+      sleepData.map((d) => ({
+        ...d,
+        sleepTime: intoSleepCycle(d.sleepTime),
+        wakeTime: intoSleepCycle(d.wakeTime),
+      })),
+    [sleepData]
+  );
+
+  // Window = the earliest and latest clock value across both lines, plus two
+  // hours either side. Rounded outwards to whole hours so no tick lands on :30,
+  // and so the padding is never less than the two hours it claims to be.
+  const timesDomain = useMemo(() => {
+    const values: number[] = [];
+    timesData.forEach((d) => {
+      if (typeof d.sleepTime === 'number' && Number.isFinite(d.sleepTime)) values.push(d.sleepTime);
+      if (typeof d.wakeTime === 'number' && Number.isFinite(d.wakeTime)) values.push(d.wakeTime);
+    });
+    // A week with no records at all still has to draw an axis, so fall back to
+    // the plain 18:00 → 18:00 night instead of handing recharts an empty range:
+    // with no ticks the whole grid disappears and the panel reads as broken
+    // rather than as "nothing happened this week".
+    if (values.length === 0) {
+      return { min: SLEEP_CYCLE_START, max: SLEEP_CYCLE_END, hasData: false };
+    }
+    const min = Math.floor(Math.min(...values)) - SLEEP_AXIS_PADDING;
+    const max = Math.ceil(Math.max(...values)) + SLEEP_AXIS_PADDING;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max - min < 2) {
+      return { min: SLEEP_CYCLE_START, max: SLEEP_CYCLE_END, hasData: false };
+    }
+    return { min, max, hasData: true };
+  }, [timesData]);
+
+  // recharts only draws a numeric axis when a visible series gives it a numeric
+  // extent, and a week of nulls gives it none — the axis, its labels and the
+  // whole grid silently disappear, which reads as a broken panel rather than as
+  // a quiet week. Feeding it the midpoint keeps the scale valid; the lines are
+  // then painted transparent rather than `hide`-den, because a hidden series is
+  // excluded from the domain calculation and puts us back where we started.
+  const timesChartData = useMemo(() => {
+    if (timesDomain.hasData) return timesData;
+    const mid = (timesDomain.min + timesDomain.max) / 2;
+    return timesData.map((d) => ({ ...d, sleepTime: mid, wakeTime: mid }));
+  }, [timesData, timesDomain]);
+
+  const timesTicks = useMemo(() => {
+    const step = pickSleepTickStep(timesDomain.max - timesDomain.min);
+    const ticks: number[] = [];
+    for (let v = timesDomain.min; v <= timesDomain.max; v += step) ticks.push(v);
+    return ticks.length > 0 ? ticks : [SLEEP_CYCLE_START, SLEEP_CYCLE_END];
+  }, [timesDomain]);
+
+  // Duration axis grows in 2h steps: a 7h night should not be a short bar on a
+  // 24h axis. Anything beyond 10h pushes the ceiling to 12, 14, 16…
+  const durationCeiling = useMemo(() => {
+    const longest = sleepData.reduce((max, d) => Math.max(max, Number(d.duration) || 0), 0);
+    return Math.max(10, Math.ceil(longest / 2) * 2);
+  }, [sleepData]);
+
+  const durationTicks = useMemo(() => {
+    const ticks: number[] = [];
+    for (let v = 0; v <= durationCeiling; v += 2) ticks.push(v);
+    return ticks;
+  }, [durationCeiling]);
+
+  // Two charts, two cards, same contract as the rest of the page: hover settles,
+  // the card is pinned to the hovered column, click pins it, tap works alone.
+  const timesWrapRef = useRef<HTMLDivElement>(null);
+  const durationWrapRef = useRef<HTMLDivElement>(null);
+  const timesTip = useAnchoredPopover();
+  const durationTip = useAnchoredPopover();
+
+  const tipPoint = (el: HTMLDivElement | null, chartX: number) => {
+    const rect = el?.getBoundingClientRect();
+    return rect ? { x: rect.left + chartX, y: rect.top + 6 } : null;
   };
 
   return (
@@ -184,7 +302,7 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
             </DatePicker>
           </div>
           <button
-            onClick={openEditor}
+            onClick={() => openEditor()}
             className="p-2 sm:px-3 sm:py-1.5 flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 rounded-lg transition-colors"
           >
             <Edit2 size={14} />
@@ -201,48 +319,57 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
             Sleep Times
           </div>
-          <div className="h-64 min-h-[240px]">
+          <div className="h-64 min-h-[240px]" ref={timesWrapRef}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <LineChart
                 key={`times-${chartKey}`}
-                data={sleepData}
-                onClick={(state) => handleChartClick(state, 'sleepTimes')}
+                data={timesChartData}
+                onClick={(state, event) => {
+                  const hit = resolveChartPoint(timesWrapRef.current, state, event, sleepData.length);
+                  if (!hit || !sleepData[hit.index] || !sleepData[hit.index].hasRecord) timesTip.pressNothing();
+                  else {
+                    const pt = tipPoint(timesWrapRef.current, hit.x);
+                    if (pt) timesTip.pressAt({ key: String(hit.index), point: pt });
+                  }
+                  handleChartClick(state, 'sleepTimes');
+                }}
+
+                onMouseMove={(state, event) => {
+                  const hit = resolveChartPoint(timesWrapRef.current, state, event, sleepData.length);
+                  if (!hit || !sleepData[hit.index] || !sleepData[hit.index].hasRecord) return;
+                  const pt = tipPoint(timesWrapRef.current, hit.x);
+                  if (pt) timesTip.hoverAt({ key: String(hit.index), point: pt });
+                }}
+
+                onMouseLeave={() => timesTip.leave()}
+
                 style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible', cursor: 'pointer' }}
                 margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-slate-800)" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 9 }} />
                 <YAxis
-                  domain={[4, 40]}
-                  tickCount={7}
+                  domain={[timesDomain.min, timesDomain.max]}
+                  ticks={timesTicks}
                   tick={{ fill: '#64748b', fontSize: 9 }}
                   axisLine={false}
                   tickLine={false}
-                  scale="time"
                   tickFormatter={formatClock}
-                />
-                <Tooltip
-                  key={`times-tt-${chartKey}`}
-                  trigger="click"
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  content={<CustomSleepTooltip activeChart={activeChart} chartId="sleepTimes" />}
-                  cursor={false}
                 />
                 <Line
                   type="linear"
                   dataKey="sleepTime"
-                  stroke={SLEEP_COLOR}
+                  stroke={timesDomain.hasData ? SLEEP_COLOR : 'transparent'}
                   strokeWidth={2}
-                  dot={{ r: 3.5, strokeWidth: 2, fill: '#1e293b' }}
+                  dot={timesDomain.hasData ? { r: 3.5, strokeWidth: 2, fill: '#1e293b' } : false}
                   connectNulls
                 />
                 <Line
                   type="linear"
                   dataKey="wakeTime"
-                  stroke={WAKE_COLOR}
+                  stroke={timesDomain.hasData ? WAKE_COLOR : 'transparent'}
                   strokeWidth={2}
-                  dot={{ r: 3.5, strokeWidth: 2, fill: WAKE_COLOR }}
+                  dot={timesDomain.hasData ? { r: 3.5, strokeWidth: 2, fill: WAKE_COLOR } : false}
                   connectNulls
                 />
               </LineChart>
@@ -265,32 +392,42 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
             Sleep Duration
           </div>
-          <div className="h-64 min-h-[240px]">
+          <div className="h-64 min-h-[240px]" ref={durationWrapRef}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart
                 key={`duration-${chartKey}`}
                 data={sleepData}
-                onClick={(state) => handleChartClick(state, 'sleepDuration')}
+                onClick={(state, event) => {
+                  const hit = resolveChartPoint(durationWrapRef.current, state, event, sleepData.length);
+                  if (!hit || !sleepData[hit.index] || !sleepData[hit.index].hasRecord) durationTip.pressNothing();
+                  else {
+                    const pt = tipPoint(durationWrapRef.current, hit.x);
+                    if (pt) durationTip.pressAt({ key: String(hit.index), point: pt });
+                  }
+                  handleChartClick(state, 'sleepDuration');
+                }}
+
+                onMouseMove={(state, event) => {
+                  const hit = resolveChartPoint(durationWrapRef.current, state, event, sleepData.length);
+                  if (!hit || !sleepData[hit.index] || !sleepData[hit.index].hasRecord) return;
+                  const pt = tipPoint(durationWrapRef.current, hit.x);
+                  if (pt) durationTip.hoverAt({ key: String(hit.index), point: pt });
+                }}
+
+                onMouseLeave={() => durationTip.leave()}
+
                 style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible', cursor: 'pointer' }}
                 margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-slate-800)" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 9 }} />
                 <YAxis
-                  domain={[0, 24]}
-                  tickCount={7}
+                  domain={[0, durationCeiling]}
+                  ticks={durationTicks}
                   tick={{ fill: '#64748b', fontSize: 9 }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(val) => `${val}h`}
-                />
-                <Tooltip
-                  key={`duration-tt-${chartKey}`}
-                  trigger="click"
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  content={<CustomSleepTooltip activeChart={activeChart} chartId="sleepDuration" />}
-                  cursor={false}
                 />
                 <Bar
                   dataKey="duration"
@@ -298,7 +435,20 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
                   radius={[4, 4, 0, 0]}
                   opacity={0.55}
                   maxBarSize={26}
-                />
+                >
+                  {/* The bars are short by design; the number on top is what
+                      makes the exact value readable without opening a tooltip. */}
+                  <LabelList
+                    dataKey="duration"
+                    position="top"
+                    offset={6}
+                    style={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }}
+                    formatter={(value: unknown) => {
+                      const v = Number(value);
+                      return v > 0 ? `${Number.isInteger(v) ? v : v.toFixed(1)}h` : '';
+                    }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -313,6 +463,45 @@ export const StatsSleepTrackerSection: React.FC<StatsSleepTrackerSectionProps> =
           </div>
         </div>
       </div>
+      {timesTip.target && sleepData[Number(timesTip.target.key)]?.hasRecord && (
+        <PopoverPortal
+          anchorPoint={timesTip.target.point}
+          offsetY={10}
+          preferPlacement="above"
+          showArrow={false}
+          onRequestClose={timesTip.close}
+        >
+          <div className={timesTip.skipEnterClass} {...timesTip.cardHandlers}>
+            <CustomSleepTooltip
+              active
+              payload={[{ payload: sleepData[Number(timesTip.target.key)] }]}
+              activeChart="sleepTimes"
+              chartId="sleepTimes"
+              onEdit={openEditor}
+            />
+          </div>
+        </PopoverPortal>
+      )}
+
+      {durationTip.target && sleepData[Number(durationTip.target.key)]?.hasRecord && (
+        <PopoverPortal
+          anchorPoint={durationTip.target.point}
+          offsetY={10}
+          preferPlacement="above"
+          showArrow={false}
+          onRequestClose={durationTip.close}
+        >
+          <div className={durationTip.skipEnterClass} {...durationTip.cardHandlers}>
+            <CustomSleepTooltip
+              active
+              payload={[{ payload: sleepData[Number(durationTip.target.key)] }]}
+              activeChart="sleepDuration"
+              chartId="sleepDuration"
+              onEdit={openEditor}
+            />
+          </div>
+        </PopoverPortal>
+      )}
     </div>
   );
 };

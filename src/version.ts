@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.5.7';
-export const LAST_UPDATE_DATE = '2026-10-27';
-export const LAST_UPDATE_TIME = '13:20:00';
+export const APP_VERSION = 'v9.6.0';
+export const LAST_UPDATE_DATE = '2026-10-29';
+export const LAST_UPDATE_TIME = '01:00:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,129 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.6.0',
+    date: '2026-10-29',
+    time: '01:00:00',
+    title: 'Version 9.6.0: The Whole Day, End to End',
+    items: [
+      { category: 'Navigation', description: 'Start of the Day and End of the Day became full pages at /start-of-day and /end-of-day, reachable by URL, bookmarkable, and no longer covering whatever tab you were on. Their dialog versions are gone rather than kept alongside.' },
+      { category: 'Journal', description: 'The journal is a page of its own: entries in a rail down the left, the day plan on the left page and the writing on the right, with a title you can name per entry and slash commands in the editor.' },
+      { category: 'Record', description: 'The Sleep Times axis follows the week instead of a fixed 24-hour band, and still draws the plain 18:00 to 18:00 axis on a week with no records.' },
+      { category: 'Record', description: 'Every card on this page — heatmap squares, donut slices, all four charts — opens on hover, survives the trip to the pointer, and pins on click. Charts use our own anchored card now; the library\'s tooltip followed the cursor and could not be reached.' },
+      { category: 'Explore', description: 'Active Talents cards stay open when you move onto them, so the descriptions and claim buttons are finally usable.' },
+      { category: 'Record', description: 'Animations play once per appearance: pinning a card that is already on screen no longer replays the entrance.' }
+    ]
+  },
+  {
+    version: 'v9.5.16',
+    date: '2026-10-29',
+    time: '02:45:00',
+    title: 'Version 9.5.16: Chart Cards That Stay Put',
+    items: [
+      { category: 'Record', description: 'Every chart card on this page is now ours rather than the chart library\'s. The library pins its tooltip to the pointer, so a hover-opened card ran away from the cursor and could never be reached; these hang off the hovered column and hold still.' },
+      { category: 'Record', description: 'Daily, Weekly bars, Weekly efficiency and both Sleep charts behave the same way now: rest on a column to open, move onto the card to read or copy from it, click to pin it in place, click again or away to let go.' },
+      { category: 'Explore', description: 'Active Talents cards finally survive the trip from the icon to the card. The old code opened on hover and closed the instant the pointer left the icon, which made the card impossible to read, let alone click.' },
+      { category: 'Record', description: 'Touch has no hover, so a tap opens and pins in one gesture and a second tap releases it — no dwell, no grace period, nothing to hover.' },
+      { category: 'Record', description: 'The entrance animation plays once per appearance. Re-placing or pinning a card that is already on screen no longer replays it, which is what made pinning look like a flicker.' }
+    ]
+  },
+  {
+    version: 'v9.5.15',
+    date: '2026-10-28',
+    time: '23:55:00',
+    title: 'Version 9.5.15: Popovers You Can Actually Reach',
+    items: [
+      { category: 'Record', description: 'The cards on this page open on hover now. Before, every one of them needed a click, and the chart tooltips were click-only, so reading a bar meant committing to a selection first.' },
+      { category: 'Record', description: 'A card stays open while the pointer is on it, which is what makes the numbers selectable and the Edit button clickable. Leaving grants a quarter of a second to cross the gap; before this, moving toward the card closed it halfway there.' },
+      { category: 'Record', description: 'Heatmap squares and donut slices require a short dwell before anything appears. Their targets sit a few pixels apart, so opening on the first pixel of contact fired a card per square while the pointer was only passing through.' },
+      { category: 'Record', description: 'A click still pins the heatmap and donut cards, and clicking it again, clicking away or pressing Escape releases it. The three charts keep their old behaviour — click to open, and the card stays put — because recharts draws its own tooltip and pins it to the pointer.' }
+    ]
+  },
+  {
+    version: 'v9.5.14',
+    date: '2026-10-28',
+    time: '22:00:00',
+    title: 'Version 9.5.14: Sleep Times Axis Hugs the Data',
+    items: [
+      { category: 'Record', description: 'The Sleep Times chart no longer runs on a fixed 18:00 to 18:00 band. Its axis now spans the earliest bedtime and latest wake-up of the week with two hours either side, so a week of 00:30 to 07:30 nights fills the chart instead of hugging the middle of an empty one.' },
+      { category: 'Record', description: 'Tick spacing follows the window — an hour apart when the week is tight, two or three when it is wide — and every label stays on the hour, so the axis reads as clock times with midnight wherever it actually falls.' },
+      { category: 'Record', description: 'A week with no sleep records at all falls back to the old 18:00 to 18:00 window rather than collapsing.' }
+    ]
+  },
+  {
+    version: 'v9.5.13',
+    date: '2026-10-28',
+    time: '21:05:00',
+    title: 'Version 9.5.13: Start and End of Day as Pages',
+    items: [
+      { category: 'Navigation', description: 'Start of the Day and End of the Day are pages now, at /start-of-day and /end-of-day, the same way the journal is. You can bookmark them, share the link, or reload without losing your place — none of which worked when they were dialogs painted over whatever tab you happened to be on.' },
+      { category: 'Navigation', description: 'Both take the whole window: the rail and the global header step aside, so the planner gets the width instead of the 256px the rail used to eat.' },
+      { category: 'Navigation', description: 'Closing either one returns you to the tab you opened it from, not to the dashboard. Coming from Record puts you back in Record. Save & Rest still lands on Record, because that is where the numbers you just wrote live.' },
+      { category: 'Navigation', description: 'The old dialog versions are gone rather than kept alongside — one implementation of each screen, no backdrop, no scroll lock, no z-index ladder.' }
+    ]
+  },
+  {
+    version: 'v9.5.12',
+    date: '2026-10-28',
+    time: '19:40:00',
+    title: 'Version 9.5.12: Journal Page and Slash Commands',
+    items: [
+      { category: 'Journal', description: 'The journal is a page of its own now, not an overlay. Entries sit in a rail down the left with the date, mood word and rating; the writing area is a two-page spread with the day plan on the left and the page itself on the right.' },
+      { category: 'Journal', description: 'Each entry can be named. The heading above the page is an editable field that falls back to the date when you clear it, so a month of entries is no longer a column of identical dates.' },
+      { category: 'Journal', description: 'Type a slash in the editor to reach formatting and insert commands without leaving the keyboard.' },
+      { category: 'Journal', description: 'The old fullscreen writing overlay is gone. The expand button above a reflection now saves the entry and opens it in the journal, so there is one place a reflection is edited instead of two.' },
+      { category: 'Record', description: 'Mood moved to the journal entry, where the rest of the day plan already lives.' },
+      { category: 'Team', description: 'A message you just sent no longer disappears for a moment when the team list refreshes, and tapping any message opens that scholar profile even when they have left the team.' }
+    ]
+  },
+  {
+    version: 'v9.5.11',
+    date: '2026-10-28',
+    time: '18:52:00',
+    title: 'Version 9.5.11: Level Summary and Calendar',
+    items: [
+      { category: 'Record', description: 'The summary panel and the calendar beside it now share one top edge and one bottom edge exactly. They were a few pixels apart because the flex row is as tall as whichever column needs more, and the shorter one was centred — so on a 1024 to 1279 window the calendar floated about three pixels inside the panel on both sides.' },
+      { category: 'Record', description: 'The panel now adopts the calendar height instead of the other way round, which is the way round the design reads. Nothing is clipped at any width, and the year view is untouched because it stacks.' }
+    ]
+  },
+  {
+    version: 'v9.5.10',
+    date: '2026-10-28',
+    time: '18:34:00',
+    title: 'Version 9.5.10: Tidy Summary Cards',
+    items: [
+      { category: 'Record', description: 'The four summary cards next to the heatmap now stay two-by-two on every screen. On a very wide window they used to spread into one row of four, and each card ended up narrower than it was tall — a 191px wide card holding thirty 4px bars that read as scattered noise rather than a shape.' },
+      { category: 'Record', description: 'Cards are now roughly 400px wide and half as tall, so the bar strip sits in a short readable band instead of a tall empty column.' }
+    ]
+  },
+  {
+    version: 'v9.5.9',
+    date: '2026-10-28',
+    time: '18:20:00',
+    title: 'Version 9.5.9: Tag Breakdown Detail Card',
+    items: [
+      { category: 'Record', description: 'Tapping a slice of the Tag Breakdown donut now opens the same card the Daily columns and the heatmap use — tag name, then Study Time, Share, Sessions, average per session, and distraction rate when there is any. Tapping it again, or anywhere outside, closes it.' },
+      { category: 'Record', description: 'The card opens on tap rather than on hover, so it works on a phone. Hover still dims the other slices on a desktop, but nothing opens until you tap.' },
+      { category: 'Record', description: 'The one-line readout that used to sit under the donut is gone. It carried only name, time and share, and read like a different product next to the rest of the stats page.' },
+      { category: 'Record', description: 'Both card frames now come from a single exported style, so a future popover cannot quietly drift away from the others.' },
+      { category: 'Expedition', description: 'The picker panel is wider and its header no longer wraps onto two lines. The tier count next to the filter is gone — the filter already says what it filters.' },
+      { category: 'Expedition', description: 'The per-goal "Select" button and the COMPLETED badge on both goals and tiers are removed. A completed tier still shows a green dot; the numbers already told that story.' },
+      { category: 'Expedition', description: 'The All / Active switch is now All / Incomplete, which is what it actually filters.' },
+      { category: 'Expedition', description: 'A panel that opens upwards could lose its header off the top of the viewport when it was taller than the space above. It now slides down until the first row is fully visible.' }
+    ]
+  },
+  {
+    version: 'v9.5.8',
+    date: '2026-10-28',
+    time: '17:28:00',
+    title: 'Version 9.5.8: One Expedition Picker Everywhere',
+    items: [
+      { category: 'Expedition', description: 'The picker behind "Select from Expedition" existed in three slightly different shapes — one opened upwards, one opened downwards, one stretched to its field. All three now share a single panel that flips to whichever side has room, stays inside the viewport on narrow screens, and is never clipped by a full-screen modal.' },
+      { category: 'Expedition', description: 'Picking a target for a task or for a past session now always shows the full tree: the All / Active switch, completed badges, the Free Study row where it applies, and a tick on the current selection.' },
+      { category: 'Expedition', description: 'Dismissing is consistent — outside click or Escape — and no longer depends on remembering to add a CSS marker class to the right wrapper. The three hand-rolled copies of that listener are gone.' }
+    ]
+  },
   {
     version: 'v9.4.30',
     date: '2026-10-28',

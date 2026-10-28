@@ -18,8 +18,8 @@ import {
   Flame
 } from 'lucide-react';
 import { AppIcon } from './components/icons/AppIcon';
-import { DailySummaryModal } from './components/record/DailySummaryModal';
-import { StartOfDayModal } from './components/dashboard/StartOfDayModal';
+import { DailySummaryView } from './components/record/DailySummaryView';
+import { StartOfDayView } from './components/dashboard/StartOfDayView';
 import { CoinRain } from './components/dashboard/CoinRain';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { ExploreView } from './components/expedition/ExploreView';
@@ -103,7 +103,7 @@ const readSettingsSectionFromUrl = (): SettingsSection => {
 function App() {
   const [appReady, setAppReady] = useState(false);
   const [activeTab, setActiveTab] = useHistoryRoute(
-    ['dashboard', 'explore', 'dungeons', 'talents', 'shop', 'stats', 'journal', 'settings', 'vault'],
+    ['dashboard', 'explore', 'dungeons', 'talents', 'shop', 'stats', 'journal', 'settings', 'vault', 'start-of-day', 'end-of-day'],
     'dashboard'
   );
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -325,12 +325,23 @@ function App() {
   const [showLevelUp, setShowLevelUp] = useState<number[] | null>(null);
   const [showGuideBook, setShowGuideBook] = useState(false);
   const [guideInitialPage, setGuideInitialPage] = useState(0);
-  const [showDailySummary, setShowDailySummary] = useState(false);
-  const [showStartOfDayModal, setShowStartOfDayModal] = useState<string | boolean>(false);
   const [journalInitialDate, setJournalInitialDate] = useState<Date | undefined>(undefined);
   const [journalReturnTab, setJournalReturnTab] = useState<string>('stats');
 
-  const handleOpenJournalPage = useCallback((dateStr?: string) => {
+  // Start of the Day and End of the Day are pages, like the journal: they own a
+  // URL, they replace the tab instead of covering it, and each remembers where
+  // it was opened from so Back / Save lands there rather than on the dashboard.
+  const [startOfDayInitialDate, setStartOfDayInitialDate] = useState<string | undefined>(undefined);
+  // Where each page goes when it closes, kept in refs so the open/close helpers
+  // stay referentially stable. They must: the start-of-day auto-prompt effect
+  // lists them as dependencies, and an unstable helper would re-run it the
+  // moment you closed the page and bounce you straight back into it.
+  const activeTabRef = React.useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const startOfDayReturnRef = React.useRef<string>('dashboard');
+  const endOfDayReturnRef = React.useRef<string>('dashboard');
+
+  const handleOpenJournalPage = useCallback((dateStr?: string, returnTab?: string) => {
     if (dateStr) {
       const parsed = parseISO(dateStr);
       if (isValid(parsed)) {
@@ -339,9 +350,30 @@ function App() {
     } else {
       setJournalInitialDate(undefined);
     }
-    setJournalReturnTab(activeTab === 'journal' ? 'stats' : activeTab);
+    setJournalReturnTab(returnTab ?? (activeTab === 'journal' ? 'stats' : activeTab));
     setActiveTab('journal');
   }, [activeTab, setActiveTab]);
+
+  const openStartOfDayPage = useCallback((val?: string | boolean) => {
+    const from = activeTabRef.current;
+    startOfDayReturnRef.current = from === 'start-of-day' ? 'dashboard' : from;
+    setStartOfDayInitialDate(typeof val === 'string' ? val : undefined);
+    setActiveTab('start-of-day');
+  }, [setActiveTab]);
+
+  const closeStartOfDayPage = useCallback(() => {
+    setActiveTab(startOfDayReturnRef.current || 'dashboard');
+  }, [setActiveTab]);
+
+  const openEndOfDayPage = useCallback(() => {
+    const from = activeTabRef.current;
+    endOfDayReturnRef.current = from === 'end-of-day' ? 'dashboard' : from;
+    setActiveTab('end-of-day');
+  }, [setActiveTab]);
+
+  const closeEndOfDayPage = useCallback(() => {
+    setActiveTab(endOfDayReturnRef.current || 'dashboard');
+  }, [setActiveTab]);
   const [showCloudSync, setShowCloudSync] = useState(false);
   const [passportInitialTab, setPassportInitialTab] = useState<'login' | 'register'>('login');
   const [passportPromptMessage, setPassportPromptMessage] = useState<string | null>(null);
@@ -634,8 +666,9 @@ function App() {
       return;
     }
 
-    setShowStartOfDayModal(true);
+    openStartOfDayPage();
   }, [
+    openStartOfDayPage,
     state.lastStartOfDayPrompt,
     state.enableStartOfDayPrompt,
     state.timezone,
@@ -1192,10 +1225,14 @@ function App() {
 
   // Both Explore and Journal take the whole screen; the global sidebar would
   // otherwise eat 256px of a page that is itself a workspace.
-  const hideSidebar = isFullscreenExplore || activeTab === 'journal';
-  // The journal is a writing surface — the global header (level bar, timer,
-  // streaks) is noise there, so it goes too. Explore keeps its header.
-  const hideHeader = activeTab === 'journal';
+  // Every full-screen page owns the whole viewport; the rail would eat 256px of
+  // a page that is itself a workspace.
+  const isFullPageTab =
+    activeTab === 'journal' || activeTab === 'start-of-day' || activeTab === 'end-of-day';
+  const hideSidebar = isFullscreenExplore || isFullPageTab;
+  // Writing and planning surfaces do not want the global header (level bar,
+  // timer, streaks) — it is noise there. Explore keeps its header.
+  const hideHeader = isFullPageTab;
 
   const navItems = [
     { id: 'dashboard', label: 'Sanctum', icon: LayoutDashboard },
@@ -1345,9 +1382,9 @@ function App() {
   const handleSplashComplete = useCallback(() => {
     setAppReady(true);
     if (shouldShowStartOfDayOnStartup) {
-      setShowStartOfDayModal(true);
+      openStartOfDayPage();
     }
-  }, [shouldShowStartOfDayOnStartup]);
+  }, [shouldShowStartOfDayOnStartup, openStartOfDayPage]);
 
   const toggleTimerPip = useCallback(() => {
     if (isTimerActive) {
@@ -1870,7 +1907,9 @@ function App() {
         </header>
         )}
 
-        <div className={cn("relative max-w-[1600px] mx-auto w-full flex-grow flex flex-col min-h-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]", isFullscreenExplore ? "h-[100dvh] justify-center" : "pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-8")}>
+        <div className={cn("relative max-w-[1600px] mx-auto w-full flex-grow flex flex-col min-h-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]", isFullscreenExplore ? "h-[100dvh] justify-center"
+          : isFullPageTab ? "h-[100dvh] pb-0 md:pb-0"
+          : "pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-8")}>
           <ErrorBoundary key={activeTab} label="This page" onReset={() => setActiveTab('dashboard')}>
           <AnimatePresence mode="popLayout" initial={false}>
             {activeTab === 'dashboard' && (
@@ -1881,8 +1920,8 @@ function App() {
                 majorDungeons={majorDungeons}
                 _currentDungeon={currentDungeon || null}
                 setActiveTab={setActiveTab}
-                setShowDailySummary={setShowDailySummary}
-                setShowStartOfDayModal={setShowStartOfDayModal}
+                setShowDailySummary={openEndOfDayPage}
+                setShowStartOfDayModal={openStartOfDayPage}
                 openGuideBook={(chapter) => {
                   setGuideInitialPage(chapter);
                   setShowGuideBook(true);
@@ -2015,8 +2054,8 @@ function App() {
                    setActiveSettingsSection('timer');
                    setActiveTab('settings');
                  }}
-                 setShowDailySummary={setShowDailySummary}
-                 setShowStartOfDayModal={setShowStartOfDayModal}
+                 setShowDailySummary={openEndOfDayPage}
+                 setShowStartOfDayModal={openStartOfDayPage}
                />
              )}
 
@@ -2112,7 +2151,7 @@ function App() {
                 completeSession={completeSession}
                 dungeons={dungeons}
                 majorDungeons={majorDungeons}
-                setShowStartOfDayModal={setShowStartOfDayModal}
+                setShowStartOfDayModal={openStartOfDayPage}
                 onOpenJournalPage={handleOpenJournalPage}
               />
             )}
@@ -2126,6 +2165,52 @@ function App() {
                 majorDungeons={majorDungeons}
                 initialDate={journalInitialDate}
                 onBack={() => setActiveTab((journalReturnTab as any) || 'stats')}
+              />
+            )}
+
+            {activeTab === 'start-of-day' && (
+              <StartOfDayView
+                state={state}
+                dungeons={dungeons}
+                majorDungeons={majorDungeons}
+                initialDateStr={startOfDayInitialDate}
+                repairStreak={repairStreak}
+                onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
+                onClose={closeStartOfDayPage}
+                onOpenJournal={(dateStr) => handleOpenJournalPage(dateStr, startOfDayReturnRef.current)}
+                onSave={(dateStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title) => {
+                  const logs = state.dailyLogs || {};
+                  const current = logs[dateStr] || { rating: 0, reflection: '' };
+                  setState(s => ({
+                    ...s,
+                    lastStartOfDayPrompt: dateStr,
+                    dailyLogs: {
+                      ...logs,
+                      [dateStr]: {
+                        ...current,
+                        sleepTime,
+                        wakeTime,
+                        sleepDurationMin,
+                        reflection,
+                        mood: mood || current.mood,
+                        ...(title !== undefined ? { title: title.trim() || undefined } : {})
+                      }
+                    }
+                  }));
+                }}
+              />
+            )}
+
+            {activeTab === 'end-of-day' && (
+              <DailySummaryView
+                state={state}
+                dungeons={dungeons}
+                majorDungeons={majorDungeons}
+                onClose={closeEndOfDayPage}
+                onNavigateToStats={() => setActiveTab('stats')}
+                onOpenJournal={(dateStr) => handleOpenJournalPage(dateStr, endOfDayReturnRef.current)}
+                onSave={saveDailyLog}
+                onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
               />
             )}
 
@@ -2152,62 +2237,6 @@ function App() {
           </ErrorBoundary>
         </div>
       </main>
-
-      <AnimatePresence>
-        {showDailySummary && (
-          <DailySummaryModal 
-            state={state}
-            dungeons={dungeons}
-            majorDungeons={majorDungeons}
-            onClose={() => setShowDailySummary(false)}
-            onNavigateToStats={() => {
-              setShowDailySummary(false);
-              setActiveTab('stats');
-            }}
-            onOpenJournal={(dateStr) => {
-              setShowDailySummary(false);
-              handleOpenJournalPage(dateStr);
-            }}
-            onSave={saveDailyLog}
-            onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
-          />
-        )}
-        {showStartOfDayModal && (
-          <StartOfDayModal
-            state={state}
-            dungeons={dungeons}
-            majorDungeons={majorDungeons}
-            initialDateStr={typeof showStartOfDayModal === 'string' ? showStartOfDayModal : undefined}
-            repairStreak={repairStreak}
-            onUpdateState={(update) => setState(s => ({ ...s, ...update }))}
-            onClose={() => setShowStartOfDayModal(false)}
-            onOpenJournal={(dateStr) => {
-              setShowStartOfDayModal(false);
-              handleOpenJournalPage(dateStr);
-            }}
-            onSave={(dateStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title) => {
-              const logs = state.dailyLogs || {};
-              const current = logs[dateStr] || { rating: 0, reflection: '' };
-              setState(s => ({
-                ...s,
-                lastStartOfDayPrompt: dateStr,
-                dailyLogs: {
-                  ...logs,
-                  [dateStr]: {
-                    ...current,
-                    sleepTime,
-                    wakeTime,
-                    sleepDurationMin,
-                    reflection,
-                    mood: mood || current.mood,
-                    ...(title !== undefined ? { title: title.trim() || undefined } : {})
-                  }
-                }
-              }));
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Profile Modal */}
       <ProfileModal 

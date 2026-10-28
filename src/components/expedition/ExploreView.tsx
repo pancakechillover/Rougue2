@@ -32,6 +32,7 @@ import { RecentSessions } from '../dashboard/RecentSessions';
 import { TalentIcon } from '../talents/TalentIcon';
 import { RewardChestModal } from '../modals/RewardChestModal';
 import { TreasureChestIcon } from '../icons/TreasureChestIcon';
+import { useAnchoredPopover } from '../../hooks/useAnchoredPopover';
 import { PopoverPortal } from '../common/PopoverPortal';
 import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
@@ -165,7 +166,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
   setShowStartOfDayModal
 }) => {
   const [showChestModal, setShowChestModal] = React.useState(false);
-  const [activeTalentPopover, setActiveTalentPopover] = React.useState<{ id: string; element: HTMLElement } | null>(null);
+  // Hover opens after a short dwell, the pointer may travel onto the card, and
+  // a click pins it. Same contract as every other card on the stats page.
+  const talentTip = useAnchoredPopover({ openDelay: 120 });
   const [showWorkstationLogView, setShowWorkstationLogView] = React.useState<boolean>(() => {
     try {
       return localStorage.getItem('explore_showWorkstationLogView') === 'true';
@@ -195,19 +198,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 
   useScrollLock(showBuildDetails || showChestModal || isFullscreenExplore);
 
-
-  // Close tooltip when clicking outside
-  React.useEffect(() => {
-    if (!activeTalentPopover) return;
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.talent-icon-container') && !target.closest('.talent-popover-content')) {
-        setActiveTalentPopover(null);
-      }
-    };
-    window.addEventListener('mousedown', handleGlobalClick);
-    return () => window.removeEventListener('mousedown', handleGlobalClick);
-  }, [activeTalentPopover]);
 
   // Handle WakeLock and orientation in fullscreen mode
   React.useEffect(() => {
@@ -771,25 +761,17 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                           'C': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                         };
                         const colorClass = branchColors[talent.branch] || 'text-slate-400 bg-slate-800 border-slate-700';
-                        const isSelected = activeTalentPopover?.id === talent.id;
+                        const isSelected = talentTip.target?.key === talent.id;
                         
                         return (
                           <div 
                             key={talent.id} 
                             className="group relative hover:z-[100] talent-icon-container"
-                            onMouseEnter={(e) => {
-                              setActiveTalentPopover({ id: talent.id, element: e.currentTarget });
-                            }}
-                            onMouseLeave={() => {
-                              setActiveTalentPopover((prev) => (prev?.id === talent.id ? null : prev));
-                            }}
+                            onMouseEnter={(e) => talentTip.hoverAt({ key: talent.id, point: { x: 0, y: 0 }, element: e.currentTarget })}
+                            onMouseLeave={() => talentTip.leave()}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (activeTalentPopover?.id === talent.id) {
-                                setActiveTalentPopover(null);
-                              } else {
-                                setActiveTalentPopover({ id: talent.id, element: e.currentTarget });
-                              }
+                              talentTip.pressAt({ key: talent.id, point: { x: 0, y: 0 }, element: e.currentTarget });
                             }}
                           >
                             <div className={cn(
@@ -805,9 +787,13 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
                   )}
                 </div>
 
-                <PopoverPortal anchorElement={activeTalentPopover?.element || null} offsetY={12}>
-                  {activeTalentPopover && (() => {
-                    const talent = TALENTS.find(t => t.id === activeTalentPopover.id);
+                <PopoverPortal
+                  anchorElement={talentTip.target?.element || null}
+                  offsetY={12}
+                  onRequestClose={talentTip.close}
+                >
+                  {talentTip.target && (() => {
+                    const talent = TALENTS.find(t => t.id === talentTip.target!.key);
                     if (!talent) return null;
 
                     const branchColors: Record<string, string> = {
@@ -818,10 +804,9 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
 
                     return (
                       <div 
-                        className="talent-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-2xl shadow-2xl w-[260px] sm:w-[280px] animate-popover-enter"
-                        onMouseEnter={() => {
-                          // Keep open when hovering the popover
-                        }}
+                        className={`talent-popover-content bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-2xl shadow-2xl w-[260px] sm:w-[280px] animate-popover-enter ${talentTip.skipEnterClass || ''}`}
+                        onMouseEnter={talentTip.cardHandlers.onMouseEnter}
+                        onMouseLeave={talentTip.cardHandlers.onMouseLeave}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className={cn("text-sm font-black mb-1", branchColors[talent.branch]?.split(' ')[0] || 'text-indigo-400')}>

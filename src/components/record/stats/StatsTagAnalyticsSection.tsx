@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Tags, Clock, Layers, Zap } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { StudySession, Dungeon, MajorDungeon, Tag, TimeSettings } from '../../../types';
 import { getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay, cn } from '../../../lib/utils';
 import { getSessionEffectiveTagIds, TAG_COLOR_STYLES } from '../../../lib/tags';
 import { TagBadge } from '../../common/TagBadge';
 import { DurationText } from '../../common/DurationText';
+import { TagSlicePopover } from './TagSlicePopover';
+import { PopoverPortal } from '../../common/PopoverPortal';
 import { DatePicker } from '../../common/DatePicker';
 import { parseISO, differenceInCalendarDays, format, subDays, addDays, isSameDay } from 'date-fns';
 
@@ -51,6 +53,9 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
 
   const [range, setRange] = useState<'day' | '7d' | '30d' | 'all'>('7d');
   const [tagDate, setTagDate] = useState<Date>(() => todayDate);
+  const [hoveredSlice, setHoveredSlice] = useState<number | null>(null);
+  const [selectedSlice, setSelectedSlice] = useState<number | null>(null);
+  const [sliceAnchor, setSliceAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const anchorDate = useMemo(() => {
     const settlementStr = getSettlementDay(tagDate, timeSettings);
@@ -172,12 +177,77 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
     };
   }, [history, dungeons, majorDungeons, tags, range, anchorDate, includeRestTimeInStats, standardRestMinutes, timeSettings]);
 
-  const formatDuration = (mins: number) => {
-    if (mins < 60) return `${mins}m`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  };
+  // Selection drives the card, not hover: the stats page is used on tablets
+  // too, and a hover-only affordance is unreachable there.
+  //
+  // Anchored to the click point rather than the sector node: recharts recreates
+  // sector paths on re-render, and a stored path reference is already detached
+  // by the time the card mounts (its bounding box then reads as 0,0).
+  // Hover opens the card, click pins it — same intent rule as the heatmap: a
+  // dwell before anything appears, and a grace period on the way out so the
+  // pointer can cross the gap onto the card and copy from it.
+  const hoverOpenTimer = useRef<number | null>(null);
+  const hoverCloseTimer = useRef<number | null>(null);
+  const pointerInCardRef = useRef(false);
+  const pinnedRef = useRef(false);
+
+  const clearHoverTimers = useCallback(() => {
+    if (hoverOpenTimer.current !== null) {
+      window.clearTimeout(hoverOpenTimer.current);
+      hoverOpenTimer.current = null;
+    }
+    if (hoverCloseTimer.current !== null) {
+      window.clearTimeout(hoverCloseTimer.current);
+      hoverCloseTimer.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearHoverTimers, [clearHoverTimers]);
+
+  const scheduleSliceOpen = useCallback((index: number, x: number, y: number) => {
+    if (pinnedRef.current) return;
+    clearHoverTimers();
+    hoverOpenTimer.current = window.setTimeout(() => {
+      setSelectedSlice(index);
+      setSliceAnchor({ x, y });
+    }, 150);
+  }, [clearHoverTimers]);
+
+  const scheduleSliceClose = useCallback(() => {
+    if (pinnedRef.current) return;
+    clearHoverTimers();
+    hoverCloseTimer.current = window.setTimeout(() => {
+      if (!pointerInCardRef.current) {
+        setSelectedSlice(null);
+        setSliceAnchor(null);
+      }
+    }, 250);
+  }, [clearHoverTimers]);
+
+  const handleSliceClick = useCallback(
+    (_data: unknown, index: number, event: React.MouseEvent<SVGGraphicsElement>) => {
+      if (selectedSlice === index && pinnedRef.current) {
+        pinnedRef.current = false;
+        setSelectedSlice(null);
+        setSliceAnchor(null);
+        return;
+      }
+      pinnedRef.current = true;
+      clearHoverTimers();
+      setSelectedSlice(index);
+      setSliceAnchor({ x: event.clientX, y: event.clientY });
+    },
+    [selectedSlice]
+  );
+
+  const closeSlicePopover = useCallback(() => {
+    pinnedRef.current = false;
+    setSelectedSlice(null);
+    setSliceAnchor(null);
+  }, []);
+
+  /** Hover previews, selection wins — otherwise a tap on touch leaves stale dimming. */
+  const focusSlice = selectedSlice !== null ? selectedSlice : hoveredSlice;
 
   return (
     <div
@@ -326,7 +396,13 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
               </span>
             </div>
 
-            <div className="relative w-full h-56 sm:h-60 my-auto flex items-center justify-center">
+            <div
+              className="relative w-full h-56 sm:h-60 my-auto flex items-center justify-center"
+              onMouseLeave={() => {
+                setHoveredSlice(null);
+                scheduleSliceClose();
+              }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -339,23 +415,24 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
                     outerRadius={88}
                     paddingAngle={2}
                     stroke="none"
+                    onMouseEnter={(_data, index, event) => {
+                      setHoveredSlice(index);
+                      const pt = event as unknown as React.MouseEvent;
+                      if (pt && typeof pt.clientX === 'number') {
+                        scheduleSliceOpen(index, pt.clientX, pt.clientY);
+                      }
+                    }}
+                    onClick={handleSliceClick}
                   >
-                    {tagStats.rows.map((entry) => (
-                      <Cell key={entry.id} fill={entry.colorHex} />
+                    {tagStats.rows.map((entry, index) => (
+                      <Cell
+                        key={entry.id}
+                        fill={entry.colorHex}
+                        opacity={focusSlice === null || focusSlice === index ? 1 : 0.4}
+                        style={{ transition: 'opacity 150ms ease', cursor: 'pointer' }}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number, name: string) => [formatDuration(value), name]}
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#1e293b',
-                      borderRadius: '12px',
-                      color: '#f8fafc',
-                      fontSize: '12px',
-                      fontWeight: 700
-                    }}
-                    itemStyle={{ color: '#e2e8f0' }}
-                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -367,6 +444,28 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
                 </span>
               </div>
             </div>
+
+            {selectedSlice !== null && sliceAnchor && tagStats.rows[selectedSlice] && (
+              <PopoverPortal
+                anchorPoint={sliceAnchor}
+                onRequestClose={closeSlicePopover}
+                preferPlacement="below"
+                showArrow={false}
+              >
+                <div
+                  onMouseEnter={() => {
+                    pointerInCardRef.current = true;
+                    clearHoverTimers();
+                  }}
+                  onMouseLeave={() => {
+                    pointerInCardRef.current = false;
+                    scheduleSliceClose();
+                  }}
+                >
+                  <TagSlicePopover data={tagStats.rows[selectedSlice]} />
+                </div>
+              </PopoverPortal>
+            )}
           </div>
 
           {/* Right: Tag Ranking List */}

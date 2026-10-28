@@ -3,6 +3,20 @@ import { LayoutTemplate, Brain, Wind, Zap, Coins, Clock, Star, RotateCcw } from 
 import { MOOD_OPTIONS } from '../../../constants';
 import { DurationText } from '../../common/DurationText';
 
+/**
+ * The shell shared by every stat popover card.
+ *
+ * Exported so newer popovers (e.g. the tag donut) can borrow the exact same
+ * frame instead of hand-rolling a second one that slowly drifts — that is how
+ * the heatmap and weekly popovers ended up looking different in the first place.
+ */
+export const STATS_POPOVER_CARD_CLASS =
+  'shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-[100] w-[210px] sm:w-[230px] max-w-[calc(100vw-24px)] text-left box-border';
+
+/** Title row used by every stat popover: bold, one line, underlined. */
+export const STATS_POPOVER_TITLE_CLASS =
+  'text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm';
+
 interface SharedPopoverContentProps {
   label: string;
   totalSessions: number;
@@ -122,10 +136,10 @@ export const SharedPopoverContent: React.FC<SharedPopoverContentProps> = ({
   return (
     <div
       ref={containerRef}
-      className="shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-[100] w-[210px] sm:w-[230px] max-w-[calc(100vw-24px)] text-left box-border"
+      className={STATS_POPOVER_CARD_CLASS}
       onClick={(e) => e.stopPropagation()}
     >
-      <p className="text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm">
+      <p className={`${STATS_POPOVER_TITLE_CLASS}`}>
         {label}
       </p>
 

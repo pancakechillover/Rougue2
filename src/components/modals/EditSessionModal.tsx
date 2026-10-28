@@ -6,7 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { StudySession, Dungeon, MajorDungeon } from '../../types';
 import { cn } from '../../lib/utils';
 import { SpinnerInput } from '../common/SpinnerInput';
-import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
+import { ExpeditionSelect } from '../common/ExpeditionSelect';
 
 interface EditSessionModalProps {
   session: StudySession | null;
@@ -28,7 +28,6 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   allHashtags = []
 }) => {
   const [dungeonId, setDungeonId] = useState('free_study');
-  const [showExpeditionPicker, setShowExpeditionPicker] = useState(false);
   const [timestamp, setTimestamp] = useState('');
   const [focusDuration, setFocusDuration] = useState<number>(25);
   const [restDuration, setRestDuration] = useState<number>(5);
@@ -51,26 +50,8 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       setExternalDistractions(session.distractions?.external || 0);
       setUnavoidableDistractions(session.distractions?.unavoidable || 0);
       setNote(session.note || '');
-      setShowExpeditionPicker(false);
     }
   }, [session, isOpen]);
-
-  // Close expedition picker when clicking outside
-  useEffect(() => {
-    if (!showExpeditionPicker) return;
-    const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.expedition-picker-container')) {
-        setShowExpeditionPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleGlobalClick);
-    document.addEventListener('touchstart', handleGlobalClick);
-    return () => {
-      document.removeEventListener('mousedown', handleGlobalClick);
-      document.removeEventListener('touchstart', handleGlobalClick);
-    };
-  }, [showExpeditionPicker]);
 
   if (!isOpen || !session) return null;
 
@@ -175,7 +156,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
             <div className="space-y-4 flex flex-col max-w-xl mx-auto w-full">
               {/* Objective & Start Time Card */}
               <div className="bg-slate-800/20 rounded-2xl p-4 sm:p-5 border border-slate-700/30 space-y-4">
-                <div className="space-y-1.5 relative expedition-picker-container">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
                       <Target size={15} className="text-indigo-400" />
@@ -184,10 +165,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
                     {dungeonId !== 'free_study' && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setDungeonId('free_study');
-                          setShowExpeditionPicker(false);
-                        }}
+                        onClick={() => setDungeonId('free_study')}
                         className="text-xs text-slate-500 hover:text-amber-400 transition-colors font-medium flex items-center gap-1"
                       >
                         <RotateCcw size={12} />
@@ -197,58 +175,54 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
                   </div>
 
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
-                      className={cn(
-                        'w-full bg-slate-950/70 border rounded-xl py-2.5 px-3.5 text-sm text-left flex items-center justify-between transition-all',
-                        showExpeditionPicker
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/30 text-white'
-                          : 'border-slate-800 text-white hover:border-slate-700'
+                    <ExpeditionSelect
+                      dungeons={dungeons}
+                      majorDungeons={majorDungeons}
+                      selectedId={dungeonId}
+                      includeCompleted
+                      allowFreeStudy
+                      matchTriggerWidth
+                      zIndexClassName="z-[10000]"
+                      onSelect={(item) => setDungeonId(item.id)}
+                      renderTrigger={({ open, toggle, triggerRef }) => (
+                        <button
+                          ref={triggerRef}
+                          type="button"
+                          onClick={toggle}
+                          className={cn(
+                            'w-full bg-slate-950/70 border rounded-xl py-2.5 px-3.5 text-sm text-left flex items-center justify-between transition-all',
+                            open
+                              ? 'border-indigo-500 ring-2 ring-indigo-500/30 text-white'
+                              : 'border-slate-800 text-white hover:border-slate-700'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {selectedDungeon ? (
+                              <>
+                                <Target size={15} className="text-indigo-400 shrink-0" />
+                                <span className="truncate font-semibold text-white">
+                                  {selectedDungeon.name}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={15} className="text-amber-400 shrink-0" />
+                                <span className="truncate font-semibold text-slate-200">
+                                  Free Study
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <ChevronDown
+                            size={15}
+                            className={cn(
+                              'text-slate-400 transition-transform duration-200 shrink-0 ml-1',
+                              open && 'rotate-180'
+                            )}
+                          />
+                        </button>
                       )}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {selectedDungeon ? (
-                          <>
-                            <Target size={15} className="text-indigo-400 shrink-0" />
-                            <span className="truncate font-semibold text-white">
-                              {selectedDungeon.name}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles size={15} className="text-amber-400 shrink-0" />
-                            <span className="truncate font-semibold text-slate-200">
-                              Free Study
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <ChevronDown
-                        size={15}
-                        className={cn(
-                          'text-slate-400 transition-transform duration-200 shrink-0 ml-1',
-                          showExpeditionPicker && 'rotate-180'
-                        )}
-                      />
-                    </button>
-
-                    {showExpeditionPicker && (
-                      <div className="absolute left-0 right-0 top-[calc(100%+6px)] shadow-2xl z-50">
-                        <ExpeditionTreePicker
-                          dungeons={dungeons}
-                          majorDungeons={majorDungeons}
-                          selectedId={dungeonId}
-                          includeCompleted={true}
-                          allowFreeStudy={true}
-                          onSelect={(item) => {
-                            setDungeonId(item.id);
-                            setShowExpeditionPicker(false);
-                          }}
-                          onClose={() => setShowExpeditionPicker(false)}
-                        />
-                      </div>
-                    )}
+                    />
                   </div>
                 </div>
 

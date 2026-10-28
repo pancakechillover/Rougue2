@@ -137,20 +137,25 @@ export const DungeonsView: React.FC<DungeonsViewProps> = ({
     return exportExpeditionsToMarkdown(majorDungeons, dungeons, state.tags || []);
   }, [majorDungeons, dungeons, state.tags, isImportExportOpen]);
 
+  // One spacing value for the whole page: PageHeader carries its own mb-8,
+  // which stacked on top of the section gap and left 43px above the filter
+  // bar while every block below it sat on 24px.
   return (
     <motion.div
       key="dungeons"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="w-full p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8"
+      className="w-full p-4 sm:p-6 lg:p-8 flex flex-col gap-6"
     >
       <PageHeader 
+        className="mb-0"
+
         title={dungeonSubTab === 'list' ? "Expedition" : dungeonSubTab === 'quests' ? "Quest Board" : dungeonSubTab === 'achievements' ? "Achievements" : "Quest History"} 
         description={dungeonSubTab === 'list' ? "Manage your study goals" : dungeonSubTab === 'quests' ? "Complete tasks for extra rewards" : dungeonSubTab === 'achievements' ? "Your legendary milestones" : "Chronicle of your completed deeds"} 
         icon={dungeonSubTab === 'list' ? Sword : dungeonSubTab === 'quests' ? Target : dungeonSubTab === 'achievements' ? Trophy : Archive} 
       >
-        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 mt-4 -mx-2 px-2 py-2 bg-slate-950/95 backdrop-blur-sm">
+        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 mt-6 -mx-2 px-2 py-2 bg-slate-950/95 backdrop-blur-sm">
           <div className="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setDungeonSubTab('list')}

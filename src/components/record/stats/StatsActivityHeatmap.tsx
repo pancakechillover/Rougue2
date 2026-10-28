@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { DurationText } from '../../common/DurationText';
 import { 
   format, 
@@ -92,6 +92,47 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
   _formatDuration: __formatDuration,
   viewOpts,
 }) => {
+  // Hover opens the card, click pins it.
+  //
+  // Opening on a bare mouseenter would fire a popover per square: the grid is
+  // 30–53 squares wide and crossing it to reach a neighbour costs nothing. So a
+  // 150ms dwell is required before anything appears, and leaving grants 250ms
+  // for the pointer to cross the gap into the card — that grace period is the
+  // whole reason the card can be copied from instead of just read.
+  const hoverOpenTimer = useRef<number | null>(null);
+  const hoverCloseTimer = useRef<number | null>(null);
+  const pointerInCardRef = useRef(false);
+  const pinnedRef = useRef(false);
+
+  const clearHoverTimers = useCallback(() => {
+    if (hoverOpenTimer.current !== null) {
+      window.clearTimeout(hoverOpenTimer.current);
+      hoverOpenTimer.current = null;
+    }
+    if (hoverCloseTimer.current !== null) {
+      window.clearTimeout(hoverCloseTimer.current);
+      hoverCloseTimer.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearHoverTimers, [clearHoverTimers]);
+
+  const scheduleCardOpen = useCallback((date: Date, el: HTMLElement) => {
+    if (pinnedRef.current) return;
+    clearHoverTimers();
+    hoverOpenTimer.current = window.setTimeout(() => {
+      setHeatmapPopoverAnchor({ date: date.getTime(), element: el });
+    }, 150);
+  }, [clearHoverTimers, setHeatmapPopoverAnchor]);
+
+  const scheduleCardClose = useCallback(() => {
+    if (pinnedRef.current) return;
+    clearHoverTimers();
+    hoverCloseTimer.current = window.setTimeout(() => {
+      if (!pointerInCardRef.current) setHeatmapPopoverAnchor(null);
+    }, 250);
+  }, [clearHoverTimers, setHeatmapPopoverAnchor]);
+
   // Days Interval
   const heatmapDays = useMemo(() => {
     let days: Date[] = [];
@@ -243,6 +284,48 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
       bestStreak,
     };
   }, [heatmapDays, history, state.includeRestTimeInTasks, viewOpts.averageCalculationBase]);
+
+  // The calendar and the summary sit side by side and are supposed to share one
+  // top edge and one bottom edge. Stretching alone cannot deliver that: the flex
+  // row is as tall as whichever column needs more, so when the summary is the
+  // taller one the calendar gets vertically centred with a few pixels of slack
+  // above and below. Tying the panel to the calendar's measured height makes the
+  // calendar the reference, which is the way round the design reads.
+  // Only on lg+ (side by side) and never in year mode (stacked, full width).
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const summaryPanelRef = useRef<HTMLDivElement>(null);
+  // The panel only exists while there is something to summarise, and it is a new
+  // DOM node when that flips, so the effect has to re-run on that transition.
+  const hasHeatmapSummary = !!heatmapSummary;
+  useLayoutEffect(() => {
+    const calendar = calendarRef.current;
+    const panel = summaryPanelRef.current;
+    if (!calendar || !panel) return;
+    const sideBySide = window.matchMedia('(min-width: 1024px)');
+    const sync = () => {
+      if (heatmapMode === 'year' || !sideBySide.matches) {
+        panel.style.height = '';
+        return;
+      }
+      // Exact value, not rounded. Rounding to whole pixels left the panel a
+      // fraction of a pixel short of the calendar, which shows up as one bottom
+      // edge sitting a hair above the other at fractional device pixel ratios.
+      panel.style.height = `${calendar.getBoundingClientRect().height}px`;
+    };
+    sync();
+    // The calendar only changes height when a media query moves the cell size,
+    // and the panel never feeds back into it, so this cannot loop.
+    const observer = new ResizeObserver(sync);
+    observer.observe(calendar);
+    sideBySide.addEventListener('change', sync);
+    window.addEventListener('resize', sync);
+    return () => {
+      observer.disconnect();
+      sideBySide.removeEventListener('change', sync);
+      window.removeEventListener('resize', sync);
+      panel.style.height = '';
+    };
+  }, [heatmapMode, hasHeatmapSummary]);
 
   return (
     <div id="heatmap-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 lg:col-span-2">
@@ -432,6 +515,7 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
           )}
         >
           <div
+            ref={calendarRef}
             className={cn(
               "mx-auto",
               heatmapMode === 'year'
@@ -522,10 +606,19 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
                     >
                       <button
                         type="button"
+                        onMouseEnter={(e) => scheduleCardOpen(date, e.currentTarget)}
+                        onMouseLeave={() => scheduleCardClose()}
+                        onFocus={(e) => scheduleCardOpen(date, e.currentTarget)}
+                        onBlur={() => scheduleCardClose()}
                         onClick={(e) => {
-                          if (isSelected) {
+                          // Click pins: the card stops following the pointer and
+                          // stays until you click it off, click away, or press Esc.
+                          if (isSelected && pinnedRef.current) {
+                            pinnedRef.current = false;
                             setHeatmapPopoverAnchor(null);
                           } else {
+                            pinnedRef.current = true;
+                            clearHoverTimers();
                             setHeatmapPopoverAnchor({ date: date.getTime(), element: e.currentTarget });
                           }
                         }}
@@ -568,8 +661,12 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
 
         {heatmapSummary && (
           <div
+            ref={summaryPanelRef}
             className={cn(
-              "shrink-0 flex flex-col bg-slate-950/40 p-4 sm:p-5 rounded-2xl border border-slate-800/60 mb-4",
+              // min-h-0 lets the panel be shorter than its own content, which is
+              // what makes it able to adopt the calendar's height instead of
+              // forcing the row taller than the calendar.
+              "shrink-0 flex flex-col bg-slate-950/40 p-4 sm:p-5 rounded-2xl border border-slate-800/60 mb-4 lg:min-h-0",
               // Non-year views let the summary absorb the leftover width: the
               // 30-day grid is only five columns wide, so a fixed 288px card left
               // ~270px of dead space on each side. h-full + the stretched row
@@ -591,19 +688,24 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
 
             <div
               className={cn(
-                "grid gap-3",
+                "grid gap-3 lg:min-h-0",
                 // The two stat rows split whatever height the card has, so a
                 // card stretched to match the calendar does not end up with a
                 // band of dead space underneath.
                 heatmapMode === 'year'
                   ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5"
-                  : "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] 2xl:grid-cols-4 2xl:grid-rows-[auto_1fr] lg:flex-1"
+                  : // Two columns at every width, deliberately including very wide
+                    // ones. Going four-across on 2xl split the leftover width into
+                    // four 190px columns that were twice as tall as they were wide,
+                    // and a 165x238 strip of thirty 4px bars reads as sparse noise.
+                    // Two wide, short cards show the same shape and stay readable.
+                    "grid-cols-2 lg:grid-cols-2 lg:grid-rows-[auto_1fr_1fr] lg:flex-1"
               )}
             >
               <div
                 className={cn(
-                  "flex justify-between items-center bg-slate-900/50 px-3 py-2.5 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 2xl:col-span-4"
+                  "flex justify-between items-center bg-slate-900/50 px-3 py-2.5 rounded-xl border border-slate-800/40 min-h-0",
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2"
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -626,8 +728,8 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Time/Task Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
+                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40 min-h-0",
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
@@ -658,8 +760,8 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Gold Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
+                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40 min-h-0",
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
@@ -684,8 +786,8 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged EXP Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
+                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40 min-h-0",
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
@@ -710,8 +812,8 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
               {/* Merged Distractions Stats Card */}
               <div
                 className={cn(
-                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40",
-                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1 2xl:col-span-1"
+                  "flex flex-col bg-slate-900/50 p-3 rounded-xl border border-slate-800/40 min-h-0",
+                  heatmapMode === 'year' ? "col-span-1" : "col-span-2 lg:col-span-1"
                 )}
               >
                 <div className="flex items-center gap-2 pb-1.5 mb-1.5 border-b border-slate-800/30">
@@ -764,8 +866,30 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
         </div>
       </div>
 
-      <PopoverPortal anchorElement={heatmapPopoverAnchor?.element || null}>
-        {heatmapPopoverAnchor && renderHeatmapPopover(new Date(heatmapPopoverAnchor.date))}
+      <PopoverPortal
+        anchorElement={heatmapPopoverAnchor?.element || null}
+        onRequestClose={() => {
+          pinnedRef.current = false;
+          setHeatmapPopoverAnchor(null);
+        }}
+      >
+        {heatmapPopoverAnchor && (
+          // The card itself counts as "still hovering": without this the 250ms
+          // grace would run out while the pointer is on the card, because the
+          // portal lives outside the cell's subtree.
+          <div
+            onMouseEnter={() => {
+              pointerInCardRef.current = true;
+              clearHoverTimers();
+            }}
+            onMouseLeave={() => {
+              pointerInCardRef.current = false;
+              scheduleCardClose();
+            }}
+          >
+            {renderHeatmapPopover(new Date(heatmapPopoverAnchor.date))}
+          </div>
+        )}
       </PopoverPortal>
     </div>
   );

@@ -28,14 +28,12 @@ import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 
-import { createPortal } from 'react-dom';
-import { useScrollLock } from '../../hooks/useScrollLock';
 import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
 import { MoodSelector } from '../common/MoodSelector';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 import { StarRating } from '../common/StarRating';
 
-interface DailySummaryModalProps {
+interface DailySummaryViewProps {
   state: AppState;
   dungeons: Dungeon[];
   majorDungeons: MajorDungeon[];
@@ -46,8 +44,7 @@ interface DailySummaryModalProps {
   onUpdateState?: (update: Partial<AppState>) => void;
 }
 
-export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dungeons, majorDungeons, onClose, onNavigateToStats, onOpenJournal, onSave, onUpdateState }) => {
-  useScrollLock(true);
+export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dungeons, majorDungeons, onClose, onNavigateToStats, onOpenJournal, onSave, onUpdateState }) => {
   const [rating, setRating] = useState(() => Number(localStorage.getItem('scholar_rating_draft')) || 0);
   const [reflection, setReflection] = useState(() => localStorage.getItem('scholar_reflection_draft') || '');
   const [mood, setMood] = useState(() => localStorage.getItem('scholar_mood_draft') || '');
@@ -385,23 +382,9 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
     }
   }, [state.dailyLogs, today.dateString, state.efficiencyRatingConfig, dailyStats, defaultTargetHours, customTargetHours, calculateEfficiencyRating]);
 
-  const modalContent = (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md m-0 p-0">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0"
-        onClick={onClose}
-      />
-      
-      <motion.div
-        initial={{ scale: 0.98, y: 10 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.98, y: 10 }}
-        className="bg-slate-900 border-0 rounded-none w-screen h-screen h-[100dvh] shadow-2xl overflow-hidden relative flex flex-col z-10"
-      >
+  // A page, not a dialog — see StartOfDayView. Reached by URL (/end-of-day).
+  const page = (
+    <div className="bg-slate-900 w-full h-[100dvh] overflow-hidden relative flex flex-col">
         {/* Header */}
         <div className="py-4 px-6 sm:px-8 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-indigo-500/10 to-transparent relative overflow-hidden flex-shrink-0">
           <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
@@ -433,6 +416,7 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
             </div>
             <button 
               onClick={onClose} 
+              title="Back"
               className="w-10 h-10 rounded-2xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-colors"
             >
               <X size={20} />
@@ -693,13 +677,12 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           </button>
           </div>
         </div>
-      </motion.div>
       </div>
-    </AnimatePresence>
   );
 
   return (
     <>
+      {page}
       {showEfficiencyDetails && (
         <EfficiencyDetailsModal
           effectiveMinutes={dailyStats.effectiveMinutes}
@@ -730,10 +713,6 @@ export const DailySummaryModal: React.FC<DailySummaryModalProps> = ({ state, dun
           state={state}
           onUpdateState={onUpdateState}
         />
-      )}
-      {createPortal(
-        modalContent, 
-        document.body
       )}
     </>
   );

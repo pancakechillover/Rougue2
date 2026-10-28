@@ -20,7 +20,7 @@ import { Reorder, useDragControls } from 'motion/react';
 import { cn, getSettlementDay, sortAgendaTodos, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { format, addDays, subDays, parseISO, differenceInCalendarDays, isToday } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
-import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
+import { ExpeditionSelect } from '../common/ExpeditionSelect';
 import { TagBadge } from '../common/TagBadge';
 import { getTodoEffectiveTagIds } from '../../lib/tags';
 import { playSound } from '../../lib/sound';
@@ -130,7 +130,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
 }) => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [viewDate, setViewDate] = useState<Date>(new Date());
-  const [showExpeditionPicker, setShowExpeditionPicker] = useState(false);
 
   // Time settings
   const ts = state.timeSettings || {
@@ -323,7 +322,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
       todayTodos: [...(prev.todayTodos || []), newTodo]
     }));
     setNewTaskTitle('');
-    setShowExpeditionPicker(false);
   };
 
   const handleTaskClick = (todo: TodayTodo) => {
@@ -420,23 +418,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }, []);
-
-  // Close picker on outside click
-  React.useEffect(() => {
-    if (!showExpeditionPicker) return;
-    const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.expedition-picker-container')) {
-        setShowExpeditionPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleGlobalClick);
-    document.addEventListener('touchstart', handleGlobalClick);
-    return () => {
-      document.removeEventListener('mousedown', handleGlobalClick);
-      document.removeEventListener('touchstart', handleGlobalClick);
-    };
-  }, [showExpeditionPicker]);
 
   return (
     <div className="w-full px-4 py-4 sm:px-8 sm:py-6">
@@ -540,33 +521,29 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 )}
               </button>
 
-              <div className="relative shrink-0 flex items-stretch expedition-picker-container">
-                <button
-                  type="button"
-                  onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
-                  className={cn(
-                    "h-full px-3 sm:px-4 rounded-xl border flex items-center justify-center transition-all",
-                    showExpeditionPicker 
-                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400" 
-                      : "bg-slate-800 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700 hover:border-slate-600"
+              <div className="relative shrink-0 flex items-stretch">
+                <ExpeditionSelect
+                  dungeons={dungeons}
+                  majorDungeons={majorDungeons}
+                  includeCompleted
+                  onSelect={(item) => handleAddTodo(undefined, item.name, item.id)}
+                  renderTrigger={({ open, toggle, triggerRef }) => (
+                    <button
+                      ref={triggerRef}
+                      type="button"
+                      onClick={toggle}
+                      className={cn(
+                        "h-full px-3 sm:px-4 rounded-xl border flex items-center justify-center transition-all",
+                        open
+                          ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400"
+                          : "bg-slate-800 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700 hover:border-slate-600"
+                      )}
+                      title="Select from Expedition"
+                    >
+                      <ListPlus size={20} />
+                    </button>
                   )}
-                  title="Select from Expedition"
-                >
-                  <ListPlus size={20} />
-                </button>
-                
-                {showExpeditionPicker && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] w-72 sm:w-80 shadow-2xl z-30">
-                    <ExpeditionTreePicker
-                      dungeons={dungeons}
-                      majorDungeons={majorDungeons}
-                      onSelect={(item) => {
-                        handleAddTodo(undefined, item.name, item.id);
-                      }}
-                      onClose={() => setShowExpeditionPicker(false)}
-                    />
-                  </div>
-                )}
+                />
               </div>
 
               <button 

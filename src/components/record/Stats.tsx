@@ -208,6 +208,8 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     return 'calendar';
   });
   const [showBulkSleepModal, setShowBulkSleepModal] = useState(false);
+  // Set when the modal is opened from a specific night's tooltip, so the editor lands on that date.
+  const [bulkSleepInitialDate, setBulkSleepInitialDate] = useState<string | undefined>(undefined);
   const [heatmapMode, setHeatmapMode] = useState<'30days' | 'month' | 'year'>(() => {
     try {
       const saved = localStorage.getItem('scholar_dungeon_stats_heatmapMode');
@@ -1002,7 +1004,6 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             chartKey={chartKeys.daily}
             dailyData={dailyData}
             handleChartClick={handleChartClick}
-            activeChart={activeChart}
             dailyTimeAxis={dailyTimeAxis}
             formatTimeTick={formatTimeTick}
             dailySessions={filterSessionsByTags(getSessionsForDate(dailyDate), dailySelectedTagIds)}
@@ -1039,8 +1040,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
             chartKey={chartKeys.weeklyBar}
             lineChartKey={chartKeys.weeklyLine}
             handleChartClick={handleChartClick}
-            activeChart={activeChart}
-            weeklyTimeAxis={weeklyTimeAxis}
+              weeklyTimeAxis={weeklyTimeAxis}
             formatTimeTick={formatTimeTick}
             formatDuration={formatDuration}
             state={state}
@@ -1131,10 +1131,13 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
           sleepEnd={sleepEnd}
           dateIndicators={dateIndicators}
           setShowBulkSleepModal={setShowBulkSleepModal}
+          onOpenBulkSleepModal={(dateStr) => {
+            setBulkSleepInitialDate(dateStr);
+            setShowBulkSleepModal(true);
+          }}
           sleepData={sleepData}
           chartKey={chartKeys.sleep}
           handleChartClick={handleChartClick}
-          activeChart={activeChart}
         />
       )}
 
@@ -1165,6 +1168,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
       {showBulkSleepModal && (
         <BulkSleepModal
           state={state}
+          initialDate={bulkSleepInitialDate}
           onClose={() => setShowBulkSleepModal(false)}
           onSave={(dateStr, sleepTime, wakeTime, sleepDurationMin) => {
              const existing = state.dailyLogs?.[dateStr] || {};

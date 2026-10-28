@@ -848,6 +848,15 @@ svg:focus {
   transform-origin: center bottom;
 }
 
+/* A card that is merely being pinned or re-positioned is already on screen.
+   Replaying the entrance there reads as a flicker, so callers opt out once the
+   first appearance has played. */
+.popover-skip-enter .animate-popover-enter {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
 @layer utilities {
   .prose,
   .prose-invert,

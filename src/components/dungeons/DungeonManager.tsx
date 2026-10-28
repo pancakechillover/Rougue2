@@ -95,10 +95,15 @@ const HierarchyParentPicker: React.FC<{
     ? options.filter(o => o.name.toLowerCase().includes(search.trim().toLowerCase()))
     : options;
 
+  // The tint carries the level, the glyphs stay neutral. Coloured text at the
+  // 300/400 step only reads against a dark background: indigo-300 on a 20%
+  // indigo wash is fine in the dark themes and nearly invisible in daylight,
+  // where the wash lands on a near-white page. slate-200 is inverted by the
+  // theme, so it is the one value that stays legible in both.
   const getBadgeStyle = (depth: number) => {
-    if (depth === 0) return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
-    if (depth === 1) return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
-    return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+    if (depth === 0) return 'bg-indigo-500/15 text-slate-200 border-indigo-500/40';
+    if (depth === 1) return 'bg-sky-500/15 text-slate-200 border-sky-500/40';
+    return 'bg-amber-500/15 text-slate-200 border-amber-500/40';
   };
 
   return (
@@ -131,7 +136,7 @@ const HierarchyParentPicker: React.FC<{
         )}
         <div className="flex items-center gap-1.5 shrink-0">
           {selectedOption && (
-            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 h-5 inline-flex items-center rounded">
+            <span className="text-[10px] font-bold text-slate-200 bg-indigo-500/15 border border-indigo-500/40 px-1.5 h-5 inline-flex items-center rounded">
               → {selectedOption.resultingTier}
             </span>
           )}
@@ -207,7 +212,7 @@ const HierarchyParentPicker: React.FC<{
                       </div>
                       <span className={cn(
                         "text-[10px] font-bold shrink-0 px-1.5 h-5 inline-flex items-center rounded",
-                        isSelected ? "text-indigo-300 bg-indigo-500/20" : "text-slate-500 group-hover:text-slate-400"
+                        isSelected ? "text-slate-200 bg-indigo-500/20" : "text-slate-500 group-hover:text-slate-400"
                       )}>
                         → {opt.resultingTier}
                       </span>

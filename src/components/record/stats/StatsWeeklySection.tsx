@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   ResponsiveContainer, 
   ComposedChart, 
   XAxis, 
   YAxis, 
-  Tooltip, 
   Bar, 
   Cell, 
   Line,
@@ -18,6 +17,8 @@ import { AppState, StudySession, ChartLayerSelection } from '../../../types';
 import { DatePicker } from '../../common/DatePicker';
 import { StatsOverviewCards } from './StatsOverviewCards';
 import { WeeklyPieChart } from '../WeeklyPieChart';
+import { PopoverPortal } from '../../common/PopoverPortal';
+import { resolveChartPoint, useAnchoredPopover } from '../../../hooks/useAnchoredPopover';
 import { ChartLayerFilterDropdown, DEFAULT_CHART_LAYERS } from './ChartLayerFilterDropdown';
 
 interface StatsWeeklySectionProps {
@@ -42,7 +43,6 @@ interface StatsWeeklySectionProps {
   chartKey: number;
   lineChartKey?: number;
   handleChartClick: (state: any, chartId: string) => void;
-  activeChart: string | null;
   weeklyTimeAxis: { domain: [number, number]; ticks: number[] };
   formatTimeTick: (val: number) => string;
   formatDuration: (minutes: number) => string;
@@ -106,7 +106,6 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   chartKey,
   lineChartKey,
   handleChartClick,
-  activeChart,
   weeklyTimeAxis,
   formatTimeTick,
   formatDuration,
@@ -143,6 +142,18 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
   const weeklyDivisor = viewOpts.averageCalculationBase === 'active_days' 
     ? weeklyActiveDaysCount 
     : Math.max(1, weeklyDays.length);
+
+  // One anchored card per chart. The point is captured from the hovered column
+  // and never follows the pointer, so the card can be reached and copied from.
+  const barWrapRef = useRef<HTMLDivElement>(null);
+  const lineWrapRef = useRef<HTMLDivElement>(null);
+  const barTip = useAnchoredPopover();
+  const lineTip = useAnchoredPopover();
+
+  const tipPoint = (el: HTMLDivElement | null, chartX: number) => {
+    const rect = el?.getBoundingClientRect();
+    return rect ? { x: rect.left + chartX, y: rect.top + 6 } : null;
+  };
 
   return (
     <div id="weekly-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
@@ -198,12 +209,27 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
       <div className="space-y-6">
         {(viewOpts.showWeeklyBar ?? true) && (
           <>
-            <div className="h-48 min-h-[192px]">
+            <div className="h-48 min-h-[192px]" ref={barWrapRef}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <ComposedChart 
                 key={chartKey}
                 data={weeklyData} 
-                onClick={(state) => handleChartClick(state, 'weeklyBar')} 
+                onClick={(state, event) => {
+                  const hit = resolveChartPoint(barWrapRef.current, state, event, weeklyData.length);
+                  if (!hit || false) barTip.pressNothing();
+                  else {
+                    const pt = tipPoint(barWrapRef.current, hit.x);
+                    if (pt) barTip.pressAt({ key: String(hit.index), point: pt });
+                  }
+                  handleChartClick(state, 'weeklyBar');
+                }}
+                onMouseMove={(state, event) => {
+                  const hit = resolveChartPoint(barWrapRef.current, state, event, weeklyData.length);
+                  if (!hit) return;
+                  const pt = tipPoint(barWrapRef.current, hit.x);
+                  if (pt) barTip.hoverAt({ key: String(hit.index), point: pt });
+                }}
+                onMouseLeave={() => barTip.leave()}
                 margin={{ top: 12, right: bothAxes ? 12 : 16, left: 0, bottom: 0 }}
                 style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
               >
@@ -237,14 +263,6 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                     width={bothAxes ? 32 : 36}
                   />
                 )}
-                <Tooltip 
-                  key={chartKey}
-                  trigger="click"
-                  content={<CustomWeeklyTooltip allData={weeklyData} activeChart={activeChart} chartId="weeklyBar" formatDuration={formatDuration} />}
-                  cursor={false}
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                />
                 {hasTime && (
                   <>
                     <Bar yAxisId="time" dataKey="Morning" stackId="a" fill="#fbbf24" isAnimationActive={false} />
@@ -326,13 +344,28 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
               <LineChartIcon className="text-indigo-400" size={16} />
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Efficiency Trend</span>
             </div>
-            <div className="h-32 min-h-[128px]">
+            <div className="h-32 min-h-[128px]" ref={lineWrapRef}>
               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart 
                   key={`trend-${lineChartKey ?? chartKey}`}
                   data={weeklyData} 
                   margin={{ top: 12, right: weeklyLayerMode === 'both' ? 12 : 16, left: 0, bottom: 0 }} 
-                  onClick={(state) => handleChartClick(state, 'weeklyLine')} 
+                  onClick={(state, event) => {
+                    const hit = resolveChartPoint(lineWrapRef.current, state, event, weeklyData.length);
+                    if (!hit || false) lineTip.pressNothing();
+                    else {
+                      const pt = tipPoint(lineWrapRef.current, hit.x);
+                      if (pt) lineTip.pressAt({ key: String(hit.index), point: pt });
+                    }
+                    handleChartClick(state, 'weeklyLine');
+                  }}
+                  onMouseMove={(state, event) => {
+                    const hit = resolveChartPoint(lineWrapRef.current, state, event, weeklyData.length);
+                    if (!hit) return;
+                    const pt = tipPoint(lineWrapRef.current, hit.x);
+                    if (pt) lineTip.hoverAt({ key: String(hit.index), point: pt });
+                  }}
+                  onMouseLeave={() => lineTip.leave()}
                   style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -346,14 +379,6 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
                     tickLine={false}
                     width={32}
                     tickFormatter={state.efficiencyRatingConfig?.ratingDisplayPreference === 'efficiency' ? (val) => `${val}%` : (val) => String(val)}
-                  />
-                  <Tooltip 
-                    key={`trend-tip-${lineChartKey ?? chartKey}`}
-                    trigger="click"
-                    content={<CustomWeeklyTooltip allData={weeklyData} activeChart={activeChart} chartId="weeklyLine" formatDuration={formatDuration} />}
-                    cursor={false}
-                    wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
-                    allowEscapeViewBox={{ x: true, y: true }}
                   />
                   <Line 
                     type="monotone" 
@@ -388,6 +413,49 @@ export const StatsWeeklySection: React.FC<StatsWeeklySectionProps> = ({
           />
         )}
       </div>
+      {barTip.target && weeklyData[Number(barTip.target.key)] && (
+        <PopoverPortal
+          anchorPoint={barTip.target.point}
+          offsetY={10}
+          preferPlacement="above"
+          showArrow={false}
+          onRequestClose={barTip.close}
+        >
+          <div className={barTip.skipEnterClass} {...barTip.cardHandlers}>
+            <CustomWeeklyTooltip
+              active
+              payload={[{ payload: weeklyData[Number(barTip.target.key)] }]}
+              label={weeklyData[Number(barTip.target.key)]?.name}
+              allData={weeklyData}
+              activeChart="weeklyBar"
+              chartId="weeklyBar"
+              formatDuration={formatDuration}
+            />
+          </div>
+        </PopoverPortal>
+      )}
+
+      {lineTip.target && weeklyData[Number(lineTip.target.key)] && (
+        <PopoverPortal
+          anchorPoint={lineTip.target.point}
+          offsetY={10}
+          preferPlacement="above"
+          showArrow={false}
+          onRequestClose={lineTip.close}
+        >
+          <div className={lineTip.skipEnterClass} {...lineTip.cardHandlers}>
+            <CustomWeeklyTooltip
+              active
+              payload={[{ payload: weeklyData[Number(lineTip.target.key)] }]}
+              label={weeklyData[Number(lineTip.target.key)]?.name}
+              allData={weeklyData}
+              activeChart="weeklyLine"
+              chartId="weeklyLine"
+              formatDuration={formatDuration}
+            />
+          </div>
+        </PopoverPortal>
+      )}
     </div>
   );
 };

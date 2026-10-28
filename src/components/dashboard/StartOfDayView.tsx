@@ -1,7 +1,6 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
-import React, { useState, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
+import React, { useState, useMemo } from 'react';
+import { Reorder, useDragControls } from 'motion/react';
 import { format, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
 import { 
 
@@ -26,14 +25,13 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { TimePicker } from '../common/TimePicker';
-import { useScrollLock } from '../../hooks/useScrollLock';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { cn, sortAgendaTodos, getSettlementDay, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
-import { ExpeditionTreePicker } from '../common/ExpeditionTreePicker';
+import { ExpeditionSelect } from '../common/ExpeditionSelect';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
 
-interface StartOfDayModalProps {
+interface StartOfDayViewProps {
   state: AppState;
   dungeons: Dungeon[];
   majorDungeons?: MajorDungeon[];
@@ -131,7 +129,7 @@ const DraggableStartOfDayTodoItem: React.FC<DraggableStartOfDayTodoItemProps> = 
   );
 };
 
-export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({ 
+export const StartOfDayView: React.FC<StartOfDayViewProps> = ({ 
   state, 
   dungeons, 
   majorDungeons = [], 
@@ -142,7 +140,6 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
   repairStreak,
   onOpenJournal
 }) => {
-  useScrollLock(true);
   
   const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
   
@@ -232,14 +229,15 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
     }
     return '';
   });
-  const [mood, setMood] = useState(dailyLog?.mood || '');
+  // The mood picker lives on the Journal page now, so this modal only carries
+  // the value through to onSave — the setter has no caller left here.
+  const [mood, _setMood] = useState(dailyLog?.mood || '');
   const [title, setTitle] = useState(dailyLog?.title || '');
 
   const [showNoMedalAlert, setShowNoMedalAlert] = useState(false);
 
   // Agenda / Todo States & Handlers
   const [newTodoTitle, setNewTodoTitle] = useState('');
-  const [showExpeditionPicker, setShowExpeditionPicker] = useState(false);
 
   const allTodos = state.todayTodos || [];
   const startDayTodos = useMemo(() => {
@@ -403,25 +401,11 @@ export const StartOfDayModal: React.FC<StartOfDayModalProps> = ({
       todayTodos: [...allTodos, newTodo]
     });
     setNewTodoTitle('');
-    setShowExpeditionPicker(false);
   };
 
-  // Close expedition picker on outside click / tap
-  useEffect(() => {
-    if (!showExpeditionPicker) return;
-    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.expedition-picker-container')) {
-        setShowExpeditionPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('touchstart', handleOutsideClick);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('touchstart', handleOutsideClick);
-    };
-  }, [showExpeditionPicker]);
+  // Close expedition picker on outside click / tap — handled inside
+  // ExpeditionSelect / PopoverPortal now, which also works for the portal'd
+  // panel that a closest() check on this subtree could never reach.
 
   const handleToggleTodo = (id: string) => {
     if (!onUpdateState) return;
@@ -542,24 +526,11 @@ useMemo(() => {
     onClose();
   };
 
-  const modalContent = (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md m-0 p-0">
-        <motion.div
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           exit={{ opacity: 0 }}
-           className="fixed inset-0"
-           onClick={onClose}
-        />
-        
-        <motion.div
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           exit={{ opacity: 0 }}
-           transition={{ duration: 0.2 }}
-           className="bg-slate-900 border-0 rounded-none w-screen h-screen h-[100dvh] shadow-2xl overflow-hidden relative flex flex-col z-10"
-        >
+  // A page, not a dialog: it owns the viewport, scrolls on its own, and is
+  // reached by URL (/start-of-day). No portal, no backdrop, no click-outside —
+  // leaving is the header Back button or the browser Back button.
+  return (
+    <div className="bg-slate-900 w-full h-[100dvh] overflow-hidden relative flex flex-col">
           <div className="py-4 px-6 sm:px-8 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-indigo-500/10 to-transparent relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
               <Sun size={80} />
@@ -592,6 +563,7 @@ useMemo(() => {
               
               <button 
                 onClick={onClose}
+                title="Back"
                 className="w-10 h-10 rounded-2xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-colors"
               >
                 <X size={20} />
@@ -769,33 +741,30 @@ useMemo(() => {
                     )}
                   </button>
                   
-                  <div className="relative expedition-picker-container">
-                    <button 
-                      type="button"
-                      onClick={() => setShowExpeditionPicker(!showExpeditionPicker)}
-                      className={cn(
-                        "p-2 rounded-xl border flex items-center justify-center transition-all shrink-0",
-                        showExpeditionPicker 
-                          ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400" 
-                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  <div className="relative">
+                    <ExpeditionSelect
+                      dungeons={dungeons}
+                      majorDungeons={majorDungeons}
+                      includeCompleted
+                      zIndexClassName="z-[10000]"
+                      onSelect={(item) => handleAddTodo(item.name, item.id)}
+                      renderTrigger={({ open, toggle, triggerRef }) => (
+                        <button
+                          ref={triggerRef}
+                          type="button"
+                          onClick={toggle}
+                          className={cn(
+                            "p-2 rounded-xl border flex items-center justify-center transition-all shrink-0",
+                            open
+                              ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400"
+                              : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                          )}
+                          title="Select from Expedition"
+                        >
+                          <ListPlus size={16} />
+                        </button>
                       )}
-                      title="Select from active expeditions"
-                    >
-                      <ListPlus size={16} />
-                    </button>
-
-                    {showExpeditionPicker && (
-                      <div className="absolute right-0 bottom-[calc(100%+8px)] w-72 sm:w-80 shadow-2xl z-50">
-                        <ExpeditionTreePicker
-                          dungeons={dungeons}
-                          majorDungeons={majorDungeons}
-                          onSelect={(item) => {
-                            handleAddTodo(item.name, item.id);
-                          }}
-                          onClose={() => setShowExpeditionPicker(false)}
-                        />
-                      </div>
-                    )}
+                    />
                   </div>
 
                   <button 
@@ -1180,8 +1149,7 @@ useMemo(() => {
                Start My Focus
              </button>
              </div>
-          </div>
-        </motion.div>
+      </div>
 
         <ConfirmModal
           isOpen={!!confirmRepairDate}
@@ -1209,8 +1177,6 @@ useMemo(() => {
           type="warning"
         />
       </div>
-    </AnimatePresence>
   );
 
-  return createPortal(modalContent, document.body);
 };

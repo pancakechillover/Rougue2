@@ -1,10 +1,9 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useState, useCallback, useEffect } from 'react';
 import { 
   ResponsiveContainer, 
   ComposedChart, 
   XAxis, 
   YAxis, 
-  Tooltip, 
   Bar, 
   Cell, 
   Line 
@@ -23,6 +22,22 @@ import { StatsOverviewCards } from './StatsOverviewCards';
 import { DailyPieChart } from '../DailyPieChart';
 import { DailyRecordCard } from './DailyRecordCard';
 import { ChartLayerFilterDropdown, DEFAULT_CHART_LAYERS } from './ChartLayerFilterDropdown';
+import { PopoverPortal } from '../../common/PopoverPortal';
+
+/**
+ * Frame of the daily-column hover card.
+ *
+ * Exported because it is the reference design for stat popovers on this page —
+ * the tag donut card imports this rather than re-declaring the same classes a
+ * third time. Note it is intentionally narrower (200/220) than the shared
+ * heatmap/weekly card (210/230); that difference predates this refactor.
+ */
+export const DAILY_POPOVER_CARD_CLASS =
+  'shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-50 w-[200px] sm:w-[220px] max-w-[calc(100vw-24px)] box-border';
+
+/** Title row of the daily-column hover card. */
+export const DAILY_POPOVER_TITLE_CLASS =
+  'text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm';
 
 interface StatsDailySectionProps {
   dailyChartLayers?: ChartLayerSelection;
@@ -40,7 +55,6 @@ interface StatsDailySectionProps {
   chartKey: number;
   dailyData: any[];
   handleChartClick: (state: any, chartId: string) => void;
-  activeChart: string | null;
   dailyTimeAxis: { domain: [number, number]; ticks: number[] };
   formatTimeTick: (val: number) => string;
   dailySessions: StudySession[];
@@ -120,10 +134,10 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, ac
       return (
         <div 
           ref={containerRef}
-          className="shared-popover-content animate-popover-enter bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl shadow-indigo-500/10 rounded-xl p-3.5 sm:p-4 z-50 w-[200px] sm:w-[220px] max-w-[calc(100vw-24px)] box-border"
+          className={DAILY_POPOVER_CARD_CLASS}
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-slate-50 font-bold mb-2 pb-2 border-b border-slate-800/50 text-[13px] sm:text-sm">{label || data.name}</p>
+          <p className={DAILY_POPOVER_TITLE_CLASS}>{label || data.name}</p>
           {data.sessions > 0 ? (
             <div className="flex justify-between gap-4 text-xs mb-2">
               <span className="text-slate-400">Time</span>
@@ -208,7 +222,6 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
   chartKey,
   dailyData,
   handleChartClick,
-  activeChart,
   dailyTimeAxis,
   formatTimeTick,
   dailySessions,
@@ -244,6 +257,108 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
   const hasTime = activeLayers.time;
   const hasDistractions = activeLayers.totalDistractions || activeLayers.internal || activeLayers.external || activeLayers.unavoidable;
   const bothAxes = hasTime && hasDistractions;
+
+  // The chart card is ours now, not recharts'.
+  //
+  // Recharts positions its own tooltip against the pointer, so a hover-opened
+  // card runs away from the cursor and can never be reached. This one is
+  // anchored to the hovered column's centre and captured once: while the pointer
+  // stays on that column the card does not move, which is what lets you travel
+  // onto it and copy a number or click through.
+  const chartWrapRef = useRef<HTMLDivElement>(null);
+  const [dailyTip, setDailyTip] = useState<{ index: number; point: { x: number; y: number } } | null>(null);
+  // The entrance animation belongs to the first appearance only. Pinning a card
+  // that is already on screen is not an appearance, so the flag turns the
+  // animation off for the rest of that card's life.
+  const [tipEntering, setTipEntering] = useState(false);
+  const tipPinnedRef = useRef(false);
+  const tipOpenTimer = useRef<number | null>(null);
+  const tipCloseTimer = useRef<number | null>(null);
+  const tipInCardRef = useRef(false);
+
+  const clearTipTimers = useCallback(() => {
+    if (tipOpenTimer.current !== null) {
+      window.clearTimeout(tipOpenTimer.current);
+      tipOpenTimer.current = null;
+    }
+    if (tipCloseTimer.current !== null) {
+      window.clearTimeout(tipCloseTimer.current);
+      tipCloseTimer.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearTipTimers, [clearTipTimers]);
+
+  // `dailyTip` only changes identity when the card genuinely moves or reopens,
+  // so this is the one place the entrance animation is allowed to play. 220ms
+  // clears the 160ms keyframe with room to spare.
+  useEffect(() => {
+    if (!dailyTip) {
+      setTipEntering(false);
+      return undefined;
+    }
+    setTipEntering(true);
+    const timer = window.setTimeout(() => setTipEntering(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [dailyTip]);
+
+  const placeTip = useCallback((index: number, chartX: number) => {
+    const rect = chartWrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const point = { x: rect.left + chartX, y: rect.top + 6 };
+    // Returning the previous state when nothing moved keeps this a no-op: a new
+    // object identity would re-run the portal's measuring pass, which unmounts
+    // and re-mounts the card for a frame — that was the blink on click.
+    setDailyTip((prev) =>
+      prev && prev.index === index && prev.point.x === point.x && prev.point.y === point.y
+        ? prev
+        : { index, point }
+    );
+  }, []);
+
+  const handleTipHover = useCallback((state: any) => {
+    if (tipPinnedRef.current) return;
+    const index = state?.activeTooltipIndex;
+    const chartX = state?.activeCoordinate?.x;
+    if (index === undefined || index === null || chartX === undefined || chartX === null) return;
+    // Already sitting on this column: leave the card where it is. Re-placing it
+    // on every mousemove is exactly the behaviour that made it unreachable.
+    if (dailyTip && dailyTip.index === index) return;
+    clearTipTimers();
+    tipOpenTimer.current = window.setTimeout(() => placeTip(index, chartX), 150);
+  }, [clearTipTimers, dailyTip, placeTip]);
+
+  const handleTipLeave = useCallback(() => {
+    if (tipPinnedRef.current) return;
+    clearTipTimers();
+    tipCloseTimer.current = window.setTimeout(() => {
+      if (!tipInCardRef.current) setDailyTip(null);
+    }, 250);
+  }, [clearTipTimers]);
+
+  const handleTipClick = useCallback((state: any) => {
+    const index = state?.activeTooltipIndex;
+    const chartX = state?.activeCoordinate?.x;
+    if (index === undefined || index === null) {
+      tipPinnedRef.current = false;
+      setDailyTip(null);
+      return;
+    }
+    if (dailyTip && dailyTip.index === index && tipPinnedRef.current) {
+      tipPinnedRef.current = false;
+      setDailyTip(null);
+      return;
+    }
+    tipPinnedRef.current = true;
+    clearTipTimers();
+    setTipEntering(false);
+    // Already showing this column: pin it where it stands. Re-placing here was
+    // a second position update for no visual gain, and every update made the
+    // card blink.
+    if (!dailyTip || dailyTip.index !== index) {
+      if (chartX !== undefined && chartX !== null) placeTip(index, chartX);
+    }
+  }, [clearTipTimers, dailyTip, placeTip]);
 
   return (
     <div id="daily-activity-section" className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col space-y-6">
@@ -296,12 +411,17 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
 
       <div className="space-y-6">
         {(viewOpts.showDailyBar ?? true) && (
-          <div className="h-48 min-h-[192px]">
+          <div className="h-48 min-h-[192px]" ref={chartWrapRef}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <ComposedChart 
                 key={chartKey}
                 data={dailyData} 
-                onClick={(state) => handleChartClick(state, 'daily')} 
+                onClick={(state) => {
+                  handleTipClick(state);
+                  handleChartClick(state, 'daily');
+                }}
+                onMouseMove={handleTipHover}
+                onMouseLeave={handleTipLeave}
                 margin={{ top: 12, right: bothAxes ? 12 : 16, left: 0, bottom: 0 }}
                 style={{ outline: 'none', touchAction: 'pan-y', overflow: 'visible' }}
               >
@@ -331,14 +451,6 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
                     width={bothAxes ? 20 : 28}
                   />
                 )}
-                <Tooltip 
-                  key={chartKey}
-                  trigger="click"
-                  content={<CustomDailyTooltip dateTimestamp={dailyDate.getTime()} allData={dailyData} activeChart={activeChart} chartId="daily" formatDuration={formatDuration} />}
-                  cursor={false}
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                />
                 {hasTime && (
                   <Bar yAxisId="time" dataKey="sessions" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                     {dailyData.map((entry, index) => (
@@ -440,6 +552,41 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
         onOpenJournal={onOpenJournal}
         onUpdateState={onUpdateState}
       />
+      {dailyTip && dailyData[dailyTip.index] && (
+        <PopoverPortal
+          anchorPoint={dailyTip.point}
+          offsetY={10}
+          preferPlacement="above"
+          showArrow={false}
+          onRequestClose={() => {
+            tipPinnedRef.current = false;
+            setDailyTip(null);
+          }}
+        >
+          <div
+            className={tipEntering ? undefined : 'popover-skip-enter'}
+            onMouseEnter={() => {
+              tipInCardRef.current = true;
+              clearTipTimers();
+            }}
+            onMouseLeave={() => {
+              tipInCardRef.current = false;
+              handleTipLeave();
+            }}
+          >
+            <CustomDailyTooltip
+              active
+              payload={[{ payload: dailyData[dailyTip.index] }]}
+              label={dailyData[dailyTip.index]?.name}
+              dateTimestamp={dailyDate.getTime()}
+              allData={dailyData}
+              activeChart="daily"
+              chartId="daily"
+              formatDuration={formatDuration}
+            />
+          </div>
+        </PopoverPortal>
+      )}
     </div>
   );
 };

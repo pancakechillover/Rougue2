@@ -1,17 +1,37 @@
 {
-  "version": "v9.4.22",
-  "date": "2026-10-27",
+  "version": "v9.6.0",
+  "date": "2026-10-29",
   "latestRelease": {
-    "version": "v9.4.22",
-    "date": "2026-10-28",
-    "time": "01:10:00",
-    "title": "Version 9.4.22: Settings Page Cannot Scroll",
+    "version": "v9.6.0",
+    "date": "2026-10-29",
+    "time": "01:00:00",
+    "title": "Version 9.6.0: The Whole Day, End to End",
     "items": [
       {
-        "category": "Settings",
-        "description": "Wheeling over the rail still scrolled the whole page. The pane height was 100dvh, but the top status bar (41px) and the app wrapper padding (32px) sit outside it, so the page stayed 73px taller than the viewport and the wheel fell through to it. The height now subtracts both, the page is exactly viewport-tall, and the wheel has nowhere to go except the pane under the cursor."
+        "category": "Navigation",
+        "description": "Start of the Day and End of the Day became full pages at /start-of-day and /end-of-day, reachable by URL, bookmarkable, and no longer covering whatever tab you were on. Their dialog versions are gone rather than kept alongside."
+      },
+      {
+        "category": "Journal",
+        "description": "The journal is a page of its own: entries in a rail down the left, the day plan on the left page and the writing on the right, with a title you can name per entry and slash commands in the editor."
+      },
+      {
+        "category": "Record",
+        "description": "The Sleep Times axis follows the week instead of a fixed 24-hour band, and still draws the plain 18:00 to 18:00 axis on a week with no records."
+      },
+      {
+        "category": "Record",
+        "description": "Every card on this page — heatmap squares, donut slices, all four charts — opens on hover, survives the trip to the pointer, and pins on click. Charts use our own anchored card now; the library's tooltip followed the cursor and could not be reached."
+      },
+      {
+        "category": "Explore",
+        "description": "Active Talents cards stay open when you move onto them, so the descriptions and claim buttons are finally usable."
+      },
+      {
+        "category": "Record",
+        "description": "Animations play once per appearance: pinning a card that is already on screen no longer replays the entrance."
       }
     ]
   },
-  "timestamp": 1793119376160
+  "timestamp": 1793206810756
 }
