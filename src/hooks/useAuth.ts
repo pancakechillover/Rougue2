@@ -274,12 +274,6 @@ export function useAuth(options: UseAuthOptions = {}) {
     }
   }, [account, syncAccountState]);
 
-  const getEffectiveIdentity = useCallback((): string => {
-    const current = account || getStoredAccount();
-    if (current?.userId) return current.userId;
-    return stateRef.current?.secretCode || stateRef.current?.userUniqueId || '';
-  }, [account]);
-
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const current = account || getStoredAccount();
     if (current?.token) {
@@ -303,7 +297,6 @@ export function useAuth(options: UseAuthOptions = {}) {
     login,
     logout,
     refreshSession,
-    getEffectiveIdentity,
     getAuthHeaders,
   };
 }

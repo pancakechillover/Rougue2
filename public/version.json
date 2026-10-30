@@ -1,21 +1,21 @@
 {
-  "version": "v9.7.3",
+  "version": "v9.7.4",
   "date": "2026-10-30",
   "latestRelease": {
-    "version": "v9.7.3",
+    "version": "v9.7.4",
     "date": "2026-10-30",
-    "time": "18:07:00",
-    "title": "Version 9.7.3: Behind the Guild Door",
+    "time": "18:19:00",
+    "title": "Version 9.7.4: The Last of the Secret Codes",
     "items": [
       {
-        "category": "Security",
-        "description": "A guild's roster, chat log and pending applications were readable by anyone who knew the guild id, without signing in. The lobby stays open so you can see what exists before joining; everything inside a guild now needs a session."
+        "category": "Maintenance",
+        "description": "Guild and reminder requests stop sending your secret code along with them. Both services have keyed themselves by the signed-in account for a while, so the field was riding along unread, and anything unread invites someone to read it again."
       },
       {
-        "category": "Fellowship",
-        "description": "The app no longer sends your account id as a header on guild requests. It was only ever there because the server used to read it as proof of who you were, and it is now ignored on the other side too."
+        "category": "Maintenance",
+        "description": "The reminder controls now ask for a Scholar Account instead of an old sync code, because that is what actually decides whose reminders get scheduled."
       }
     ]
   },
-  "timestamp": 1793354744444
+  "timestamp": 1793355512585
 }

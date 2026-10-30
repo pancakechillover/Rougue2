@@ -1581,18 +1581,10 @@ useCallback((amount: number) => {
       setDungeons(nextDungeons);
     }
 
-    // Broadcast focus session to Guild Team
-    if (state.teamId && (state.account?.userId || state.secretCode || state.userUniqueId)) {
+    // Broadcast focus session to Guild Team. The guild is behind a session, so
+    // there is nothing to report while signed out.
+    if (state.teamId && state.account?.token) {
       const finalDuration = Math.max(1, Math.round(sessionDurationVal));
-      let identityCode = state.account?.userId || state.secretCode;
-      if (!identityCode && typeof window !== 'undefined') {
-        try {
-          identityCode = localStorage.getItem('team_identity_code') || '';
-        } catch (e) {}
-      }
-      if (!identityCode) {
-        identityCode = state.userUniqueId || '';
-      }
 
       const updatedHistory = [session, ...(state.history || [])];
       const targetType = state.lastTeamData?.team?.config?.targetType || 'total_time';
@@ -1623,7 +1615,6 @@ useCallback((amount: number) => {
           cycleFocusTime: cycleFocus,
           cycleKey,
           targetType,
-          secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId,
           content: `${state.userName || 'Scholar'} just finished a ${finalDuration}m focus session.`

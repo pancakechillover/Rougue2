@@ -924,11 +924,12 @@ function App() {
     }
   }, [isSyncing, state.level]);
 
-  // Sync Push Subscription to server whenever account, secretCode, or pushEnabled changes
+  // Sync Push Subscription to server whenever the session or pushEnabled changes
   useEffect(() => {
     const syncPushSubscription = async () => {
-      const pushIdentity = state.account?.userId || state.secretCode;
-      if (state.pushEnabled && pushIdentity && !isSyncingPush) {
+      // Push reminders belong to an account: the server keys them by the
+      // session, so there is nothing to sync until you have signed in.
+      if (state.pushEnabled && state.account?.token && !isSyncingPush) {
         setIsSyncingPush(true);
         try {
           const registration = await navigator.serviceWorker.getRegistration();
@@ -942,10 +943,7 @@ function App() {
                   'Content-Type': 'application/json',
                   ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
                 },
-                body: JSON.stringify({
-                  secretCode: pushIdentity,
-                  subscription
-                })
+                body: JSON.stringify({ subscription })
               });
               if (res.ok) {
                 if (import.meta.env.DEV) console.log('Push sync: Success');
@@ -968,7 +966,7 @@ function App() {
     if (appReady) {
       syncPushSubscription();
     }
-  }, [state.pushEnabled, state.account?.token, state.account?.userId, state.secretCode, appReady]);
+  }, [state.pushEnabled, state.account?.token, appReady]);
 
   const handlePurchase = useCallback((itemId: string) => {
     if (import.meta.env.DEV) console.log('Purchasing item:', itemId);

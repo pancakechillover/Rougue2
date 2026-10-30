@@ -32,7 +32,6 @@ interface TimerProps {
   onSaveNote?: (sessionId: string, timestamp: number, duration: number, dungeonName: string, text: string) => void;
   setShowCoinRain: (show: boolean) => void;
   isFullscreen?: boolean;
-  secretCode?: string;
   authToken?: string;
   userName?: string;
   pushEnabled?: boolean;
@@ -87,7 +86,6 @@ export const Timer = React.memo<TimerProps>(({
   onSaveNote,
   setShowCoinRain,
   isFullscreen = false,
-  secretCode,
   authToken,
   userName,
   pushEnabled,
@@ -174,8 +172,8 @@ export const Timer = React.memo<TimerProps>(({
 
   // Push Notification Scheduling
   useEffect(() => {
-    // Push endpoints authenticate by session now; a legacy secretCode alone is
-    // no longer accepted, so skip the request instead of firing a guaranteed 401.
+    // Reminders are keyed by the signed-in account, so without a session there
+    // is nobody to schedule one for; skip instead of firing a guaranteed 401.
     if (!pushEnabled || !authToken) return;
 
     const headers: Record<string, string> = {
@@ -190,7 +188,6 @@ export const Timer = React.memo<TimerProps>(({
           method: 'POST',
           headers,
           body: JSON.stringify({
-            secretCode,
             delayMinutes,
             title: isResting ? `Rest Over, ${userName || 'Seeker'}!` : `Focus Over, ${userName || 'Seeker'}!`,
             body: isResting ? "Time to return to the dungeon." : "You have cleared the room. Take a rest?",
@@ -202,10 +199,10 @@ export const Timer = React.memo<TimerProps>(({
       fetch('/api/push/cancel', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ secretCode })
+        body: JSON.stringify({})
       }).catch(err => console.debug('Push cancel skipped or failed:', err));
     }
-  }, [isActive, endTime, pushEnabled, secretCode, authToken, isResting]);
+  }, [isActive, endTime, pushEnabled, authToken, isResting]);
 
   const handleRewardSelection = useCallback((card: RewardCard | null, session: StudySession) => {
     if (card) {

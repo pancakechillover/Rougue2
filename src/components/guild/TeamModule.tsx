@@ -347,19 +347,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
     };
   }, [state.teamId]);
 
-  const getOrGenerateIdentity = () => {
-    if (state.account?.userId) return state.account.userId;
-    if (state.secretCode) return state.secretCode;
-    let newCode;
-    try {
-      newCode = crypto.randomUUID();
-    } catch (e) {
-      newCode = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    }
-    setState(s => ({ ...s, secretCode: newCode }));
-    return newCode;
-  };
-
   const getTeamAuthHeaders = (): Record<string, string> => ({
     'Content-Type': 'application/json',
     ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
@@ -381,7 +368,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
     if (!ensurePassportAuth('Please sign in to your Scholar Passport first to join a guild.')) {
       return;
     }
-    const identityCode = getOrGenerateIdentity();
     const targetType = 'total_time';
     const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
     const userCycleFocus = calculateUserCycleFocus(state.history, targetType, '00:00', state.includeRestTimeInTasks);
@@ -394,7 +380,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
         headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: id, 
-          secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId || '',
           userAvatar: state.userAvatar || 'User',
@@ -424,7 +409,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   };
 
   const handleApplicant = async (applicantId: string, accept: boolean) => {
-    const identityCode = getOrGenerateIdentity();
     if (!state.teamId) return;
     try {
       const res = await fetch('/api/teams?action=handle_applicant', {
@@ -432,7 +416,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
         headers: getTeamAuthHeaders(),
         body: JSON.stringify({
           teamId: state.teamId,
-          secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId || '',
           applicantId,
@@ -454,7 +437,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const sendMessage = async () => {
-    const identityCode = getOrGenerateIdentity();
     if (!chatInput.trim() || !state.teamId || isSendingMessage) return;
     const msg = chatInput.trim();
     setChatInput('');
@@ -464,7 +446,7 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
     // Optimistic UI update
     const fakeMessage: TeamMessage = {
       id: fakeId,
-      userId: team?.myUserId || identityCode,
+      userId: team?.myUserId || state.account?.userId || '',
       name: state.userName || 'Scholar',
       avatar: state.userAvatar || 'User',
       content: msg,
@@ -479,7 +461,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
         headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: state.teamId, 
-          secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId || '',
           userAvatar: state.userAvatar || 'User',
@@ -540,7 +521,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   };
 
   const proposeSettings = async (cfg: any) => {
-    const identityCode = getOrGenerateIdentity();
     if (!state.teamId) return;
     try {
       const res = await fetch('/api/teams?action=settings', {
@@ -548,7 +528,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
         headers: getTeamAuthHeaders(),
         body: JSON.stringify({ 
           teamId: state.teamId, 
-          secretCode: identityCode,
           userName: state.userName || 'Scholar',
           userUniqueId: state.userUniqueId || '',
           ...cfg
@@ -564,7 +543,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   };
 
   const voteProposal = async (accept: boolean) => {
-     const identityCode = getOrGenerateIdentity();
      if (!state.teamId) return;
      try {
        await fetch('/api/teams?action=vote', {
@@ -572,7 +550,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
          headers: getTeamAuthHeaders(),
          body: JSON.stringify({ 
            teamId: state.teamId, 
-           secretCode: identityCode, 
            userName: state.userName || 'Scholar',
            userUniqueId: state.userUniqueId || '',
            accept 
@@ -833,13 +810,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
                            onClick={(e) => {
                               e.stopPropagation();
                               customConfirm("Are you sure you want to banish this member from the guild? Their stats will immediately be removed from today's Goal statistics.", async () => {
-                                 const identityCode = getOrGenerateIdentity();
                                  await fetch('/api/teams?action=kick', {
                                     method: 'POST',
                                     headers: getTeamAuthHeaders(),
                                     body: JSON.stringify({ 
                                       teamId: team.id, 
-                                      secretCode: identityCode, 
                                       userName: state.userName || 'Scholar',
                                       userUniqueId: state.userUniqueId || '',
                                       targetMemberId: m.userId 
@@ -1176,11 +1151,10 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
              const title = isCap ? "Disband Guild" : "Leave Guild";
              
              customConfirm(msg, async () => {
-                const identityCode = getOrGenerateIdentity();
                 await fetch('/api/teams?action=leave', {
                   method: 'POST',
                   headers: getTeamAuthHeaders(),
-                  body: JSON.stringify({ teamId: team.id, secretCode: identityCode, userName: state.userName || 'Scholar', userUniqueId: state.userUniqueId || '' })
+                  body: JSON.stringify({ teamId: team.id, userName: state.userName || 'Scholar', userUniqueId: state.userUniqueId || '' })
                 });
                 setState(s => ({ ...s, teamId: undefined }));
                 setShowSettings(false);
@@ -1246,7 +1220,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
         <CreateTeamModal 
            onClose={() => setShowCreate(false)}
            onCreate={async (cfg: any) => {
-             const identityCode = getOrGenerateIdentity();
              const targetType = cfg.config?.targetType || 'total_time';
              const resetTime = cfg.config?.resetTime || '00:00';
              const userTotalFocus = calculateUserTotalFocus(state.history, state.includeRestTimeInTasks);
@@ -1261,7 +1234,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
                    description: cfg.description,
                    avatar: cfg.avatar,
                    config: cfg.config,
-                   secretCode: identityCode,
                    userName: state.userName || 'Scholar',
                    userUniqueId: state.userUniqueId || '',
                    userAvatar: state.userAvatar,
@@ -1303,13 +1275,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
            isTargetSelf={viewingProfile === team.myUserId || (!!state.userUniqueId && (team.members.find(m => m.userId === viewingProfile) || viewingFallbackMember)?.uniqueId === state.userUniqueId)}
            onTransferCaptain={(targetId) => {
               customConfirm("Are you sure you want to transfer guild leadership? You will become a regular member.", async () => {
-                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=transfer', {
                     method: 'POST',
                     headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
-                      secretCode: identityCode, 
                       userName: state.userName || 'Scholar',
                       userUniqueId: state.userUniqueId || '',
                       targetMemberId: targetId 
@@ -1320,13 +1290,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
            }}
            onKickMember={(targetId) => {
               customConfirm("Are you sure you want to banish this member from the guild?", async () => {
-                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=kick', {
                     method: 'POST',
                     headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
-                      secretCode: identityCode, 
                       userName: state.userName || 'Scholar',
                       userUniqueId: state.userUniqueId || '',
                       targetMemberId: targetId 
@@ -1340,13 +1308,11 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
            currentUserName={state.userName || 'Scholar'}
            onReclaimCaptain={(_targetId) => {
               customConfirm("Are you sure this is your old account? Claiming it will restore your captaincy and delete the old duplicate entity.", async () => {
-                 const identityCode = getOrGenerateIdentity();
                  await fetch('/api/teams?action=reclaim', {
                     method: 'POST',
                     headers: getTeamAuthHeaders(),
                     body: JSON.stringify({ 
                       teamId: team.id, 
-                      secretCode: identityCode,
                       userName: state.userName || 'Scholar',
                       userUniqueId: state.userUniqueId || ''
                     })

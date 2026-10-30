@@ -189,7 +189,6 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
             Authorization: `Bearer ${state.account.token}`
           },
           body: JSON.stringify({
-            secretCode: state.secretCode,
             subscription,
             deviceInfo: {
               userAgent: navigator.userAgent,
@@ -243,11 +242,11 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
       return;
     }
 
-    if (!state.secretCode) {
+    if (!state.account?.token) {
       setModalConfig({
         isOpen: true,
-        title: "Sync Required",
-        message: "Please link your account with a Secret Code first to sync notifications.",
+        title: "Scholar Account Required",
+        message: "Reminders are tied to your Scholar Account. Sign in first, then sync notifications.",
         confirmText: "Got it",
         type: "warning",
         isAlert: true
@@ -308,7 +307,6 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
           ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
         },
         body: JSON.stringify({
-          secretCode: state.secretCode,
           subscription
         })
       });
@@ -366,7 +364,7 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${state.account.token}`
               },
-              body: JSON.stringify({ secretCode: state.secretCode, subscription: null })
+              body: JSON.stringify({ subscription: null })
             });
           }
           

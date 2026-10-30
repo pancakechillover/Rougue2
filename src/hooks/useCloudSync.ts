@@ -1048,14 +1048,16 @@ export function useCloudSync(
     setIsVerifying(false);
     setIsInitialSyncCheckDone(true);
     
-    if ((state.account?.token || state.secretCode) && state.pushEnabled) {
+    // Reminders belong to the account, so there is nothing to cancel once the
+    // session is gone.
+    if (state.account?.token && state.pushEnabled) {
       fetch('/api/push/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
         },
-        body: JSON.stringify({ secretCode: state.account?.userId || state.secretCode, subscription: null })
+        body: JSON.stringify({ subscription: null })
       }).catch(err => console.debug("Push cancel skipped or failed:", err));
     }
 

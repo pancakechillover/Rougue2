@@ -462,7 +462,6 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         setShowCoinRain={setShowCoinRain}
         isFullscreen={isFullscreenExplore}
         _pipWindow={pipWindow}
-        secretCode={state.account?.userId || state.secretCode}
         authToken={state.account?.token}
         userName={state.userName}
         pushEnabled={state.pushEnabled}

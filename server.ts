@@ -317,12 +317,13 @@ app.get("/api/push/vapid-public-key", (_req, res) => {
 
 app.post("/api/push/subscribe", async (req, res) => {
   try {
-    const { secretCode, subscription } = req.body || {};
+    const { subscription } = req.body || {};
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Redis not configured" });
+    // Reminders are keyed by the signed-in account, exactly as on Vercel.
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
-    const targetIdentity = verifiedSession?.userId || secretCode;
-    if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
+    const targetIdentity = verifiedSession?.userId;
+    if (!targetIdentity) return res.status(401).json({ error: "Authentication required. Please sign in to manage reminders." });
     
     // Key for sets of subscriptions for this user
     const key = `scholar_push_subs_${targetIdentity}`;
@@ -368,12 +369,13 @@ app.post("/api/push/subscribe", async (req, res) => {
 
 app.post("/api/push/schedule", async (req, res) => {
   try {
-    const { secretCode, delayMinutes, title, body, type } = req.body || {};
+    const { delayMinutes, title, body, type } = req.body || {};
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Redis not configured" });
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
-    const targetIdentity = verifiedSession?.userId || secretCode;
-    if (!targetIdentity || delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
+    const targetIdentity = verifiedSession?.userId;
+    if (!targetIdentity) return res.status(401).json({ error: "Authentication required. Please sign in to manage reminders." });
+    if (delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
     const targetTime = Date.now() + (delayMinutes * 60 * 1000);
     const task = { secretCode: targetIdentity, title, body, type, targetTime };
     const taskStr = JSON.stringify(task);
@@ -396,12 +398,11 @@ app.post("/api/push/schedule", async (req, res) => {
 
 app.post("/api/push/cancel", async (req, res) => {
   try {
-    const { secretCode } = req.body || {};
     const client = await getRedisClient();
     if (!client) return res.status(500).json({ error: "Redis not configured" });
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
-    const targetIdentity = verifiedSession?.userId || secretCode;
-    if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
+    const targetIdentity = verifiedSession?.userId;
+    if (!targetIdentity) return res.status(401).json({ error: "Authentication required. Please sign in to manage reminders." });
     
     // 1. Try quick reference cancel
     const taskStr = await client.get(`scholar_push_task_ref_${targetIdentity}`);

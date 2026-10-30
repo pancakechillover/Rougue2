@@ -39,12 +39,13 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
   }>({ isOpen: false, title: '', message: '' });
 
   const handleTestNotification = async () => {
-    const pushIdentity = state.account?.userId || state.secretCode;
-    if (!state.account?.token && !state.isRedisUnlocked) {
+    // Reminders are keyed by the signed-in account, so the dev unlock alone is
+    // no longer enough to send one.
+    if (!state.account?.token) {
       setModalConfig({
         isOpen: true,
-        title: "Developer Access Required",
-        message: "You need to unlock Developer Access or sign in with a Scholar Account first.",
+        title: "Scholar Account Required",
+        message: "Push reminders belong to a Scholar Account. Sign in first, then send yourself a test notification.",
         confirmText: "Got it",
         type: "warning",
         isAlert: true
@@ -52,18 +53,6 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
       return;
     }
 
-    if (!pushIdentity) {
-      setModalConfig({
-        isOpen: true,
-        title: "Sync Required",
-        message: "Please sign in with a Scholar Account or link a Secret Code first.",
-        confirmText: "Got it",
-        type: "warning",
-        isAlert: true
-      });
-      return;
-    }
-    
     setIsTestingNotification(true);
     try {
       if (import.meta.env.DEV) console.log('Testing: Scheduling notification (expired)...');
@@ -74,7 +63,6 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
           ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
         },
         body: JSON.stringify({
-          secretCode: pushIdentity,
           delayMinutes: -1,
           title: testNotificationTitle,
           body: testNotificationBody,
@@ -418,12 +406,11 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
               </button>
               <button
                 onClick={async () => {
-                  const pushIdentity = state.account?.userId || state.secretCode;
-                  if (!pushIdentity) {
+                  if (!state.account?.token) {
                     setModalConfig({
                       isOpen: true,
-                      title: "Account Required",
-                      message: "Please sign in with a Scholar Account or link a Secret Code first.",
+                      title: "Scholar Account Required",
+                      message: "Push subscriptions belong to a Scholar Account. Sign in first.",
                       confirmText: "Got it",
                       type: "warning",
                       isAlert: true
@@ -444,10 +431,7 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
                             'Content-Type': 'application/json',
                             ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
                           },
-                          body: JSON.stringify({
-                            secretCode: pushIdentity,
-                            subscription: null
-                          })
+                          body: JSON.stringify({ subscription: null })
                         });
                         if (res.ok) {
                           setState(prev => ({ ...prev, pushEnabled: false, pushSubscription: null }));
@@ -653,7 +637,7 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
                               'Content-Type': 'application/json',
                               Authorization: `Bearer ${state.account.token}`
                             },
-                            body: JSON.stringify({ secretCode: state.secretCode, subscription: null })
+                            body: JSON.stringify({ subscription: null })
                           });
                         }
                         const regs = await navigator.serviceWorker.getRegistrations();

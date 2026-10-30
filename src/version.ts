@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.7.3';
+export const APP_VERSION = 'v9.7.4';
 export const LAST_UPDATE_DATE = '2026-10-30';
-export const LAST_UPDATE_TIME = '18:07:00';
+export const LAST_UPDATE_TIME = '18:19:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.7.4',
+    date: '2026-10-30',
+    time: '18:19:00',
+    title: 'Version 9.7.4: The Last of the Secret Codes',
+    items: [
+      { category: 'Maintenance', description: 'Guild and reminder requests stop sending your secret code along with them. Both services have keyed themselves by the signed-in account for a while, so the field was riding along unread, and anything unread invites someone to read it again.' },
+      { category: 'Maintenance', description: 'The reminder controls now ask for a Scholar Account instead of an old sync code, because that is what actually decides whose reminders get scheduled.' }
+    ]
+  },
   {
     version: 'v9.7.3',
     date: '2026-10-30',
