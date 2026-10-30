@@ -1,21 +1,21 @@
 {
-  "version": "v9.7.1",
+  "version": "v9.7.2",
   "date": "2026-10-30",
   "latestRelease": {
-    "version": "v9.7.1",
+    "version": "v9.7.2",
     "date": "2026-10-30",
-    "time": "17:20:00",
-    "title": "Version 9.7.1: Legacy Migration, Actually Gone",
+    "time": "17:46:00",
+    "title": "Version 9.7.2: A Name Is Not A Password",
     "items": [
       {
         "category": "Security",
-        "description": "The old secret-code account migration is gone for good. An earlier pass had stopped it from working but left the endpoint answering 410 and kept the field it used to store, so the client and the API still carried the name of a feature nobody should be able to call."
+        "description": "A Scholar Passport id is printed in every guild member list, so quoting one used to be enough to read, overwrite or delete that player's whole cloud save. The save endpoints now act as the signed-in session and refuse a bare account id, which never authenticated anyone in the first place."
       },
       {
         "category": "Security",
-        "description": "A Scholar Passport no longer reports the old code it was once tied to, because that field is no longer read, written or returned."
+        "description": "A guild page could be made to write as someone else. Opening a guild while naming another member's id or name let the caller rewrite that member's name, avatar, bio, title, level and focus total through request headers, because a read was also a write. A read now writes nothing for anyone without a session."
       }
     ]
   },
-  "timestamp": 1793351940574
+  "timestamp": 1793353515395
 }

@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyBearerToken } from './_shared/auth.js';
+import { resolveSyncIdentity } from './_shared/identity.js';
 
 // Initialize Redis client lazily to reuse connection in serverless environment
 let redisClient: any = null;
@@ -23,15 +24,8 @@ const getRedisClient = async () => {
 
 // ── Validation & rate limiting ────────────────────────────────────────────
 
-/** Accepts legacy base36 codes, UUID codes, and unified usr_<uuid> IDs. */
-const SECRET_CODE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-
-function isValidSecretCode(value: unknown): value is string {
-  return typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
-}
-
 function getStorageKeys(identity: string, isUnifiedUser: boolean): { saveKey: string; historyKey: string } {
-  if (isUnifiedUser || identity.startsWith('usr_')) {
+  if (isUnifiedUser) {
     return {
       saveKey: `scholar_user:${identity}:save`,
       historyKey: `scholar_user:${identity}:save_history`,
@@ -89,24 +83,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 1. Check unified Bearer session token first
+    // 1. A verified session acts as its own account. Without one, only a legacy
+    //    sync code is accepted: an account id names a save, it never
+    //    authenticated a caller, so quoting one no longer reaches that save.
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
-
-    // 2. Fallback to legacy secretCode in body
-    const { secretCode: submittedCode } = body || {};
-    if (!verifiedSession && submittedCode !== undefined && !isValidSecretCode(submittedCode)) {
-      return res.status(400).json({ error: "Invalid secret code format" });
+    const identity = resolveSyncIdentity(verifiedSession?.userId, body?.secretCode);
+    if (identity.kind === 'denied') {
+      return res.status(identity.status).json({ error: identity.error });
     }
 
-    const activeIdentity = verifiedSession ? verifiedSession.userId : submittedCode;
-    const isUnified = Boolean(verifiedSession) || (typeof activeIdentity === 'string' && activeIdentity.startsWith('usr_'));
+    const activeIdentity = identity.identity;
+    const isUnified = identity.unified;
 
     // Check if history is requested
     if (path?.endsWith('/history')) {
-      if (!isValidSecretCode(activeIdentity)) {
-        return res.status(400).json({ error: "Authentication or valid secret code required" });
-      }
-      
       const { historyKey } = getStorageKeys(activeIdentity, isUnified);
       const historyRaw = await client.get(historyKey);
       const historyList = historyRaw ? JSON.parse(historyRaw.toString()) : [];
@@ -116,9 +106,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'POST') {
       const { localData, forceOverwrite } = body || {};
-      if (!isValidSecretCode(activeIdentity)) {
-        return res.status(400).json({ error: "Authentication or valid secret code required" });
-      }
 
       const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
 
@@ -179,10 +166,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } 
     
     if (req.method === 'DELETE') {
-      if (!isValidSecretCode(activeIdentity)) {
-        return res.status(400).json({ error: "Authentication or valid secret code required" });
-      }
-      
       const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
       await client.del(saveKey);
       await client.del(historyKey);

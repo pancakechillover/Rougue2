@@ -198,13 +198,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Authentication required. Please sign in to Scholar Passport to access guild features.' });
     }
 
-    let userId = verifiedSession ? verifiedSession.userId : "";
-    if (!userId && (req.headers['x-secret-code'] || req.body?.secretCode)) {
-      const fallbackCode = (req.headers['x-secret-code'] || req.body?.secretCode) as string;
-      if (fallbackCode.startsWith('usr_')) {
-        userId = fallbackCode;
-      }
-    }
+    // Identity comes from the session and nowhere else. A `usr_…` id used to be
+    // accepted from x-secret-code as a fallback, which made a public name into a
+    // credential: quoting a guild member's id was enough to be treated as them,
+    // and a GET then rewrote that member's name, avatar, bio, title, level and
+    // focus time from whatever headers the caller sent. A GET is now read-only
+    // for anyone without a session.
+    let userId = verifiedSession ? verifiedSession.userId : '';
     
     // Parse userLevel ensuring it is a valid positive number
     const userLevelRaw = req.body?.userLevel || req.headers['x-user-level'] || req.query?.userLevel;
@@ -245,11 +245,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const teamData = await client.hGetAll(`scholar_team:${teamId}`);
        if (!teamData || !teamData.id) return res.status(404).json({ error: 'Team not found' });
        
-       // Resolve member first to heal key if needed
+       // Resolve the member for the read-only flags below. The resolved key is
+       // deliberately not written back into `userId`: without a session it was
+       // derived from a uniqueId or name the caller chose, and using it as the
+       // identity is what let an anonymous GET edit someone else's member record.
        const resolved = await resolveMember(client, teamId, userId, userUniqueId, userName);
-       if (resolved) {
-          userId = resolved.memberKey;
-       }
 
        const membersData = await client.hGetAll(`scholar_team:${teamId}:members`);
        const userTotalFocusHeader = req.headers['x-user-total-focus'];

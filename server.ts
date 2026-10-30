@@ -9,6 +9,7 @@ import authHandler, { verifyBearerToken } from "./api/auth";
 import teamsHandler from "./api/teams";
 import sageHandler from "./api/sage";
 import webdavHandler from "./api/webdav/proxy";
+import { resolveSyncIdentity } from "./api/_shared/identity";
 
 dotenv.config();
 
@@ -114,13 +115,8 @@ app.get("/api/stats", async (_req, res) => {
 
 // ── Sync input validation & rate limiting ────────────────────────────────
 
-/** Accepts legacy base36 codes, UUID codes, and unified usr_<uuid> IDs. */
-const SECRET_CODE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-const isValidSecretCode = (value: unknown): value is string =>
-  typeof value === 'string' && SECRET_CODE_PATTERN.test(value);
-
 const getStorageKeys = (identity: string, isUnifiedUser: boolean): { saveKey: string; historyKey: string } => {
-  if (isUnifiedUser || identity.startsWith('usr_')) {
+  if (isUnifiedUser) {
     return {
       saveKey: `scholar_user:${identity}:save`,
       historyKey: `scholar_user:${identity}:save_history`,
@@ -163,11 +159,12 @@ const syncHandler = async (req: express.Request, res: express.Response) => {
 
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
     const { secretCode, localData } = req.body || {};
-    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
-    if (!isValidSecretCode(activeIdentity)) {
-      return res.status(400).json({ error: "Authentication or valid secret code required" });
+    const identity = resolveSyncIdentity(verifiedSession?.userId, secretCode);
+    if (identity.kind === 'denied') {
+      return res.status(identity.status).json({ error: identity.error });
     }
-    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const activeIdentity = identity.identity;
+    const isUnified = identity.unified;
     const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
     
     // Prune expired BEFORE check
@@ -238,11 +235,12 @@ const deleteHandler = async (req: express.Request, res: express.Response) => {
 
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
     const { secretCode } = req.body || {};
-    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
-    if (!isValidSecretCode(activeIdentity)) {
-      return res.status(400).json({ error: "Authentication or valid secret code required" });
+    const identity = resolveSyncIdentity(verifiedSession?.userId, secretCode);
+    if (identity.kind === 'denied') {
+      return res.status(identity.status).json({ error: identity.error });
     }
-    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const activeIdentity = identity.identity;
+    const isUnified = identity.unified;
     const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
     
     await client.del(saveKey);
@@ -261,11 +259,12 @@ const historyHandler = async (req: express.Request, res: express.Response) => {
 
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
     const { secretCode } = req.body || {};
-    const activeIdentity = verifiedSession ? verifiedSession.userId : secretCode;
-    if (!isValidSecretCode(activeIdentity)) {
-      return res.status(400).json({ error: "Authentication or secret code is required" });
+    const identity = resolveSyncIdentity(verifiedSession?.userId, secretCode);
+    if (identity.kind === 'denied') {
+      return res.status(identity.status).json({ error: identity.error });
     }
-    const isUnified = Boolean(verifiedSession) || activeIdentity.startsWith('usr_');
+    const activeIdentity = identity.identity;
+    const isUnified = identity.unified;
     const { historyKey } = getStorageKeys(activeIdentity, isUnified);
 
     const historyRaw = await client.get(historyKey);

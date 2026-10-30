@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.7.1';
+export const APP_VERSION = 'v9.7.2';
 export const LAST_UPDATE_DATE = '2026-10-30';
-export const LAST_UPDATE_TIME = '17:20:00';
+export const LAST_UPDATE_TIME = '17:46:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.7.2',
+    date: '2026-10-30',
+    time: '17:46:00',
+    title: 'Version 9.7.2: A Name Is Not A Password',
+    items: [
+      { category: 'Security', description: 'A Scholar Passport id is printed in every guild member list, so quoting one used to be enough to read, overwrite or delete that player\'s whole cloud save. The save endpoints now act as the signed-in session and refuse a bare account id, which never authenticated anyone in the first place.' },
+      { category: 'Security', description: 'A guild page could be made to write as someone else. Opening a guild while naming another member\'s id or name let the caller rewrite that member\'s name, avatar, bio, title, level and focus total through request headers, because a read was also a write. A read now writes nothing for anyone without a session.' }
+    ]
+  },
   {
     version: 'v9.7.1',
     date: '2026-10-30',
