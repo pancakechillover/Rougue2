@@ -2,14 +2,14 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Tags, Clock, Layers, Zap } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { StudySession, Dungeon, MajorDungeon, Tag, TimeSettings } from '../../../types';
-import { getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay, cn } from '../../../lib/utils';
+import { getSessionEffectiveMinutes, getSessionSettlementDate, getSessionDistractionCount, getSettlementDay, cn } from '../../../lib/utils';
 import { getSessionEffectiveTagIds, TAG_COLOR_STYLES } from '../../../lib/tags';
 import { TagBadge } from '../../common/TagBadge';
 import { DurationText } from '../../common/DurationText';
 import { TagSlicePopover } from './TagSlicePopover';
 import { PopoverPortal } from '../../common/PopoverPortal';
 import { DatePicker } from '../../common/DatePicker';
-import { parseISO, differenceInCalendarDays, format, subDays, addDays, isSameDay } from 'date-fns';
+import { parseISO, differenceInCalendarDays, format, subDays, addDays, isSameDay, startOfDay } from 'date-fns';
 
 interface StatsTagAnalyticsSectionProps {
   history: StudySession[];
@@ -17,8 +17,9 @@ interface StatsTagAnalyticsSectionProps {
   majorDungeons: MajorDungeon[];
   tags: Tag[];
   includeRestTimeInStats?: boolean;
-  standardRestMinutes?: number;
   timeSettings?: TimeSettings;
+  /** Configured timezone, so "today" matches the sections around this one. */
+  timezone?: string;
   dateIndicators?: Record<string, { highlight?: boolean; star?: boolean }>;
   now?: Date;
 }
@@ -40,16 +41,44 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
   majorDungeons,
   tags,
   includeRestTimeInStats = false,
-  standardRestMinutes = 5,
   timeSettings,
+  timezone,
   dateIndicators,
   now
 }) => {
-  const todayDate = useMemo(() => {
+  // "Today" has to agree with the rest of the page: the configured timezone
+  // first (a browser set to another zone used to disagree with the sections
+  // around it), then the day boundary.
+  const computeToday = useCallback(() => {
     const baseNow = now || new Date();
-    const todaySettlementStr = getSettlementDay(baseNow, timeSettings);
-    return parseISO(todaySettlementStr);
-  }, [now, timeSettings]);
+    let localNow = baseNow;
+    if (timezone) {
+      try {
+        localNow = new Date(baseNow.toLocaleString('en-US', { timeZone: timezone }));
+      } catch {
+        localNow = baseNow;
+      }
+    }
+    return parseISO(getSettlementDay(localNow, timeSettings));
+  }, [now, timeSettings, timezone]);
+
+  const [todayDate, setTodayDate] = useState<Date>(computeToday);
+
+  useEffect(() => {
+    setTodayDate(computeToday());
+  }, [computeToday]);
+
+  // A page left open across the day boundary used to keep yesterday's "today"
+  // until it was reloaded, so the Today button and the label went stale.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setTodayDate((prev) => {
+        const next = computeToday();
+        return isSameDay(prev, next) ? prev : next;
+      });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [computeToday]);
 
   const [range, setRange] = useState<'day' | '7d' | '30d' | 'all'>('7d');
   const [tagDate, setTagDate] = useState<Date>(() => todayDate);
@@ -57,10 +86,24 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
   const [selectedSlice, setSelectedSlice] = useState<number | null>(null);
   const [sliceAnchor, setSliceAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const anchorDate = useMemo(() => {
-    const settlementStr = getSettlementDay(tagDate, timeSettings);
-    return parseISO(settlementStr);
-  }, [tagDate, timeSettings]);
+  // Only the view that was sitting on "today" follows the new one; a view the
+  // user navigated into stays where they put it.
+  const previousTodayRef = useRef(todayDate);
+  useEffect(() => {
+    const previous = previousTodayRef.current;
+    previousTodayRef.current = todayDate;
+    if (isSameDay(previous, todayDate)) return;
+    setTagDate((current) => (isSameDay(current, previous) ? todayDate : current));
+  }, [todayDate]);
+
+  // `tagDate` already IS a settlement day: it is seeded from getSettlementDay()
+  // and every later write is either that value or a whole-day step from it, so
+  // it always arrives as date-only midnight. Running it through
+  // getSettlementDay() a second time reads hour 0 as "still before the day
+  // boundary" and subtracts another day — which put this whole section one day
+  // behind and made the Today button look dead (it set the right date, then the
+  // second conversion moved it back again).
+  const anchorDate = useMemo(() => startOfDay(tagDate), [tagDate]);
 
   const datePickerLabel = useMemo(() => {
     if (range === 'day') {
@@ -72,13 +115,14 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
     if (range === '30d') {
       return `${format(subDays(anchorDate, 29), 'MMM dd')} - ${format(anchorDate, 'MMM dd')}`;
     }
-    return `All Time · ${format(anchorDate, 'MMM dd')}`;
+    // All Time has no anchor day, so naming one was noise.
+    return 'All Time';
   }, [range, anchorDate, todayDate]);
 
   const tagStats = useMemo(() => {
     const filteredSessions = (history || []).filter(session => {
       if (range === 'all') return true;
-      const sessionDateStr = getSessionSettlementDate(session, timeSettings);
+      const sessionDateStr = getSessionSettlementDate(session, timeSettings, timezone);
       try {
         const diff = differenceInCalendarDays(anchorDate, parseISO(sessionDateStr));
         if (range === 'day') return diff === 0;
@@ -96,10 +140,16 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
     let totalSessions = 0;
 
     for (const session of filteredSessions) {
-      const mins = getSessionEffectiveMinutes(session, includeRestTimeInStats, standardRestMinutes);
+      // Two arguments only, like every other call site. Passing the rest minutes
+      // here padded sessions that never recorded one, so this card counted more
+      // focus time than the daily report for the very same sessions.
+      const mins = getSessionEffectiveMinutes(session, includeRestTimeInStats);
       if (mins <= 0) continue;
 
-      const distCount = (Number(session.distractions?.internal) || 0) + (Number(session.distractions?.external) || 0);
+      // Was internal + external; unavoidable was missing, so a session with an
+      // unavoidable distraction read as "no distraction" here and as one in the
+      // daily report. The helper also copes with the older numeric shape.
+      const distCount = getSessionDistractionCount(session.distractions);
       uniqueTotalMinutesRaw += mins;
       totalDistractionsRaw += distCount;
       totalSessions += 1;
@@ -125,8 +175,6 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
       }
     }
 
-    const totalAttributedMinutes = Array.from(statsMap.values()).reduce((acc, v) => acc + v.minutes, 0);
-
     const rows: TagStatRow[] = [];
     statsMap.forEach((val, key) => {
       if (key === '__untagged__') {
@@ -135,7 +183,7 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
           name: 'Untagged',
           colorHex: '#64748b',
           minutes: Math.round(val.minutes),
-          percentage: totalAttributedMinutes > 0 ? (val.minutes / totalAttributedMinutes) * 100 : 0,
+          percentage: 0,
           sessionCount: val.sessionCount,
           distractionsPerHour: val.minutes > 0 ? (val.distractions / (val.minutes / 60)) : 0
         });
@@ -149,12 +197,20 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
           tag: tagObj,
           colorHex: style.hex,
           minutes: Math.round(val.minutes),
-          percentage: totalAttributedMinutes > 0 ? (val.minutes / totalAttributedMinutes) * 100 : 0,
+          percentage: 0,
           sessionCount: val.sessionCount,
           distractionsPerHour: val.minutes > 0 ? (val.distractions / (val.minutes / 60)) : 0
         });
       }
     });
+
+    // Percentages are taken from the rounded minutes, not the raw ones: the
+    // list shows rounded values, so a reader adding the column up should land on
+    // the total printed in the donut instead of a minute off.
+    const attributedTotal = rows.reduce((acc, r) => acc + r.minutes, 0);
+    for (const row of rows) {
+      row.percentage = attributedTotal > 0 ? (row.minutes / attributedTotal) * 100 : 0;
+    }
 
     rows.sort((a, b) => {
       if (a.id === '__untagged__' && b.id !== '__untagged__') return 1;
@@ -170,12 +226,12 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
     return {
       rows,
       uniqueTotalMinutes,
-      totalAttributedMinutes: Math.round(totalAttributedMinutes),
+      totalAttributedMinutes: attributedTotal,
       taggedCount,
       totalSessions,
       overallDistractionsPerHour,
     };
-  }, [history, dungeons, majorDungeons, tags, range, anchorDate, includeRestTimeInStats, standardRestMinutes, timeSettings]);
+  }, [history, dungeons, majorDungeons, tags, range, anchorDate, includeRestTimeInStats, timeSettings, timezone]);
 
   // Selection drives the card, not hover: the stats page is used on tablets
   // too, and a hover-only affordance is unreachable there.
@@ -296,24 +352,23 @@ export const StatsTagAnalyticsSection: React.FC<StatsTagAnalyticsSectionProps> =
                 if (range === 'all') setRange('7d');
               }}
               indicators={dateIndicators}
+              timeSettings={timeSettings}
               className="text-xs font-bold text-slate-300 w-full sm:w-36 text-center hover:text-indigo-400 transition-colors py-1 inline-block whitespace-nowrap cursor-pointer"
               nav={{
                 onPrev: () => {
                   if (range === 'day') setTagDate(subDays(anchorDate, 1));
                   else if (range === '30d') setTagDate(subDays(anchorDate, 30));
-                  else {
-                    if (range === 'all') setRange('7d');
-                    setTagDate(subDays(anchorDate, 7));
-                  }
+                  else setTagDate(subDays(anchorDate, 7));
                 },
                 onNext: () => {
                   if (range === 'day') setTagDate(addDays(anchorDate, 1));
                   else if (range === '30d') setTagDate(addDays(anchorDate, 30));
-                  else {
-                    if (range === 'all') setRange('7d');
-                    setTagDate(addDays(anchorDate, 7));
-                  }
+                  else setTagDate(addDays(anchorDate, 7));
                 },
+                // All Time has no window to step through. Stepping it used to
+                // switch the view back to 7 Days without saying so.
+                prevDisabled: range === 'all',
+                nextDisabled: range === 'all',
                 onToday: () => setTagDate(todayDate),
                 size: 'sm',
               }}

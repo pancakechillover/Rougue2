@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AppState, Dungeon, StudySession, RewardCard, MajorDungeon, RewardHistoryItem, DungeonReward, Quest } from '../types';
 import { TALENTS, INITIAL_REWARD_POOL, DEFAULT_QUESTS, DEFAULT_SAGE_PROMPTS } from '../constants';
 import { format, parseISO, differenceInDays, subDays } from 'date-fns';
 import { computeGachaPull } from '../lib/gacha';
+import { debounce } from '../lib/timing';
 
 import { getXPForLevel, getDefaultRewardForLevel, getDeviceType, getDeviceCode, getSettlementDay, getSessionSettlementDate, getSessionEffectiveMinutes } from '../lib/utils';
 import { calculateUserTotalFocus, calculateUserCycleFocus, getCycleKey } from '../lib/teamUtils';
@@ -19,6 +20,18 @@ import { getEffectiveDungeonTagIds, canMoveSubDungeonToParent } from '../lib/tag
 import { DEMO_SEEDED_FLAG_KEY, loadPreviewDemoDataIntoStorage } from '../lib/previewDemoData';
 
 const STORAGE_KEY = 'scholars_dungeon_state';
+
+/**
+ * The reward log grows by one entry per pull, per quest and per level up, and it
+ * is re-serialized as part of the whole state on every change. At 1280 entries it
+ * was already 271 KB of a 700 KB save; unbounded it eventually fills the ~5 MB
+ * localStorage quota and the write starts throwing. The transaction log next to
+ * it has been capped at 500 all along, so match that.
+ */
+export const REWARD_HISTORY_LIMIT = 500;
+
+const capRewardHistory = (items: RewardHistoryItem[]): RewardHistoryItem[] =>
+  items.length > REWARD_HISTORY_LIMIT ? items.slice(0, REWARD_HISTORY_LIMIT) : items;
 
 const getAddedProgress = (
   includeRestTimeInTasks: boolean | undefined,
@@ -723,11 +736,45 @@ export function useGameState() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // `state` is ~700 KB once a few hundred sessions are logged, and this effect
+  // re-serializes all of it on every change — including the guild poll, which
+  // replaces lastTeamData every 10 seconds. Debouncing collapses a burst of
+  // updates into one write, and the catch stops a full quota from blanking the app.
+  const latestStateRef = useRef(state);
+  latestStateRef.current = state;
+
+  const writeStateNow = useCallback((next: AppState) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch (err) {
+      // QuotaExceededError used to escape this effect and take the whole tree
+      // down with it. Losing the newest write is bad; a blank screen is worse.
+      console.error('Failed to persist state to localStorage:', err);
+    }
+  }, []);
+
+  const persistState = useMemo(() => debounce(writeStateNow, 400), [writeStateNow]);
+
   useEffect(() => {
     if (state && typeof state.level === 'number' && Array.isArray(state.quests)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      persistState(state);
     }
-  }, [state]);
+  }, [state, persistState]);
+
+  // A debounced write can still be pending when the tab goes away; flush it.
+  useEffect(() => {
+    const flush = () => {
+      persistState.cancel();
+      if (latestStateRef.current) writeStateNow(latestStateRef.current);
+    };
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+      persistState.cancel();
+    };
+  }, [persistState, writeStateNow]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY + '_dungeons', JSON.stringify(dungeons));
@@ -956,13 +1003,13 @@ export function useGameState() {
       }
     }
 
-    return { ...newState, xp: newXP, level: newLevel, talentPoints: newTalentPoints, coins: newCoins, rewardHistory: newRewardHistory };
+    return { ...newState, xp: newXP, level: newLevel, talentPoints: newTalentPoints, coins: newCoins, rewardHistory: capRewardHistory(newRewardHistory) };
   };
 
   const processShards = (state: AppState, amount: number): AppState => {
     let newShards = Math.max(0, state.talentShards + amount);
     let newHistory = [...state.rewardHistory];
-    return { ...state, talentShards: newShards, rewardHistory: newHistory };
+    return { ...state, talentShards: newShards, rewardHistory: capRewardHistory(newHistory) };
   };
 
   const applyQuestReward = (state: AppState, reward: any, questTitle: string, isAchievement: boolean): AppState => {
@@ -1051,7 +1098,7 @@ export function useGameState() {
         }, ...newHistory];
       }
 
-      return { ...state, talentShards: newShards, talentPoints: newTalentPoints, rewardHistory: newHistory };
+      return { ...state, talentShards: newShards, talentPoints: newTalentPoints, rewardHistory: capRewardHistory(newHistory) };
     });
   }, []);
 
@@ -1085,7 +1132,7 @@ useCallback((amount: number) => {
         redeemed: reward.type !== 'item' && reward.type !== 'text'
       };
 
-      let newState = { ...prev, rewardHistory: [newItem, ...prev.rewardHistory] };
+      let newState = { ...prev, rewardHistory: capRewardHistory([newItem, ...prev.rewardHistory]) };
 
       if (linkToSessionId) {
         const session = prev.history.find(s => s.id === linkToSessionId);
@@ -1770,7 +1817,7 @@ useCallback((amount: number) => {
           talentPoints: prev.talentPoints - talent.cost,
           unlockedTalents: [...prev.unlockedTalents, talentId],
           activeTalents: [...prev.activeTalents, talentId],
-          rewardHistory: [historyItem, ...prev.rewardHistory]
+          rewardHistory: capRewardHistory([historyItem, ...prev.rewardHistory])
         };
       }
       return prev;

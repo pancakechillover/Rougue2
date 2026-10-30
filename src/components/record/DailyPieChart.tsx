@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { PieChart as PieChartIcon, Layers } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, TimeSettings, Tag } from '../../types';
-import { addMinutes, differenceInMinutes, format, startOfDay } from 'date-fns';
-import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
+import { addMinutes, differenceInMinutes, format } from 'date-fns';
+import { cn, getSessionEffectiveMinutes, getSettlementStart } from '../../lib/utils';
 import { getSessionEffectiveTagIds, TAG_COLOR_STYLES } from '../../lib/tags';
 import { TagBadge } from '../common/TagBadge';
 import { DurationText } from '../common/DurationText';
@@ -288,10 +288,9 @@ export const DailyPieChart: React.FC<Props> = ({
         afternoon: { start: 14, end: 18 },
         night: { start: 20, end: 24 },
       };
-      const dayStart = startOfDay(date);
-      if (ts.night.start > ts.night.end) {
-        dayStart.setHours(ts.night.end, 0, 0, 0);
-      }
+      // Clock spans the settlement day, not midnight to midnight. Same rule the
+      // report itself files sessions under, so the ring lines up with the totals.
+      const dayStart = getSettlementStart(date, ts);
 
       const sortedSessions = [...daySessions].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()

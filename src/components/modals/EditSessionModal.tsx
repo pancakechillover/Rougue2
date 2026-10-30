@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
-import { X, Edit2, Check, Clock, Brain, Wind, Zap, Hash, RotateCcw, Sparkles, Target, ChevronDown } from 'lucide-react';
+import { X, Edit2, Check, Clock, Brain, Wind, Zap, Hash, RotateCcw, Target, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { StudySession, Dungeon, MajorDungeon } from '../../types';
 import { cn } from '../../lib/utils';
@@ -130,16 +130,9 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center relative z-10 w-full">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 md:gap-5">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tighter uppercase italic pr-1 flex items-center gap-3">
-                  Edit Session <Edit2 className="text-indigo-400" size={24} />
-                </h2>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 tracking-wider flex items-center gap-2 mt-1 sm:mt-0 font-mono">
-                  <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
-                    Total: {totalDuration}m
-                  </span>
-                </div>
-              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tighter uppercase italic pr-1 flex items-center gap-3">
+                Edit Session <Edit2 className="text-indigo-400" size={24} />
+              </h2>
 
               <button
                 onClick={onClose}
@@ -198,19 +191,13 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             {selectedDungeon ? (
-                              <>
-                                <Target size={15} className="text-indigo-400 shrink-0" />
-                                <span className="truncate font-semibold text-white">
-                                  {selectedDungeon.name}
-                                </span>
-                              </>
+                              <span className="truncate font-semibold text-white">
+                                {selectedDungeon.name}
+                              </span>
                             ) : (
-                              <>
-                                <Sparkles size={15} className="text-amber-400 shrink-0" />
-                                <span className="truncate font-semibold text-slate-200">
-                                  Free Study
-                                </span>
-                              </>
+                              <span className="truncate font-semibold text-slate-200">
+                                Free Study
+                              </span>
                             )}
                           </div>
                           <ChevronDown

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, ScholarAccount, LegacyMigrationSummary } from '../types';
+import { AppState, ScholarAccount } from '../types';
 
 export const AUTH_STORAGE_KEY = 'scholars_dungeon_auth';
 const MAIN_STATE_STORAGE_KEY = 'scholars_dungeon_state';
@@ -42,44 +42,9 @@ function persistAccountToStorage(account: ScholarAccount | null): void {
   }
 }
 
-function readFallbackTeamAndUniqueId(state?: AppState): {
-  teamId: string;
-  userUniqueId: string;
-} {
-  let teamId = state?.teamId || '';
-  let userUniqueId = state?.userUniqueId || '';
-
-  if (!teamId || !userUniqueId) {
-    try {
-      const rawState = localStorage.getItem(MAIN_STATE_STORAGE_KEY);
-      if (rawState) {
-        const parsed = JSON.parse(rawState);
-        if (!teamId && typeof parsed?.teamId === 'string') {
-          teamId = parsed.teamId;
-        }
-        if (!userUniqueId && typeof parsed?.userUniqueId === 'string') {
-          userUniqueId = parsed.userUniqueId;
-        }
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  return { teamId, userUniqueId };
-}
-
 export interface UseAuthOptions {
   state?: AppState;
   onUpdateState?: (updates: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => void;
-}
-
-export interface MigrateLegacyResult {
-  success: boolean;
-  account?: ScholarAccount;
-  cloudData?: Record<string, any> | null;
-  migrationSummary?: LegacyMigrationSummary;
-  error?: string;
 }
 
 export interface AuthActionResult {
@@ -309,74 +274,6 @@ export function useAuth(options: UseAuthOptions = {}) {
     }
   }, [account, syncAccountState]);
 
-  /**
-   * Migrates a legacy secretCode across all 4 Redis domains (Cloud Save,
-   * Active User ZSET, Fellowship Guild, and Web Push).
-   * Always injects the client's local AppState.teamId and userUniqueId as
-   * mandatory fallbacks for dormant (>15 days inactive) guilds.
-   */
-  const migrateLegacy = useCallback(
-    async (
-      secretCode: string,
-      migrateOptions: { forceOverwrite?: boolean } = {}
-    ): Promise<MigrateLegacyResult> => {
-      const current = account || getStoredAccount();
-      if (!current?.token) {
-        const errMsg = 'Please sign in before migrating a legacy secret code.';
-        setError(errMsg);
-        return { success: false, error: errMsg };
-      }
-
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { teamId, userUniqueId } = readFallbackTeamAndUniqueId(stateRef.current);
-
-        const res = await fetch('/api/auth?action=migrate_legacy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${current.token}`,
-          },
-          body: JSON.stringify({
-            secretCode: secretCode.trim(),
-            teamId: teamId || undefined,
-            userUniqueId: userUniqueId || undefined,
-            forceOverwrite: Boolean(migrateOptions.forceOverwrite),
-          }),
-        });
-
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data?.success) {
-          const errMsg = data?.error || `Legacy migration failed (HTTP ${res.status}).`;
-          setError(errMsg);
-          return { success: false, error: errMsg };
-        }
-
-        const updatedAccount: ScholarAccount = {
-          ...current,
-          ...(data.account || {}),
-          token: data.account?.token || current.token,
-        };
-        syncAccountState(updatedAccount);
-
-        return {
-          success: true,
-          account: updatedAccount,
-          cloudData: data.cloudData ?? null,
-          migrationSummary: data.migrationSummary,
-        };
-      } catch (err: any) {
-        const errMsg = err?.message || 'Network error while migrating legacy data.';
-        setError(errMsg);
-        return { success: false, error: errMsg };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [account, syncAccountState]
-  );
-
   const getEffectiveIdentity = useCallback((): string => {
     const current = account || getStoredAccount();
     if (current?.userId) return current.userId;
@@ -406,7 +303,6 @@ export function useAuth(options: UseAuthOptions = {}) {
     login,
     logout,
     refreshSession,
-    migrateLegacy,
     getEffectiveIdentity,
     getAuthHeaders,
   };

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { REWARD_HISTORY_LIMIT } from '../../hooks/useGameState';
 import { 
   Scroll, 
   CheckCircle2, 
@@ -18,9 +19,9 @@ import {
   Tag
 } from 'lucide-react';
 import { AppState, RewardHistoryItem, Transaction } from '../../types';
-import { cn } from '../../lib/utils';
+import { cn, getSettlementStart, getSettlementEnd } from '../../lib/utils';
 import { PageHeader } from '../common/PageHeader';
-import { format, isWithinInterval, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, isWithinInterval, subDays } from 'date-fns';
 import { getColorClass } from '../../lib/colors';
 import { EconomyLog } from '../shop/EconomyLog';
 import { InventoryTab } from '../shop/InventoryTab';
@@ -92,12 +93,15 @@ export const RewardHistory: React.FC<RewardHistoryProps> = ({ history, transacti
       if (timeRange !== 'all') {
         const itemDate = new Date(item.timestamp);
         const now = new Date();
+        // Day boundaries follow the configured peak periods, not midnight, so
+        // "today" means the day currently running rather than the calendar date.
+        const ts = appState.timeSettings;
         let start;
-        if (timeRange === 'today') start = startOfDay(now);
-        else if (timeRange === '7d') start = startOfDay(subDays(now, 7));
-        else start = startOfDay(subDays(now, 30));
-        
-        if (!isWithinInterval(itemDate, { start, end: endOfDay(now) })) return false;
+        if (timeRange === 'today') start = getSettlementStart(now, ts);
+        else if (timeRange === '7d') start = getSettlementStart(subDays(now, 7), ts);
+        else start = getSettlementStart(subDays(now, 30), ts);
+
+        if (!isWithinInterval(itemDate, { start, end: getSettlementEnd(now, ts) })) return false;
       }
 
       // Source Filtering
@@ -216,7 +220,7 @@ useMemo(() => {
       ) : (
         <PageHeader 
           title="All Rewards"
-          description="Manage your complete reward history including system-granted items and custom text rewards."
+          description={`Manage your complete reward history including system-granted items and custom text rewards. The ${REWARD_HISTORY_LIMIT} most recent entries are kept.`}
           icon={History}
           action={
             <button 
@@ -546,6 +550,13 @@ useMemo(() => {
                 ))
               )}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-[11px] text-slate-500 border-t border-slate-800/60">
+                  Only the {REWARD_HISTORY_LIMIT} most recent rewards are kept. Older entries are cleared automatically so the save file stays small.
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

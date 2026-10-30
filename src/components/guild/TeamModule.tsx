@@ -310,14 +310,40 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   };
 
   useEffect(() => {
-    if (state.teamId) {
-      fetchTeam();
-      const interval = setInterval(fetchTeam, 10000); // Poll every 10s
-      return () => clearInterval(interval);
-    } else {
+    if (!state.teamId) {
       setView('lobby');
       fetchLobby();
+      return;
     }
+
+    // This poll fetches the whole guild — members, messages, events — and writes
+    // it into app state, which then gets re-serialized to localStorage in full.
+    // Every 10 seconds was a lot of that, and a background tab paid the same
+    // price as a visible one, so slow it down and stop when hidden.
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (interval) return;
+      void fetchTeam();
+      interval = setInterval(() => { void fetchTeam(); }, 30000);
+    };
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') start();
+      else stop();
+    };
+
+    onVisibility();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stop();
+    };
   }, [state.teamId]);
 
   const getOrGenerateIdentity = () => {

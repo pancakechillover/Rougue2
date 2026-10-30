@@ -4,6 +4,7 @@ import { ShopItem, GachaPool } from '../../types';
 import { ShoppingBag, Sparkles, Trophy, Coins, RefreshCw, HelpCircle, Zap, Flame, Gem, Target, Star, Heart, Shield, Sword, Coffee, Pizza, Gift, Package, Camera, Music, Book, Gamepad2, Ghost, Moon, Sun, Cloud, Anchor, Compass, Map, Key, Lock, Unlock, Bell, BellOff, Eye, EyeOff, Search, Settings, Trash2, Edit2, Plus, X, Check, CheckCircle2, AlertCircle, Info, HelpCircle as HelpIcon, Ticket, Crown } from 'lucide-react';
 import { PageHeader } from '../common/PageHeader';
 import { ConfirmModal } from '../modals/ConfirmModal';
+import { ShopItemEditorModal } from './ShopItemEditorModal';
 import { SlotMachine } from '../icons/SlotMachine';
 import { cn } from '../../lib/utils';
 import { getColorClass, RARITY_COLORS } from '../../lib/colors';
@@ -24,6 +25,8 @@ interface ShopProps {
   onShowCoinGuide?: () => void;
   onSetActivePool?: (type: 'gacha' | 'ichiban', poolId: string) => void;
   onOpenSettings?: () => void;
+  /** Lets the shelf's "+ Stock" create an item without a trip to Settings. */
+  onUpdateShopItems?: (items: ShopItem[]) => void;
 }
 
 export const Shop = React.memo<ShopProps>(({ 
@@ -37,11 +40,15 @@ export const Shop = React.memo<ShopProps>(({
   onResetIchiban, 
   onShowCoinGuide,
   onSetActivePool,
-  onOpenSettings 
+  onOpenSettings,
+  onUpdateShopItems
 }) => {
   const [activeTab, setActiveTab] = useState<'shop' | 'gacha' | 'ichiban'>('shop');
   const [_showProbabilities, _setShowProbabilities] = useState(false);
   const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
+  // Draft for an item started from an empty shelf slot. Kept here rather than
+  // in Settings so the shelf can open the editor in place.
+  const [newItemDraft, setNewItemDraft] = useState<ShopItem | null>(null);
   
   const gachaPoolsList = gachaPools.filter(p => p.type === 'gacha');
   const ichibanPoolsList = gachaPools.filter(p => p.type === 'ichiban');
@@ -206,10 +213,22 @@ export const Shop = React.memo<ShopProps>(({
                           <div className="flex-none px-1.5 sm:px-2 py-1.5 bg-slate-950/60 border border-slate-800/70 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-widest shrink-0">
                             --
                           </div>
-                          {onOpenSettings ? (
+                          {onUpdateShopItems || onOpenSettings ? (
                             <button
                               type="button"
-                              onClick={onOpenSettings}
+                              onClick={() => {
+                                if (onUpdateShopItems) {
+                                  // Same defaults the settings page's "New item" starts with.
+                                  setNewItemDraft({
+                                    id: Math.random().toString(36).substring(2, 11),
+                                    name: '',
+                                    price: 100,
+                                    description: ''
+                                  });
+                                } else {
+                                  onOpenSettings?.();
+                                }
+                              }}
                               className="flex-1 py-1.5 px-1.5 sm:px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 min-w-0 border bg-slate-900/80 hover:bg-indigo-500/15 border-slate-800 hover:border-indigo-500/40 text-slate-500 hover:text-indigo-300"
                             >
                               <Plus size={12} className="shrink-0" />
@@ -612,6 +631,19 @@ export const Shop = React.memo<ShopProps>(({
         confirmText="Confirm Reset"
         type="warning"
       />
+
+      {newItemDraft && onUpdateShopItems && (
+        <ShopItemEditorModal
+          item={newItemDraft}
+          isNew
+          onChange={setNewItemDraft}
+          onClose={() => setNewItemDraft(null)}
+          onSave={(item) => {
+            onUpdateShopItems([...(shopItems || []), item]);
+            setNewItemDraft(null);
+          }}
+        />
+      )}
     </div>
   );
 });

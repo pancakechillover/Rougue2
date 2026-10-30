@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 import webpush from 'web-push';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyBearerToken } from './_shared/auth.js';
+import { verifyBearerToken, extractBearerToken, constantTimeCompare } from './_shared/auth.js';
 
 // Configure Web Push
 // SECURITY NOTE: Please set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your Secrets for production.
@@ -63,10 +63,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
 
+  // A legacy secret code identifies a store; it does not authenticate a caller.
+  // Without this guard, naming someone else's code was enough to subscribe to
+  // their reminders, schedule a notification on their device or wipe their
+  // subscriptions. The guild routes have required a session for every write
+  // since they were written; push had drifted away from that rule.
+  const sessionUserId = verifiedSession?.userId || '';
+  const requiresSession =
+    path?.endsWith('/subscribe') || path?.endsWith('/schedule') || path?.endsWith('/cancel');
+  if (requiresSession && !sessionUserId) {
+    return res.status(401).json({
+      error: 'Authentication required. Please sign in to your Scholar Passport.',
+    });
+  }
+
   if (path?.endsWith('/subscribe')) {
     try {
-      const { secretCode, subscription } = req.body || {};
-      const targetIdentity = verifiedSession?.userId || secretCode;
+      const { subscription } = req.body || {};
+      const targetIdentity = sessionUserId;
       if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
       const key = `scholar_push_subs_${targetIdentity}`;
       
@@ -109,8 +123,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (path?.endsWith('/schedule')) {
     try {
-      const { secretCode, delayMinutes, title, body, type } = req.body || {};
-      const targetIdentity = verifiedSession?.userId || secretCode;
+      const { delayMinutes, title, body, type } = req.body || {};
+      const targetIdentity = sessionUserId;
       if (!targetIdentity || delayMinutes === undefined) return res.status(400).json({ error: "Invalid request" });
       const targetTime = Date.now() + (delayMinutes * 60 * 1000);
       const task = { secretCode: targetIdentity, title, body, type, targetTime };
@@ -133,8 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (path?.endsWith('/cancel')) {
     try {
-      const { secretCode } = req.body || {};
-      const targetIdentity = verifiedSession?.userId || secretCode;
+      const targetIdentity = sessionUserId;
       if (!targetIdentity) return res.status(400).json({ error: "Invalid request" });
       
       // Get the last scheduled task for this user
@@ -160,6 +173,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (path?.endsWith('/check')) {
+    // Scheduled fan-out. It wakes every due reminder, so it is meant to be
+    // called by a scheduler and never by a browser. It also used to answer with
+    // each task's secret code, which made an unauthenticated GET a free list of
+    // user identities — the one thing the rest of this file now guards against.
+    const cronSecret = process.env.CRON_SECRET?.trim();
+    const providedCronSecret =
+      extractBearerToken(req.headers.authorization) ||
+      (typeof req.headers['x-cron-secret'] === 'string' ? req.headers['x-cron-secret'] : '');
+
+    if (cronSecret) {
+      const secretOk = await constantTimeCompare(String(providedCronSecret || ''), cronSecret);
+      // A signed-in user may still poke the queue from Settings to test push.
+      if (!secretOk && !verifiedSession) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    } else {
+      console.error(
+        '[push/check] CRON_SECRET is not set: any caller can trigger this endpoint. Set CRON_SECRET in the environment to lock it down.'
+      );
+    }
+
     if (process.env.NODE_ENV !== "production") console.log(`[Push Check] Using VAPID Public Key: ${vapidPublicKey ? vapidPublicKey.substring(0, 10) : 'MISSING'}...`);
     try {
       const now = Date.now();
@@ -190,14 +224,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   body: task.body,
                   data: task.data || { type: task.type }
                 }), { urgency: 'high', TTL: subTTL });
-                results.push({ secretCode: task.secretCode, status: 'sent', endpoint: subscription.endpoint.substring(0, 20) });
+                results.push({ status: 'sent' });
               } catch (err: any) {
                 const bodyMsg = err.body ? (typeof err.body === 'string' ? err.body : JSON.stringify(err.body)) : '';
                 console.error(`Push failed for sub:`, err.message);
                 if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 400 || err.statusCode === 401 || err.statusCode === 403 || bodyMsg.includes('VapidPkHashMismatch')) {
                   await client.sRem(`scholar_push_subs_${task.secretCode}`, subStr);
                 }
-                results.push({ secretCode: task.secretCode, status: 'failed_sub', error: err.message });
+                results.push({ status: 'failed_sub', error: err.message });
               }
             }
           } else {
@@ -212,7 +246,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   body: task.body,
                   data: task.data || { type: task.type }
                 }), { urgency: 'high', TTL: subTTL });
-                results.push({ secretCode: task.secretCode, status: 'sent_legacy' });
+                results.push({ status: 'sent_legacy' });
               } catch (err: any) {
                 const bodyMsg = err.body ? (typeof err.body === 'string' ? err.body : JSON.stringify(err.body)) : '';
                 console.error(`Legacy push failed for sub:`, err.message);
@@ -221,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
               }
             } else {
-              results.push({ secretCode: task.secretCode, status: 'no_subscriptions' });
+              results.push({ status: 'no_subscriptions' });
             }
           }
           await client.zRem('scholar_push_tasks', taskStr.toString());
@@ -248,16 +282,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      // Aggregate only. The per-task entries used to carry secretCode and the
+      // push endpoint, which made this response a directory of user identities;
+      // the counts answer "did my test notification go out?" just as well.
+      const summary = {
+        sent: results.filter((r) => r.status === 'sent' || r.status === 'sent_legacy').length,
+        failed: results.filter((r) => r.status === 'failed_sub').length,
+        noSubscription: results.filter((r) => r.status === 'no_subscriptions').length,
+      };
+
       return res.json({ 
         success: true, 
         processed: processedCount, 
+        summary,
         debug: {
           serverTime: now,
           totalPendingInQueue: totalCount,
           nextTaskDueAt: nextTaskTime,
           timeUntilNextMs: nextTaskTime ? nextTaskTime - now : null
-        },
-        results 
+        }
       });
     } catch (error) {
       console.error("Check error:", error);

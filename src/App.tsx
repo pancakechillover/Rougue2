@@ -449,8 +449,7 @@ function App() {
     setAuthError,
     register,
     login,
-    logout,
-    migrateLegacy
+    logout
   } = useAuth({
     state,
     onUpdateState: (updates) =>
@@ -503,7 +502,7 @@ function App() {
   }, [state.lastTeamData]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (state.teamId && activeTab !== 'dashboard') {
       const checkTeam = async () => {
         try {
@@ -535,8 +534,29 @@ function App() {
           }
         } catch (e) {}
       };
-      checkTeam();
-      interval = setInterval(checkTeam, 60000);
+      // Only the visible tab needs a badge refreshed; a hidden one can wait.
+      const startChecking = () => {
+        if (interval) return;
+        void checkTeam();
+        interval = setInterval(() => { void checkTeam(); }, 60000);
+      };
+      const stopChecking = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      const onVisibility = () => {
+        if (document.visibilityState === 'visible') startChecking();
+        else stopChecking();
+      };
+
+      onVisibility();
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => {
+        document.removeEventListener('visibilitychange', onVisibility);
+        stopChecking();
+      };
     } else if (activeTab === 'dashboard') {
       setHasUnreadFellowship(false);
     }
@@ -692,7 +712,10 @@ function App() {
 
   React.useEffect(() => {
     const stripVolatile = (s: typeof state) => {
-      const { lastUpdated, syncHistory, pushSubscription, account, ...rest } = s as any;
+      // Model keys are stripped for the same reason the session token is: they
+      // are credentials for an outside account and never get uploaded, so a
+      // change to one must not read as "the save is out of date".
+      const { lastUpdated, syncHistory, pushSubscription, account, sageApiKey, sageModels, ...rest } = s as any;
       return rest;
     };
     
@@ -2132,6 +2155,7 @@ function App() {
                   setShowGuideBook(true);
                 }}
                 onSetActivePool={setActivePool}
+                onUpdateShopItems={(items) => setState(prev => ({ ...prev, shopItems: items }))}
                 onOpenSettings={() => {
                   setActiveTab('settings');
                   setActiveSettingsSection('merchant');
@@ -2342,7 +2366,6 @@ function App() {
             onLogin={login}
             onRegister={register}
             onLogout={logout}
-            onMigrateLegacy={migrateLegacy}
             isSyncing={isSyncing}
             isVerifying={isVerifying}
             syncError={syncError}

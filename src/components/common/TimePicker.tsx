@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Clock, ChevronUp, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { rafThrottle } from '../../lib/timing';
 import { createPortal } from 'react-dom';
 
 interface TimePickerProps {
@@ -132,6 +133,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
 
   useEffect(() => {
     updatePosition();
+    // One measure per frame even when scroll and resize fire together; each call
+    // forces layout through getBoundingClientRect().
+    const onViewportChange = rafThrottle(updatePosition);
     if (isOpen) {
         let currentH = hours;
         let currentM = minutes;
@@ -142,15 +146,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, classNa
           setHours(currentH);
           setMinutes(currentM);
         }
-        window.addEventListener('resize', updatePosition, { passive: true });
-        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', onViewportChange, { passive: true });
+        window.addEventListener('scroll', onViewportChange, true);
         
         // Scroll immediately on open
         scrollToActive(currentH, currentM, false);
     }
     return () => {
-        window.removeEventListener('resize', updatePosition);
-        window.removeEventListener('scroll', updatePosition, true);
+        onViewportChange.cancel();
+        window.removeEventListener('resize', onViewportChange);
+        window.removeEventListener('scroll', onViewportChange, true);
     }
   }, [isOpen]);
 

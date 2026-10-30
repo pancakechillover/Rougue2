@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.6.1';
-export const LAST_UPDATE_DATE = '2026-10-29';
-export const LAST_UPDATE_TIME = '01:35:00';
+export const APP_VERSION = 'v9.7.1';
+export const LAST_UPDATE_DATE = '2026-10-30';
+export const LAST_UPDATE_TIME = '17:20:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,224 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.7.1',
+    date: '2026-10-30',
+    time: '17:20:00',
+    title: 'Version 9.7.1: Legacy Migration, Actually Gone',
+    items: [
+      { category: 'Security', description: 'The old secret-code account migration is gone for good. An earlier pass had stopped it from working but left the endpoint answering 410 and kept the field it used to store, so the client and the API still carried the name of a feature nobody should be able to call.' },
+      { category: 'Security', description: 'A Scholar Passport no longer reports the old code it was once tied to, because that field is no longer read, written or returned.' }
+    ]
+  },
+  {
+    version: 'v9.7.0',
+    date: '2026-10-30',
+    time: '00:22:00',
+    title: 'Version 9.7.0: The Numbers Start Agreeing',
+    items: [
+      { category: 'Journal', description: 'The reflection on the day-open and day-close pages writes itself about a second after you stop typing, marked Saving then Saved. Pressing Back, switching tabs or closing the window no longer throws the text away.' },
+      { category: 'Journal', description: 'The journal\'s reflection box has a height of its own now. A long entry scrolls inside it instead of stretching the open book taller and taller and pushing the page-turn buttons off-screen.' },
+      { category: 'Record', description: 'Tag Breakdown was a full day behind, so its 7-day window never included today and its Today button looked dead. It reads the same day as everything else now.' },
+      { category: 'Record', description: 'A session belongs to one tag. Tag Breakdown used to credit a session\'s whole duration to every tag on it, which is why its own total read 18h30m while its donut claimed 26h30m and every share was divided by the inflated sum.' },
+      { category: 'Record', description: 'Distracted per hour counts unavoidable interruptions like the rest of the app, and focus time no longer gets padded with a rest the session never recorded.' },
+      { category: 'Merchant', description: 'The + Stock button on an empty shelf slot opens the item editor right there instead of sending you to Settings to hunt for it.' }
+    ]
+  },
+  {
+    version: 'v9.6.19',
+    date: '2026-10-30',
+    time: '00:17:00',
+    title: 'Version 9.6.19: Stocking a Shelf from the Shelf',
+    items: [
+      { category: 'Merchant', description: 'The + Stock button on an empty shelf slot opens the item editor right there. It used to send you to Settings → Merchant and leave you to find the New Item button yourself.' },
+      { category: 'Merchant', description: 'That editor is now one shared dialog, so a new item started from the shelf and one started from settings are the same form with the same fields and the same price check.' }
+    ]
+  },
+  {
+    version: 'v9.6.18',
+    date: '2026-10-30',
+    time: '00:06:00',
+    title: 'Version 9.6.18: One Session, One Tag',
+    items: [
+      { category: 'Record', description: 'A session now carries a single tag. Tag Breakdown credited the full duration of a session to every tag on it, so a session with three tags was counted three times: the card reported 19h30m of focus while its donut claimed 29h, and each tag\'s share was divided by the inflated sum — a tag worth 40% of your time read as 28%.' },
+      { category: 'Record', description: 'Picking a tag in the session editor replaces the previous one instead of adding to it, and picking the current tag clears it. Dungeons and the batch tag action work the same way.' },
+      { category: 'Record', description: 'Sessions saved before this change keep their stored tag ids untouched. Only the first one counts now, so old history adds up immediately; re-tagging a session rewrites it to a single id.' },
+      { category: 'Record', description: 'Tag shares are a percentage of the time actually focused now, and the minutes in the list add up to the total printed in the donut.' },
+      { category: 'Record', description: 'All Time no longer wears a meaningless date, and its arrows are disabled instead of quietly dropping the view back to 7 Days.' },
+      { category: 'Record', description: 'The section follows your configured timezone, and a page left open across the day boundary now notices the new day instead of holding yesterday.' }
+    ]
+  },
+  {
+    version: 'v9.6.17',
+    date: '2026-10-29',
+    time: '22:52:00',
+    title: 'Version 9.6.17: Tag Breakdown Reads the Same Day as the Rest of the App',
+    items: [
+      { category: 'Record', description: 'Tag Breakdown was a full day behind. Its anchor date ran the settlement-day conversion a second time on a value that had already been through it, and midnight reads as "before the day starts", so every window slid back one day: 7 Days showed Oct 22-28 on the 29th, the label never said Today, and the Today button appeared to do nothing.' },
+      { category: 'Record', description: 'Distracted per hour counted only internal and external interruptions, while the daily report counts unavoidable ones too. The same day read 1.3/h in one place and 0.7/h here. Older sessions that stored distractions as a plain number no longer lose their count either.' },
+      { category: 'Record', description: 'Focus time on this card was padded with a 5 minute rest for sessions that never recorded one, so its total could exceed the daily report for the same sessions. It now measures exactly like the rest of the app.' },
+      { category: 'Record', description: 'The calendar in its date picker now knows your day boundary, so at 01:00 the ring sits on the day that is still running.' }
+    ]
+  },
+  {
+    version: 'v9.6.16',
+    date: '2026-10-29',
+    time: '22:46:00',
+    title: 'Version 9.6.16: The Bookmark Ribbon Joins the Palette',
+    items: [
+      { category: 'Journal', description: 'The bookmark button above the date tabs is indigo now, the colour the rest of the journal uses for anything selected. It had been amber, which stood out against every other accent on the page.' }
+    ]
+  },
+  {
+    version: 'v9.6.15',
+    date: '2026-10-29',
+    time: '22:35:00',
+    title: 'Version 9.6.15: The Journal Page Keeps Its Shape',
+    items: [
+      { category: 'Journal', description: 'The reflection box on the journal page now holds a fixed writing area. A long entry used to stretch the page taller and taller, pushing the footer and the page-turn controls out of view; the text now scrolls inside the box instead.' },
+      { category: 'Journal', description: 'A short entry still fills the page as before, so the open-book spread keeps its proportions on an ordinary day.' }
+    ]
+  },
+  {
+    version: 'v9.6.14',
+    date: '2026-10-29',
+    time: '22:24:00',
+    title: 'Version 9.6.14: The Day Pages Write as You Type',
+    items: [
+      { category: 'Journal', description: 'The reflection on the day-open and day-close pages now saves itself about a second after you stop typing, and a small Saving / Saved note appears beside the section header. Previously the text lived only in the page, so pressing Back, switching tabs or closing the window threw it away unless you had reached the button at the bottom.' },
+      { category: 'Journal', description: 'Leaving the page flushes the pending write first, so the last few keystrokes before you close it still land.' },
+      { category: 'Journal', description: 'A template that fills the reflection automatically is not saved until you touch it. Opening a day with nothing written used to risk storing the blank template as if it were your own text.' },
+      { category: 'Journal', description: 'The day-close page no longer keeps one shared draft for every date. Unsaved text from one evening used to reappear on the next one; the page now reads what that particular day actually stored.' }
+    ]
+  },
+  {
+    version: 'v9.6.13',
+    date: '2026-10-29',
+    time: '21:52:00',
+    title: 'Version 9.6.13: A Quieter Edit Session Header',
+    items: [
+      { category: 'Record', description: 'The total-duration pill next to the Edit Session title is gone. The two inputs below it already show Focus and Rest time, so the pill only repeated their sum.' },
+      { category: 'Record', description: 'The objective picker no longer repeats the target icon that already sits beside the "Dungeon Objective" label. The objective name now starts at the left edge of the field.' }
+    ]
+  },
+  {
+    version: 'v9.6.12',
+    date: '2026-10-29',
+    time: '21:42:00',
+    title: 'Version 9.6.12: The Sections Line Up',
+    items: [
+      { category: 'Record', description: 'On the daily report the little icon beside each section title now sits on one vertical line. Daily Progress, Today\'s Record, Feelings and Efficiency each started at a slightly different inset, so the column of icons wobbled down the page.' },
+      { category: 'Record', description: 'Today\'s Record sits on the page itself rather than on a card, so its header and stat cards are now indented to match the content inside the cards around it.' }
+    ]
+  },
+  {
+    version: 'v9.6.11',
+    date: '2026-10-29',
+    time: '20:31:00',
+    title: 'Version 9.6.11: Every Screen Starts the Day at the Same Hour',
+    items: [
+      { category: 'Record', description: 'The daily report, the Sanctum overview, the day-open screen and the focus limit now open the day at the same hour your peak periods do. They had each been reading the morning block start, which is not where the day begins when a night block runs past midnight.' },
+      { category: 'Record', description: 'The daily report header no longer stretches its range to the night block end. On the default peaks it claimed a 16-hour day; it now shows the full 24 hours it actually covers.' },
+      { category: 'Record', description: 'The Stats and Journal screens now open on the day that is still in progress when you check in at dawn, instead of the day that has only just begun.' },
+      { category: 'Record', description: 'Sessions, rewards, completed goals, quests and achievements on the daily report are filed by the same rule as everywhere else, so a 02:00 session stops landing on tomorrow.' },
+      { category: 'Focus', description: 'The daily goal limit resets at your real day boundary. A night owl who hit the limit before dawn is no longer handed a fresh allowance while the same day is still running.' }
+    ]
+  },
+  {
+    version: 'v9.6.10',
+    date: '2026-10-29',
+    time: '20:19:00',
+    title: 'Version 9.6.10: The Journal Header Reads the Same Clock',
+    items: [
+      { category: 'Record', description: 'The date range under the Journal title now starts where your day starts. It showed the morning block opened the day even when a night block crossing midnight was what actually did it.' },
+      { category: 'Record', description: 'The end of that range now reads the clock instead of a hardcoded 24:00, which claimed the day finished at midnight while it actually ran until the next morning.' }
+    ]
+  },
+  {
+    version: 'v9.6.9',
+    date: '2026-10-29',
+    time: '20:05:00',
+    title: 'Version 9.6.9: One Answer to "Which Day Is It"',
+    items: [
+      { category: 'Record', description: 'Every place that says "Today" now uses the same day boundary your peak periods define. At 01:00 the date header on the daily report, the ring on the calendar, and the Today highlight on the Sanctum all point at the day still in progress instead of the one that has barely started.' },
+      { category: 'Record', description: 'A session started at 01:00 now lights up the calendar cell of the day it is filed under. It used to light the next cell, so opening that cell showed an empty day.' },
+      { category: 'Vault', description: 'The reward log time filter follows the same boundary. At 01:00, "Today" covers the session still running rather than restarting at midnight.' },
+      { category: 'Record', description: 'The 24-hour clock view now starts and ends where your day does, so the ring lines up with the totals beside it.' }
+    ]
+  },
+  {
+    version: 'v9.6.8',
+    date: '2026-10-29',
+    time: '19:20:00',
+    title: 'Version 9.6.8: Your Model Key Stays Where You Typed It',
+    items: [
+      { category: 'Sage', description: 'The API key you enter for your own model is no longer uploaded with your save to the cloud. It stays on the device where you entered it, like your login token and your WebDAV password already did.' },
+      { category: 'Sage', description: 'The catch: your key no longer follows you to a second device. Each device now holds its own key, so a new phone or browser asks for it once. Restoring a cloud save on the device that already has the key leaves it alone.' },
+      { category: 'Sync', description: 'Editing a key no longer marks the save as out of date, because the key is not part of what gets compared against the cloud copy.' }
+    ]
+  },
+  {
+    version: 'v9.6.7',
+    date: '2026-10-29',
+    time: '18:40:00',
+    title: 'Version 9.6.7: The Reward Log Says What It Keeps',
+    items: [
+      { category: 'Vault', description: 'The All Rewards page now says the log keeps its 500 most recent entries — once under the page title and once at the foot of the table — so a trimmed history reads as a rule rather than a surprise.' }
+    ]
+  },
+  {
+    version: 'v9.6.6',
+    date: '2026-10-29',
+    time: '18:20:00',
+    title: 'Version 9.6.6: A Lighter Save',
+    items: [
+      { category: 'Data', description: 'The reward log is now capped at 500 entries, matching the transaction log beside it. It had never been trimmed and had grown to 1280 entries — a quarter of the entire save file, re-serialized on every single change.' },
+      { category: 'Data', description: 'Saving to local storage is grouped, so a burst of updates costs one write instead of one per update, and the last write is flushed before the tab closes. A full storage quota now reports itself in the console instead of leaving a blank page.' },
+      { category: 'Fellowship', description: 'The guild poll runs every 30 seconds and stops while the tab is in the background, instead of every 10 seconds regardless.' },
+      { category: 'Performance', description: 'Scroll and resize handlers measure once per frame. Dragging a window edge no longer forces dozens of layout reads per second across every open popover, picker and chart.' }
+    ]
+  },
+  {
+    version: 'v9.6.5',
+    date: '2026-10-29',
+    time: '18:00:00',
+    title: 'Version 9.6.5: Push and Sage Ask Who You Are',
+    items: [
+      { category: 'Reminders', description: 'Subscribing, scheduling and cancelling a reminder now require a signed-in account. Naming someone else\'s secret code used to be enough to schedule a notification on their device, wipe their subscriptions, or quietly receive their reminders too.' },
+      { category: 'Reminders', description: 'The scheduler endpoint no longer reports which reminders it delivered, so its reply can no longer be read as a list of user identities. It also accepts a CRON_SECRET, which locks it to your scheduler once that variable is set.' },
+      { category: 'Sage', description: 'The AI proxy that spends this deployment\'s Gemini key now requires a signed-in account. A personal API key entered in Settings keeps working without one.' }
+    ]
+  },
+  {
+    version: 'v9.6.4',
+    date: '2026-10-29',
+    time: '17:35:00',
+    title: 'Version 9.6.4: Legacy Migration Retired',
+    items: [
+      { category: 'Account', description: 'The endpoint that bound an old secret code to an account now answers that it is retired and does nothing. Nothing in the app called it any more, and the only thing it still did was let a stranger inherit an account by guessing its code.' },
+      { category: 'Account', description: 'Its supporting machinery is gone with it — the in-place guild list rewriter, the migration rate limits and the client hook behind the old card.' }
+    ]
+  },
+  {
+    version: 'v9.6.3',
+    date: '2026-10-29',
+    time: '16:04:00',
+    title: 'Version 9.6.3: Safer Legacy Migration',
+    items: [
+      { category: 'Account', description: 'Binding an older secret code to an account now requires that code to have been idle for 24 hours. A code that is still syncing on another device can no longer be claimed by a different account.' },
+      { category: 'Settings', description: 'Closing the account window within a second of signing in or copying your ID no longer leaves a pending check or update running afterwards.' }
+    ]
+  },
+  {
+    version: 'v9.6.2',
+    date: '2026-10-29',
+    time: '15:53:00',
+    title: 'Version 9.6.2: No More Legacy Migration Card',
+    items: [
+      { category: 'Account', description: 'The Legacy Secret Code Migration card is gone from the Scholar Passport. Accounts are created and signed in on this page alone.' }
+    ]
+  },
   {
     version: 'v9.6.1',
     date: '2026-10-29',

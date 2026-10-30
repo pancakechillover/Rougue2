@@ -1,4 +1,5 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
+import { rafThrottle } from '../../lib/timing';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { RewardCard, ShopItem, GachaPool } from '../../types';
@@ -335,17 +336,21 @@ export const Settings = React.memo<SettingsProps & { onOpenAstralArchives?: () =
     };
     applyLock();
 
-    window.addEventListener('resize', measure);
-    window.addEventListener('orientationchange', measure);
+    // Each call measures layout, so a drag of the window edge should produce one
+    // measurement per frame rather than one per event.
+    const onViewportChange = rafThrottle(measure);
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', onViewportChange);
     desktop.addEventListener('change', applyLock);
     const vv = window.visualViewport;
-    vv?.addEventListener('resize', measure);
+    vv?.addEventListener('resize', onViewportChange);
 
     return () => {
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('orientationchange', measure);
+      onViewportChange.cancel();
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('orientationchange', onViewportChange);
       desktop.removeEventListener('change', applyLock);
-      vv?.removeEventListener('resize', measure);
+      vv?.removeEventListener('resize', onViewportChange);
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
       document.documentElement.style.overscrollBehavior = '';

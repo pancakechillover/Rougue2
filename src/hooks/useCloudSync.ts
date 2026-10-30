@@ -55,6 +55,13 @@ export function useCloudSync(
       isGoogleDriveUnlocked,
       isRedisUnlocked,
       account,
+      // Bring-your-own model keys. They are bearer credentials for someone
+      // else's account: a leaked one costs the owner real money and cannot be
+      // revoked by us. sync.ts stores the payload as plain JSON with no
+      // encryption, so these never leave the device — same rule already applied
+      // to the session token, the WebDAV password and the Drive tokens above.
+      sageApiKey,
+      sageModels,
       ...restState 
     } = dataObj.state;
     return {
@@ -581,7 +588,13 @@ export function useCloudSync(
                     googleDriveFileId: localState.googleDriveFileId || cloudState.googleDriveFileId,
                     webdavSettings: localState.webdavSettings || cloudState.webdavSettings,
                     isGoogleDriveUnlocked: localState.isGoogleDriveUnlocked || cloudState.isGoogleDriveUnlocked,
-                    isRedisUnlocked: localState.isRedisUnlocked || cloudState.isRedisUnlocked
+                    isRedisUnlocked: localState.isRedisUnlocked || cloudState.isRedisUnlocked,
+                    // Model keys never travel with the save (see stripVolatile), so the
+                    // cloud copy is empty for them. Without this line restoring a save
+                    // would wipe the key on the very device that owns it. The cloud
+                    // fallback only matters for saves written before keys were stripped.
+                    sageApiKey: localState.sageApiKey || cloudState.sageApiKey,
+                    sageModels: localState.sageModels || cloudState.sageModels
                 };
                 localStorage.setItem(key, JSON.stringify(mergedState));
             } else if (key !== 'scholars_dungeon_device_code') {
@@ -597,7 +610,10 @@ export function useCloudSync(
               secretCode: state.secretCode || syncCheckResult.cloudData.state.secretCode,
               syncProvider: state.syncProvider || syncCheckResult.cloudData.state.syncProvider,
               googleDriveTokens: state.googleDriveTokens || syncCheckResult.cloudData.state.googleDriveTokens,
-              webdavSettings: state.webdavSettings || syncCheckResult.cloudData.state.webdavSettings
+              webdavSettings: state.webdavSettings || syncCheckResult.cloudData.state.webdavSettings,
+              // See the note on the fullLocalStorage branch above.
+              sageApiKey: state.sageApiKey || syncCheckResult.cloudData.state.sageApiKey,
+              sageModels: state.sageModels || syncCheckResult.cloudData.state.sageModels
           }));
           localStorage.setItem('scholars_dungeon_state_dungeons', JSON.stringify(syncCheckResult.cloudData.dungeons));
           localStorage.setItem('scholars_dungeon_state_major_dungeons', JSON.stringify(syncCheckResult.cloudData.majorDungeons));
@@ -621,7 +637,10 @@ export function useCloudSync(
             googleDriveFileId: state.googleDriveFileId || syncCheckResult.cloudData.state.googleDriveFileId,
             webdavSettings: state.webdavSettings || syncCheckResult.cloudData.state.webdavSettings,
             isGoogleDriveUnlocked: state.isGoogleDriveUnlocked || syncCheckResult.cloudData.state.isGoogleDriveUnlocked,
-            isRedisUnlocked: state.isRedisUnlocked || syncCheckResult.cloudData.state.isRedisUnlocked
+            isRedisUnlocked: state.isRedisUnlocked || syncCheckResult.cloudData.state.isRedisUnlocked,
+            // See the note on the fullLocalStorage branch above.
+            sageApiKey: state.sageApiKey || syncCheckResult.cloudData.state.sageApiKey,
+            sageModels: state.sageModels || syncCheckResult.cloudData.state.sageModels
         };
 
         // Deliberately NOT copying cloudData.deviceCode into local storage here.

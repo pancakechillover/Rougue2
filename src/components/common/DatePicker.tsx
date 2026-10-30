@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay, isToday } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { rafThrottle } from '../../lib/timing';
+import { cn, isSettlementToday } from '../../lib/utils';
 import { createPortal } from 'react-dom';
 
 /**
@@ -35,9 +36,17 @@ interface DatePickerProps {
   children?: React.ReactNode;
   indicators?: Record<string, { highlight?: boolean; star?: boolean }>;
   nav?: DatePickerNav;
+  /**
+   * Peak-period settings. When given, the "today" ring follows the configured
+   * day boundary instead of midnight, so at 01:00 the ring sits on the day that
+   * is still running rather than on the one that has not started.
+   * Left optional so pickers that have no settings in scope keep their old
+   * behaviour instead of silently switching to a default boundary.
+   */
+  timeSettings?: any;
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, className, minDate, maxDate, children, indicators, nav }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, className, minDate, maxDate, children, indicators, nav, timeSettings }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -108,14 +117,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
 
   useEffect(() => {
     updatePosition();
-    if (isOpen) {
-        // use passive listener for better performance
-        window.addEventListener('resize', updatePosition, { passive: true });
-        window.addEventListener('scroll', updatePosition, true); // capture events in the capturing phase since onscroll doesn't bubble up in elements
-    }
+    if (!isOpen) return;
+    // A scroll/resize burst coalesces into one measure per frame; every call
+    // forces layout through getBoundingClientRect().
+    const onViewportChange = rafThrottle(updatePosition);
+    window.addEventListener('resize', onViewportChange, { passive: true });
+    window.addEventListener('scroll', onViewportChange, true); // capture: onscroll doesn't bubble out of elements
     return () => {
-        window.removeEventListener('resize', updatePosition);
-        window.removeEventListener('scroll', updatePosition, true);
+        onViewportChange.cancel();
+        window.removeEventListener('resize', onViewportChange);
+        window.removeEventListener('scroll', onViewportChange, true);
     }
   }, [isOpen]);
 
@@ -254,7 +265,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, classNa
               const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
               const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
               const isSelected = value === dateStr;
-              const isCurrentDay = isToday(date);
+              const isCurrentDay = timeSettings ? isSettlementToday(date, timeSettings) : isToday(date);
               
               let isDisabled = false;
               if (minDate && dateStr < minDate) isDisabled = true;

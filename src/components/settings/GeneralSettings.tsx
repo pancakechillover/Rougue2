@@ -179,12 +179,15 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
       });
       if (import.meta.env.DEV) console.log('Push subscription successful');
 
-      // Save to server if secretCode exists
-      if (state.secretCode) {
+      // Save to server, which authenticates by session now
+      if (state.account?.token) {
         if (import.meta.env.DEV) console.log('Push sync: Syncing subscription');
         const syncRes = await fetch('/api/push/subscribe', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.account.token}`
+          },
           body: JSON.stringify({
             secretCode: state.secretCode,
             subscription,
@@ -300,7 +303,10 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
       if (import.meta.env.DEV) console.log('Force Sync: Sending to server...');
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {})
+        },
         body: JSON.stringify({
           secretCode: state.secretCode,
           subscription
@@ -353,10 +359,13 @@ export const GeneralSettings = ({ state, setState }: { state: any, setState: (fn
           }
           
           // 2. Clear server
-          if (state.secretCode) {
+          if (state.account?.token) {
             await fetch('/api/push/subscribe', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${state.account.token}`
+              },
               body: JSON.stringify({ secretCode: state.secretCode, subscription: null })
             });
           }

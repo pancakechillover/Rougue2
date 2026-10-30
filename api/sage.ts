@@ -1,11 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
+import { createClient } from 'redis';
+import { verifyBearerToken } from './_shared/auth.js';
 
 const ALLOWED_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
   "gemini-3-flash-preview"
 ];
+
+// This route spends a server-side Gemini key, so it may only answer a signed-in
+// caller. Lazy client, same shape as api/push.ts: a top-level connect would
+// slow every cold start and throw on a bad REDIS_URL.
+let redisClient: any = null;
+const getRedisClient = async () => {
+  if (redisClient) return redisClient;
+  if (process.env.REDIS_URL) {
+    try {
+      redisClient = createClient({ url: process.env.REDIS_URL });
+      redisClient.on('error', (err: any) => console.error('Redis Client Error', err));
+      await redisClient.connect();
+      return redisClient;
+    } catch (err) {
+      console.error('Redis initialization error:', err);
+      return null;
+    }
+  }
+  return null;
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -15,6 +37,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: "Server missing GEMINI_API_KEY environment variable. AI integration is currently offline." });
+    }
+
+    const client = await getRedisClient();
+    if (!client) {
+      return res.status(500).json({ error: "Sage is unavailable right now. Please try again later." });
+    }
+
+    const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
+    if (!verifiedSession) {
+      return res.status(401).json({ error: 'Sign in to your Scholar Passport to consult the Sage.' });
     }
 
     const { model, contents } = req.body;

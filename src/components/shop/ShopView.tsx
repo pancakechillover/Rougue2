@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Shop } from './Shop';
-import { AppState } from '../../types';
+import { AppState, ShopItem } from '../../types';
 
 interface ShopViewProps {
   state: AppState;
@@ -12,6 +12,8 @@ interface ShopViewProps {
   openGuideBook: (chapter: number) => void;
   onSetActivePool?: (type: 'gacha' | 'ichiban', poolId: string) => void;
   onOpenSettings?: () => void;
+  /** Creates a shop item straight from an empty shelf slot. */
+  onUpdateShopItems?: (items: ShopItem[]) => void;
 }
 
 export const ShopView: React.FC<ShopViewProps> = ({ 
@@ -22,7 +24,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   setDrawResult,
   openGuideBook,
   onSetActivePool,
-  onOpenSettings
+  onOpenSettings,
+  onUpdateShopItems
 }) => {
   return (
     <motion.div
@@ -47,6 +50,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
         onShowCoinGuide={() => openGuideBook(5)}
         onSetActivePool={onSetActivePool}
         onOpenSettings={onOpenSettings}
+        onUpdateShopItems={onUpdateShopItems}
       />
     </motion.div>
   );

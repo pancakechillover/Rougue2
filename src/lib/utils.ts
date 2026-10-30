@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
-import { TodayTodo, Dungeon, MajorDungeon } from "../types";
+import type { TodayTodo, Dungeon, MajorDungeon } from "../types";
 
 export function formatDuration(mins: number): string {
   const totalM = Math.round(mins);
@@ -112,12 +112,33 @@ export function sortAgendaTodos(
   return scoredTodos.map(s => s.todo);
 }
 
+export const DEFAULT_TIME_SETTINGS = {
+  morning: { start: 8, end: 12 },
+  afternoon: { start: 14, end: 18 },
+  night: { start: 20, end: 24 }
+};
+
+/**
+ * The hour at which a new day begins.
+ *
+ * Derived from the peak periods on purpose rather than being a setting of its
+ * own: shaping those blocks is how the day boundary gets decided.
+ *
+ * A crossing night block and a late-morning block can disagree about where the
+ * day opens — night 19:00-04:00 alongside morning 08:00-12:00 leaves 04:00-08:00
+ * belonging to neither. `getSettlementDay` below checks both, so the day does not
+ * turn over until both have let go; that is the later of the two hours, and this
+ * function has to report the same one or the labels and the numbers disagree
+ * about which day it is.
+ */
+export function getDayStartHour(timeSettings?: any): number {
+  const ts = timeSettings || DEFAULT_TIME_SETTINGS;
+  if (ts.night.start > ts.night.end) return Math.max(ts.night.end, ts.morning.start);
+  return ts.morning.start;
+}
+
 export function getSettlementDay(date: Date, timeSettings?: any): string {
-  const ts = timeSettings || {
-    morning: { start: 8, end: 12 },
-    afternoon: { start: 14, end: 18 },
-    night: { start: 20, end: 24 }
-  };
+  const ts = timeSettings || DEFAULT_TIME_SETTINGS;
   const hour = date.getHours();
   let baseDate = new Date(date);
   
@@ -128,6 +149,40 @@ export function getSettlementDay(date: Date, timeSettings?: any): string {
   }
   
   return format(baseDate, 'yyyy-MM-dd');
+}
+
+/**
+ * Whether `date`'s own calendar date is the settlement day currently running.
+ *
+ * `date` is read as a settlement label: its year/month/day is already the name
+ * of the day being displayed, the way every calendar cell and report row
+ * carries it. Comparing that against `getSettlementDay(now)` is what keeps a
+ * 01:00 session reading "Today" when the day runs 04:00 to 04:00.
+ *
+ * Plain `isToday()` cannot do this — it asks "is this the calendar date today",
+ * which answers a different question once the day boundary moved.
+ */
+export function isSettlementToday(date: Date, timeSettings?: any, now: Date = new Date()): boolean {
+  if (!date || isNaN(date.getTime())) return false;
+  return format(date, 'yyyy-MM-dd') === getSettlementDay(now, timeSettings);
+}
+
+/**
+ * First instant of the settlement day `date` belongs to.
+ * Replaces `startOfDay` wherever a range has to honour the day boundary.
+ */
+export function getSettlementStart(date: Date, timeSettings?: any): Date {
+  const startHour = getDayStartHour(timeSettings);
+  const [y, m, d] = getSettlementDay(date, timeSettings).split('-').map(Number);
+  return new Date(y, m - 1, d, startHour, 0, 0, 0);
+}
+
+/** Last instant of that same settlement day. */
+export function getSettlementEnd(date: Date, timeSettings?: any): Date {
+  const end = getSettlementStart(date, timeSettings);
+  end.setDate(end.getDate() + 1);
+  end.setMilliseconds(-1);
+  return end;
 }
 
 export function getSessionEffectiveMinutes(

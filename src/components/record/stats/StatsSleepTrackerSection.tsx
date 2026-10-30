@@ -1,4 +1,5 @@
 import React, { useRef, useLayoutEffect, useMemo } from 'react';
+import { rafThrottle } from '../../../lib/timing';
 import {
   ResponsiveContainer,
   LineChart,
@@ -101,13 +102,15 @@ const CustomSleepTooltip = ({ active, payload, activeChart, chartId, onEdit }: a
 
     clamp();
     const frameId = requestAnimationFrame(clamp);
-    window.addEventListener('resize', clamp);
-    window.addEventListener('scroll', clamp);
+    const onViewportChange = rafThrottle(clamp);
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange);
 
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', clamp);
-      window.removeEventListener('scroll', clamp);
+      onViewportChange.cancel();
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange);
     };
     // Only re-clamp when the content actually changes; without deps this ran on
     // every render and forced a synchronous layout each time.

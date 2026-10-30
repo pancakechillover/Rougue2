@@ -80,6 +80,16 @@ interface TagPickerProps {
   onOpenManageModal?: () => void;
   label?: string;
   compact?: boolean;
+  /**
+   * One tag at a time. Picking a tag replaces the previous choice instead of
+   * adding to it, and picking the current one clears it.
+   *
+   * Tag Breakdown credits a session's full duration to every tag it carries, so
+   * a session with three tags counted three times: the card's own total and the
+   * donut could never agree, and each tag's share was divided by the inflated
+   * sum. One session, one tag keeps them honest.
+   */
+  single?: boolean;
 }
 
 export const TagPicker: React.FC<TagPickerProps> = ({
@@ -92,6 +102,7 @@ export const TagPicker: React.FC<TagPickerProps> = ({
   onOpenManageModal,
   label = 'Tags',
   compact = false,
+  single = false,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -112,7 +123,7 @@ export const TagPicker: React.FC<TagPickerProps> = ({
     if (safeSelectedIds.includes(tagId)) {
       onChange(safeSelectedIds.filter((id) => id !== tagId));
     } else {
-      onChange([...safeSelectedIds, tagId]);
+      onChange(single ? [tagId] : [...safeSelectedIds, tagId]);
     }
   };
 
@@ -124,7 +135,7 @@ export const TagPicker: React.FC<TagPickerProps> = ({
     const existing = resolvedTags.find((t) => t.name.toLowerCase() === trimmed.toLowerCase());
     if (existing) {
       if (!safeSelectedIds.includes(existing.id)) {
-        onChange([...safeSelectedIds, existing.id]);
+        onChange(single ? [existing.id] : [...safeSelectedIds, existing.id]);
       }
       setNewName('');
       setIsAdding(false);
@@ -134,7 +145,7 @@ export const TagPicker: React.FC<TagPickerProps> = ({
     if (onCreateTag) {
       const created = onCreateTag(trimmed, newColor);
       if (created && typeof created === 'object' && created.id) {
-        onChange([...safeSelectedIds, created.id]);
+        onChange(single ? [created.id] : [...safeSelectedIds, created.id]);
       }
       setNewName('');
       setNewColor(TAG_COLORS[(resolvedTags.length + 1) % TAG_COLORS.length]);

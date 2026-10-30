@@ -163,9 +163,20 @@ Keep your tone consistent with the chosen personality. Use Bold text for emphasi
         });
         return { content: response.text || "The Sage remains silent..." };
       } else {
+        // Falls back to our key, so the server wants a session: without a token
+        // anyone could spend the deployment's Gemini quota.
+        const token = state.account?.token;
+        if (!token) {
+          return {
+            content: 'Sign in to your Scholar Passport to consult the Sage, or add your own API key in Settings.',
+          };
+        }
         const response = await fetch('/api/sage', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ model, contents }),
           signal
         });

@@ -174,7 +174,9 @@ export const Timer = React.memo<TimerProps>(({
 
   // Push Notification Scheduling
   useEffect(() => {
-    if (!pushEnabled || (!secretCode && !authToken)) return;
+    // Push endpoints authenticate by session now; a legacy secretCode alone is
+    // no longer accepted, so skip the request instead of firing a guaranteed 401.
+    if (!pushEnabled || !authToken) return;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

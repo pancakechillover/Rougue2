@@ -32,14 +32,14 @@ import {
   ArrowRight,
   BookMarked
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, subDays, addDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, addDays } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 import { playSound } from '../../lib/sound';
 import { getSageAdvice } from '../../services/sageService';
-import { cn, getSessionEffectiveMinutes, getSettlementDay, getSessionSettlementDate } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, getSettlementDay, isSettlementToday, getSessionSettlementDate, getDayStartHour } from '../../lib/utils';
 import { DurationText } from '../common/DurationText';
 import { ExpeditionPlanPreview } from '../expedition/ExpeditionPlanPreview';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -199,44 +199,25 @@ useMemo(() => {
       } catch (e) {}
     }
 
+    const startHour = getDayStartHour(ts);
     const hour = now.getHours();
     let baseDate = new Date(now);
 
-    // If night peak spans midnight and we are currently in that post-midnight block, 
-    // or if we are simply before the morning peak starts, the current settlement "day" started yesterday
-    if (ts.night.start > ts.night.end && hour < ts.night.end) {
+    // The current settlement day started yesterday whenever we are before the
+    // hour it opens on. Start and end are derived from that single boundary so
+    // the range is always exactly one day long — it used to finish at night.end,
+    // which made the default settings show a 16-hour day.
+    if (hour < startHour) {
       baseDate.setDate(baseDate.getDate() - 1);
-    } else if (hour < ts.morning.start) {
-      baseDate.setDate(baseDate.getDate() - 1);
-    }
-    
-    // Start Date: morning.start of baseDate
-    const startDate = new Date(baseDate);
-    startDate.setHours(ts.morning.start, 0, 0, 0);
-    
-    // End Date: night.end of baseDate (might be tomorrow)
-    const endDate = new Date(baseDate);
-    if (ts.night.end <= ts.night.start) {
-        endDate.setDate(endDate.getDate() + 1);
-        endDate.setHours(ts.night.end === 24 ? 0 : ts.night.end, 0, 0, 0);
-    } else {
-        if (ts.night.end === 24) {
-             endDate.setDate(endDate.getDate() + 1);
-             endDate.setHours(0, 0, 0, 0);
-        } else {
-             endDate.setHours(ts.night.end, 0, 0, 0);
-        }
     }
 
-    const formatDate = (d: Date, is24: boolean = false) => {
-      if (is24) {
-        const prev = new Date(d);
-        prev.setDate(prev.getDate() - 1);
-        const mo = (prev.getMonth() + 1).toString().padStart(2, '0');
-        const da = prev.getDate().toString().padStart(2, '0');
-        const m = d.getMinutes().toString().padStart(2, '0');
-        return `${mo}/${da} 24:${m}`;
-      }
+    const startDate = new Date(baseDate);
+    startDate.setHours(startHour, 0, 0, 0);
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
+
+    const formatDate = (d: Date) => {
       const mo = (d.getMonth() + 1).toString().padStart(2, '0');
       const da = d.getDate().toString().padStart(2, '0');
       const h = d.getHours().toString().padStart(2, '0');
@@ -244,7 +225,7 @@ useMemo(() => {
       return `${mo}/${da} ${h}:${m}`;
     };
 
-    return `${formatDate(startDate)} - ${formatDate(endDate, ts.night.end === 24)}`;
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   }, [state.timeSettings, state.timezone]);;
   return (
     <>
@@ -325,6 +306,7 @@ useMemo(() => {
                 <DatePicker
                   value={format(horizonDate, 'yyyy-MM-dd')}
                   indicators={datePickerIndicators}
+                  timeSettings={state.timeSettings}
                   onChange={(val) => {
                     if (val) {
                        setHorizonDate(new Date(val + 'T12:00:00'));
@@ -348,7 +330,7 @@ useMemo(() => {
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2 mt-2 sm:mt-0">
               {calendarDays.map((day, idx) => {
                 const dayStr = format(day, 'yyyy-MM-dd');
-                const isTo = isToday(day);
+                const isTo = isSettlementToday(day, state.timeSettings);
                 const ddls = ddlMap.get(dayStr) || [];
                 const hasDDL = ddls.length > 0;
                 const isPast = day < new Date() && !isTo;
@@ -428,7 +410,7 @@ useMemo(() => {
                 {selectedDateAnchor.ddls.length > 0 ? (
                   <div className="space-y-2">
                     {selectedDateAnchor.ddls.map((d, i) => {
-                      const isPast = selectedDateAnchor.day < new Date() && !isToday(selectedDateAnchor.day);
+                      const isPast = selectedDateAnchor.day < new Date() && !isSettlementToday(selectedDateAnchor.day, state.timeSettings);
                       return (
                         <div key={i} className={cn(
                           "border p-2 rounded-lg cursor-pointer transition-colors",
@@ -533,7 +515,7 @@ useMemo(() => {
                   } catch (e) {}
                 }
                 const ts = state.timeSettings || { morning: { start: 8, end: 12 }, afternoon: { start: 14, end: 18 }, night: { start: 20, end: 24 } };
-                if (now.getHours() < ts.morning.start) {
+                if (now.getHours() < getDayStartHour(ts)) {
                   now.setDate(now.getDate() - 1);
                 }
                 const day = now.getDay();
@@ -562,7 +544,7 @@ useMemo(() => {
                   } catch (e) {}
                 }
                 const ts = state.timeSettings || { morning: { start: 8, end: 12 }, afternoon: { start: 14, end: 18 }, night: { start: 20, end: 24 } };
-                if (now.getHours() < ts.morning.start) {
+                if (now.getHours() < getDayStartHour(ts)) {
                   now.setDate(now.getDate() - 1);
                 }
                 const day = now.getDay();

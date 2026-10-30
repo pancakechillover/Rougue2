@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { rafThrottle } from '../../../lib/timing';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Clock, 
@@ -106,9 +107,10 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
       }
     };
 
-    const handleScrollOrResize = () => {
+    // Coalesce a scroll/resize burst into one measure per frame.
+    const handleScrollOrResize = rafThrottle(() => {
       calculatePosition();
-    };
+    });
 
     document.addEventListener('mousedown', handleClickOutside, true);
     document.addEventListener('touchstart', handleClickOutside, true);
@@ -118,6 +120,7 @@ export const ChartLayerFilterDropdown: React.FC<ChartLayerFilterDropdownProps> =
     return () => {
       document.removeEventListener('mousedown', handleClickOutside, true);
       document.removeEventListener('touchstart', handleClickOutside, true);
+      handleScrollOrResize.cancel();
       window.removeEventListener('resize', handleScrollOrResize);
       window.removeEventListener('scroll', handleScrollOrResize, true);
     };

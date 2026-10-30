@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
+import { rafThrottle } from '../../../lib/timing';
 import { DurationText } from '../../common/DurationText';
 import { 
   format, 
@@ -318,11 +319,14 @@ export const StatsActivityHeatmap: React.FC<StatsActivityHeatmapProps> = ({
     const observer = new ResizeObserver(sync);
     observer.observe(calendar);
     sideBySide.addEventListener('change', sync);
-    window.addEventListener('resize', sync);
+    // The observer already batches per frame; window resize does not, so funnel it.
+    const onViewportChange = rafThrottle(sync);
+    window.addEventListener('resize', onViewportChange);
     return () => {
       observer.disconnect();
       sideBySide.removeEventListener('change', sync);
-      window.removeEventListener('resize', sync);
+      onViewportChange.cancel();
+      window.removeEventListener('resize', onViewportChange);
       panel.style.height = '';
     };
   }, [heatmapMode, hasHeatmapSummary]);

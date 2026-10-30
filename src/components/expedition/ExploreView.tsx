@@ -36,7 +36,7 @@ import { useAnchoredPopover } from '../../hooks/useAnchoredPopover';
 import { PopoverPortal } from '../common/PopoverPortal';
 import { WorkstationView } from '../workstation/WorkstationView';
 import { TALENTS } from '../../constants';
-import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, getSessionSettlementDate, getSettlementDay, getDayStartHour } from '../../lib/utils';
 import { playSound } from '../../lib/sound';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
 
@@ -321,8 +321,7 @@ export const ExploreView: React.FC<ExploreViewProps> = ({
         now = new Date(str);
       } catch (e) {}
     }
-    const ts = state.timeSettings || { morning: { start: 8, end: 12 }, afternoon: { start: 14, end: 18 }, night: { start: 20, end: 24 } };
-    if (now.getHours() < ts.morning.start) {
+    if (now.getHours() < getDayStartHour(state.timeSettings)) {
       now.setDate(now.getDate() - 1);
     }
     const day = now.getDay();

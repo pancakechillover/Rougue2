@@ -1360,6 +1360,7 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                 <div className="pt-1">
                   <TagPicker
                     compact
+                    single
                     tags={validTags}
                     selectedTagIds={
                       isAddingMajor ? (newMajor.tags || []) :
@@ -1779,15 +1780,13 @@ export const DungeonManager = React.memo<DungeonManagerProps>(({
                       selectedIds.forEach(id => {
                         const m = majorDungeons.find(maj => maj.id === id);
                         if (m) {
-                          const curr = m.tags || [];
-                          const next = allHaveTag ? curr.filter(tId => tId !== tag.id) : Array.from(new Set([...curr, tag.id]));
-                          onUpdateMajor(m.id, { tags: next });
+                          // One tag per dungeon: the batch toggle replaces rather than appends.
+                          onUpdateMajor(m.id, { tags: allHaveTag ? [] : [tag.id] });
+                          return;
                         }
                         const s = dungeons.find(sub => sub.id === id);
                         if (s) {
-                          const curr = s.tags || [];
-                          const next = allHaveTag ? curr.filter(tId => tId !== tag.id) : Array.from(new Set([...curr, tag.id]));
-                          onUpdateSub(s.id, { tags: next });
+                          onUpdateSub(s.id, { tags: allHaveTag ? [] : [tag.id] });
                         }
                       });
                     }}

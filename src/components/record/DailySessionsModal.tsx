@@ -411,6 +411,7 @@ export const DailySessionsModal: React.FC<DailySessionsModalProps> = ({
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Tags</label>
                   <TagPicker
+                    single
                     tags={tags}
                     selectedTagIds={editingSession.tags || []}
                     inheritedTagIds={(() => {

@@ -1,5 +1,6 @@
 import { MarkdownEditor } from "../common/MarkdownEditor";
 import React, { useState, useMemo } from 'react';
+import { useAutosave } from '../../hooks/useAutosave';
 import { Reorder, useDragControls } from 'motion/react';
 import { format, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
 import { 
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react';
 import { TimePicker } from '../common/TimePicker';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
-import { cn, sortAgendaTodos, getSettlementDay, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
+import { cn, sortAgendaTodos, getSettlementDay, getDayStartHour, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { ExpeditionSelect } from '../common/ExpeditionSelect';
 import { ReflectionHeaderControls } from '../common/ReflectionHeaderControls';
@@ -166,38 +167,23 @@ export const StartOfDayView: React.FC<StartOfDayViewProps> = ({
     }
 
     const currentHour = now.getHours();
+    const startHour = getDayStartHour(ts);
 
-    let startDate = new Date(now);
-    startDate.setHours(ts.morning.start, 0, 0, 0);
-    let endDate = new Date(now);
-    
-    let nightEndHour = ts.night.end;
-    let daysToadd = 0;
-    if (ts.night.end < ts.night.start) {
-        nightEndHour = ts.night.end;
-        daysToadd = 1;
-    } else if (ts.night.end === 24) {
-        nightEndHour = 0;
-        daysToadd = 1;
-    }
-    
-    endDate.setHours(nightEndHour, 0, 0, 0);
-    endDate.setDate(endDate.getDate() + daysToadd);
+    // One boundary decides both ends, so the period is always exactly a day long.
+    // It used to open at morning.start and close at night.end, which under the
+    // default settings produced a 16-hour window that started at 08:00 and ended
+    // at midnight.
+    const startDate = new Date(now);
+    startDate.setHours(startHour, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
 
-    if (currentHour < ts.morning.start && !initialDateStr) {
+    if (currentHour < startHour && !initialDateStr) {
         startDate.setDate(startDate.getDate() - 1);
         endDate.setDate(endDate.getDate() - 1);
     }
 
-    const formatDate = (d: Date, is24: boolean = false) => {
-      if (is24) {
-        const prev = new Date(d);
-        prev.setDate(prev.getDate() - 1);
-        const mo = (prev.getMonth() + 1).toString().padStart(2, '0');
-        const da = prev.getDate().toString().padStart(2, '0');
-        const m = d.getMinutes().toString().padStart(2, '0');
-        return `${mo}/${da} 24:${m}`;
-      }
+    const formatDate = (d: Date) => {
       const mo = (d.getMonth() + 1).toString().padStart(2, '0');
       const da = d.getDate().toString().padStart(2, '0');
       const h = d.getHours().toString().padStart(2, '0');
@@ -207,7 +193,7 @@ export const StartOfDayView: React.FC<StartOfDayViewProps> = ({
 
     return {
       dateString: initialDateStr || getSettlementDay(now, ts),
-      settlementPeriod: `${formatDate(startDate)} - ${formatDate(endDate, ts.night.end === 24)}`
+      settlementPeriod: `${formatDate(startDate)} - ${formatDate(endDate)}`
     };
   }, [state, initialDateStr]);
   
@@ -478,6 +464,14 @@ useMemo(() => {
   const durationHours = Math.floor(sleepDurationMin / 60);
   const durationMins = sleepDurationMin % 60;
 
+  // Autosave. "Start My Focus" used to be the only thing that wrote the
+  // reflection and the sleep times, so pressing Back, switching tabs or
+  // closing the tab lost them.
+  const { markDirty, status: saveStatus } = useAutosave(
+    [reflection, title, sleepTime, wakeTime],
+    () => onSave(todayStr, sleepTime, wakeTime, sleepDurationMin, reflection, mood, title)
+  );
+
   const [confirmRepairDate, setConfirmRepairDate] = useState<string | null>(null);
 
   const streakData = useMemo(() => {
@@ -585,7 +579,7 @@ useMemo(() => {
                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fell Asleep</label>
                        <TimePicker 
                           value={sleepTime} 
-                          onChange={setSleepTime}
+                          onChange={(v) => { setSleepTime(v); markDirty(); }}
                           className="w-full relative z-40"
                        />
                      </div>
@@ -596,7 +590,7 @@ useMemo(() => {
                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Woke Up</label>
                        <TimePicker 
                           value={wakeTime} 
-                          onChange={setWakeTime}
+                          onChange={(v) => { setWakeTime(v); markDirty(); }}
                           className="w-full relative z-30"
                        />
                      </div>
@@ -1073,7 +1067,7 @@ useMemo(() => {
                       <input
                         type="text"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => { setTitle(e.target.value); markDirty(); }}
                         placeholder={format(parseISO(todayStr), 'MMM dd')}
                         className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-200 placeholder:text-slate-300 placeholder:font-bold outline-none hover:bg-slate-800/40 focus:bg-slate-800/60 px-2 py-1 rounded-lg border border-transparent focus:border-indigo-500/50 transition-all truncate"
                         title="Journal Title (Click to customize)"
@@ -1081,7 +1075,7 @@ useMemo(() => {
                       {title && (
                         <button
                           type="button"
-                          onClick={() => setTitle('')}
+                          onClick={() => { setTitle(''); markDirty(); }}
                           className="p-1 text-slate-500 hover:text-slate-300 rounded transition-colors shrink-0"
                           title="Reset to default date title"
                         >
@@ -1091,9 +1085,15 @@ useMemo(() => {
                     </div>
                   </div>
                   
+                  {saveStatus !== 'idle' && (
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 shrink-0">
+                      {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+                    </span>
+                  )}
+
                   <ReflectionHeaderControls
                     reflection={reflection}
-                    onSelectTemplate={setReflection}
+                    onSelectTemplate={(text) => { setReflection(text); markDirty(); }}
                     templates={state.reflectionTemplates}
                     onUpdateTemplates={(templates) => {
                       if (onUpdateState) {
@@ -1117,14 +1117,14 @@ useMemo(() => {
                     }}
                     showCopy={true}
                     showImportExport={true}
-                    onImportReflection={setReflection}
+                    onImportReflection={(text) => { setReflection(text); markDirty(); }}
                     exportFileName={`reflection-${today.dateString}.md`}
                   />
                 </div>
                 
                 <MarkdownEditor 
                   value={reflection}
-                  onChange={setReflection}
+                  onChange={(v) => { setReflection(v); markDirty(); }}
                   placeholder="What are your main focuses today? How are you feeling? (Markdown shortcuts supported)"
                   className="flex-1 h-full min-h-[300px]"
                 />

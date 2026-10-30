@@ -2,6 +2,7 @@ import React, { useRef, useLayoutEffect } from 'react';
 import { LayoutTemplate, Brain, Wind, Zap, Coins, Clock, Star, RotateCcw } from 'lucide-react';
 import { MOOD_OPTIONS } from '../../../constants';
 import { DurationText } from '../../common/DurationText';
+import { rafThrottle } from '../../../lib/timing';
 
 /**
  * The shell shared by every stat popover card.
@@ -118,12 +119,14 @@ export const SharedPopoverContent: React.FC<SharedPopoverContentProps> = ({
 
     clamp();
     const frameId = requestAnimationFrame(clamp);
-    window.addEventListener('resize', clamp);
-    window.addEventListener('scroll', clamp, true);
+    const onViewportChange = rafThrottle(clamp);
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange, true);
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', clamp);
-      window.removeEventListener('scroll', clamp, true);
+      onViewportChange.cancel();
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange, true);
     };
   }, [positioned, label, totalSessions, coins, xp, distractions, efficiency, mood]);
 

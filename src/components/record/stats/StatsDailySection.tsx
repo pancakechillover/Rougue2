@@ -1,4 +1,6 @@
 import React, { useRef, useLayoutEffect, useState, useCallback, useEffect } from 'react';
+import { rafThrottle } from '../../../lib/timing';
+import { getSettlementDay, isSettlementToday } from '../../../lib/utils';
 import { 
   ResponsiveContainer, 
   ComposedChart, 
@@ -8,7 +10,7 @@ import {
   Cell, 
   Line 
 } from 'recharts';
-import { format, parseISO, subDays, addDays, isToday } from 'date-fns';
+import { format, parseISO, subDays, addDays } from 'date-fns';
 import { 
   Calendar, 
   Brain, 
@@ -108,13 +110,15 @@ const CustomDailyTooltip = ({ active, payload, label, dateTimestamp, allData, ac
 
     clamp();
     const frameId = requestAnimationFrame(clamp);
-    window.addEventListener('resize', clamp);
-    window.addEventListener('scroll', clamp);
+    const onViewportChange = rafThrottle(clamp);
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange);
 
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', clamp);
-      window.removeEventListener('scroll', clamp);
+      onViewportChange.cancel();
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange);
     };
     // Only re-clamp when the content actually changes; without deps this ran on
     // every render and forced a synchronous layout each time.
@@ -382,17 +386,18 @@ export const StatsDailySection: React.FC<StatsDailySectionProps> = ({
             value={format(dailyDate, 'yyyy-MM-dd')}
             onChange={(val) => val && handleDailyDateChange(parseISO(val))}
             indicators={dateIndicators}
+            timeSettings={state.timeSettings}
             className="text-[10px] sm:text-xs font-bold text-slate-300 min-w-[110px] text-center hover:text-indigo-400 transition-colors inline-block whitespace-nowrap cursor-pointer"
             nav={{
               onPrev: () => handleDailyDateChange(subDays(dailyDate, 1)),
               onNext: () => handleDailyDateChange(addDays(dailyDate, 1)),
-              onToday: () => handleDailyDateChange(new Date()),
+              onToday: () => handleDailyDateChange(parseISO(getSettlementDay(new Date(), state.timeSettings))),
               size: 'sm',
             }}
           >
             <div className="flex items-center justify-center gap-1.5 px-2 py-0.5 hover:bg-slate-700/60 rounded transition-colors text-white font-bold">
               <Calendar size={13} className="text-indigo-400" />
-              <span>{isToday(dailyDate) ? 'Today' : format(dailyDate, 'MMM d, yyyy')}</span>
+              <span>{isSettlementToday(dailyDate, state.timeSettings) ? 'Today' : format(dailyDate, 'MMM d, yyyy')}</span>
             </div>
           </DatePicker>
           </div>

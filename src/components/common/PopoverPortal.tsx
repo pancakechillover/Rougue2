@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { rafThrottle } from '../../lib/timing';
 
 interface PopoverPortalProps {
   /** Any element with a layout box — HTML or SVG (chart sectors are SVGPathElement). */
@@ -104,11 +105,15 @@ export const PopoverPortal: React.FC<PopoverPortalProps> = ({
     // every frame made the popover drift after the cell while it animated,
     // which reads as "it hops down and then back up". Scroll and resize are the
     // only events that actually move an anchor relative to the viewport.
-    window.addEventListener('scroll', updateRect, true);
-    window.addEventListener('resize', updateRect);
+    // Same events as before, but a burst of them now coalesces into one measure
+    // per frame: every call does a getBoundingClientRect(), which forces layout.
+    const onViewportChange = rafThrottle(updateRect);
+    window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('resize', onViewportChange);
     return () => {
-      window.removeEventListener('scroll', updateRect, true);
-      window.removeEventListener('resize', updateRect);
+      onViewportChange.cancel();
+      window.removeEventListener('scroll', onViewportChange, true);
+      window.removeEventListener('resize', onViewportChange);
     };
   }, [anchorElement, anchorPoint?.x, anchorPoint?.y]);
 

@@ -1,4 +1,4 @@
-import { TagColor, Dungeon, MajorDungeon, StudySession, TodayTodo } from '../types';
+import type { TagColor, Dungeon, MajorDungeon, StudySession, TodayTodo } from '../types';
 
 export const TAG_COLORS: TagColor[] = [
   'indigo',
@@ -148,19 +148,31 @@ export function getEffectiveDungeonTagIds(
 }
 
 /**
- * Returns the effective tag IDs for a StudySession:
- * prefers the persisted `session.tags` snapshot if present;
- * otherwise falls back to the current effective tags of `session.dungeonId`.
+ * Returns the effective tag IDs for a StudySession — exactly one, or none.
+ *
+ * Prefers the persisted `session.tags` snapshot if present, otherwise falls
+ * back to the current effective tags of `session.dungeonId`.
+ *
+ * A session belongs to one tag. It used to return however many it carried, and
+ * Tag Breakdown credits a session's full duration to each of them: a session
+ * with three tags counted three times, so the card's own total and its donut
+ * disagreed and every percentage was divided by an inflated sum. Sessions saved
+ * before the pickers were single-choice still hold several ids in storage —
+ * those records are left untouched (nothing is destroyed), the first one is the
+ * one that counts, and re-tagging a session rewrites it to a single id.
  */
 export function getSessionEffectiveTagIds(
   session: StudySession,
   dungeons: Dungeon[],
   majorDungeons: MajorDungeon[]
 ): string[] {
-  if (Array.isArray(session.tags) && session.tags.length > 0) {
-    return session.tags;
-  }
-  return getEffectiveDungeonTagIds(session.dungeonId, dungeons, majorDungeons);
+  const own = Array.isArray(session.tags)
+    ? session.tags.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    : [];
+  if (own.length > 0) return [own[0]];
+
+  const inherited = getEffectiveDungeonTagIds(session.dungeonId, dungeons, majorDungeons);
+  return inherited.length > 0 ? [inherited[0]] : [];
 }
 
 /**

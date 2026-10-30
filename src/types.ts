@@ -460,17 +460,6 @@ export interface ScholarAccount {
   lastLoginAt?: string;
   lastSyncedAt?: string | null;
   teamId?: string;
-  boundOldCode?: string;
-}
-
-export interface LegacyMigrationSummary {
-  saveMigrated: boolean;
-  historyMigrated: boolean;
-  activeUserDeduplicated: boolean;
-  migratedTeamIds: string[];
-  pushSubscriptionsMigrated: number;
-  pushTasksRewritten: number;
-  pushTaskRefMigrated: boolean;
 }
 
 export interface StudySession {

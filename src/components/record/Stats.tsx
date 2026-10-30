@@ -6,7 +6,7 @@ import {
   eachDayOfInterval
 } from 'date-fns';
 import { StudySession, AppState, Dungeon, MajorDungeon, ChartLayerSelection } from '../../types';
-import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, getSettlementDay } from '../../lib/utils';
 import { 
   BarChart2, Share2, LayoutTemplate
 } from 'lucide-react';
@@ -164,12 +164,7 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
   };
   
   const getInitialPeakDate = () => {
-    const ts = state.timeSettings || {
-      morning: { start: 8, end: 12 },
-      afternoon: { start: 14, end: 18 },
-      night: { start: 20, end: 24 }
-    };
-    
+    // Single source of truth: today's settlement label decides the date to open on
     let now = new Date();
     if (state.timezone) {
       try {
@@ -179,15 +174,9 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
         console.error("Timezone error:", e);
       }
     }
-    
-    const hour = now.getHours();
-    
-    if (ts.night.start > ts.night.end && hour < ts.night.end) {
-      return subDays(now, 1);
-    } else if (hour < ts.morning.start) {
-      return subDays(now, 1);
-    }
-    return now;
+
+    const [y, m, d] = getSettlementDay(now, state.timeSettings).split('-').map(Number);
+    return new Date(y, m - 1, d);
   };
 
   const [dailyDate, setDailyDate] = useState(getInitialPeakDate());
@@ -320,7 +309,13 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
     if (state.history) {
       for (const session of state.history) {
         if (!session.timestamp) continue;
-        const d = session.timestamp.substring(0, 10);
+        const when = new Date(session.timestamp);
+        if (isNaN(when.getTime())) continue;
+        // The calendar cell a session belongs to is its settlement day, not the
+        // calendar date of its timestamp. Truncating the ISO string put a 01:00
+        // session on the next day's cell while the report filed it under the day
+        // before -- the cell lit up but opening it showed nothing.
+        const d = getSettlementDay(when, state.timeSettings);
         if (!res[d]) res[d] = {};
         res[d].highlight = true;
       }
@@ -342,7 +337,7 @@ export const Stats = React.memo<StatsProps>(({ state, setState, syncToCloud, sav
       }
     }
     return res;
-  }, [state.history, state.dailyLogs]);
+  }, [state.history, state.dailyLogs, state.timeSettings]);
 
   const handleChartClick = (chartState: any, chart: 'daily' | 'weeklyBar' | 'weeklyLine' | 'sleepTimes' | 'sleepDuration') => {
     const hasTarget = chartState && (
@@ -544,6 +539,21 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
     night: { start: 20, end: 24 }
   };
 
+  /**
+   * Which reporting slot a moment belongs to, and which day it is filed under.
+   *
+   * These are two questions and they are answered by two different rules on
+   * purpose. The slot (Morning / Afternoon / Night / Other) comes from the peak
+   * periods directly. The day comes from `getSettlementDay`, the same function
+   * the session writer used when it stamped the record — so a report can never
+   * disagree with the save about which day a session belongs to.
+   *
+   * This function used to answer the day question itself. It agreed with
+   * `getSettlementDay` only while every hour fell inside some peak period: its
+   * fallback measured from `night.end` while the writer measured from
+   * `morning.start`, so any gap between periods (12:00–14:00 on the default
+   * settings) filed an afternoon session under the previous day.
+   */
   const getPeriodInfo = useCallback((date: Date) => {
     let localDate = new Date(date);
     if (!date || isNaN(localDate.getTime())) {
@@ -559,38 +569,25 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
       } catch (e) {}
     }
     const hour = localDate.getHours();
-    
-    // Morning
-    if (ts.morning.start > ts.morning.end) {
-      if (hour >= ts.morning.start) return { period: 'Morning', assignedDate: localDate };
-      if (hour < ts.morning.end) return { period: 'Morning', assignedDate: subDays(localDate, 1) };
-    } else if (hour >= ts.morning.start && hour < ts.morning.end) {
-      return { period: 'Morning', assignedDate: localDate };
-    }
-    
-    // Afternoon
-    if (ts.afternoon.start > ts.afternoon.end) {
-      if (hour >= ts.afternoon.start) return { period: 'Afternoon', assignedDate: localDate };
-      if (hour < ts.afternoon.end) return { period: 'Afternoon', assignedDate: subDays(localDate, 1) };
-    } else if (hour >= ts.afternoon.start && hour < ts.afternoon.end) {
-      return { period: 'Afternoon', assignedDate: localDate };
-    }
 
-    // Night
-    if (ts.night.start > ts.night.end) {
-      if (hour >= ts.night.start) return { period: 'Night', assignedDate: localDate };
-      if (hour < ts.night.end) return { period: 'Night', assignedDate: subDays(localDate, 1) };
-    } else if (hour >= ts.night.start && hour < ts.night.end) {
-      return { period: 'Night', assignedDate: localDate };
-    }
+    const covers = (p: { start: number; end: number }) =>
+      p.start > p.end ? hour >= p.start || hour < p.end : hour >= p.start && hour < p.end;
 
-    // Other (fallback based on day-reset hour)
-    const resetHour = ts.night.end;
-    if (hour < resetHour) {
-      return { period: 'Other', assignedDate: subDays(localDate, 1) };
-    }
-    
-    return { period: 'Other', assignedDate: localDate };
+    let period: 'Morning' | 'Afternoon' | 'Night' | 'Other' = 'Other';
+    if (covers(ts.morning)) period = 'Morning';
+    else if (covers(ts.afternoon)) period = 'Afternoon';
+    else if (covers(ts.night)) period = 'Night';
+
+    const assignedDateStr = getSettlementDay(localDate, ts);
+    const [y, m, d] = assignedDateStr.split('-').map(Number);
+    // Keep the original clock time on the assigned date: range filters downstream
+    // compare against day boundaries and only the date part matters to them.
+    const assignedDate = new Date(
+      y, m - 1, d,
+      localDate.getHours(), localDate.getMinutes(), localDate.getSeconds()
+    );
+
+    return { period, assignedDate, assignedDateStr };
   }, [state.timezone, ts]);
 
   const processedHistory = useMemo(() => {
@@ -1068,6 +1065,7 @@ useRef<HTMLInputElement>(null);;useRef<HTMLInputElement>(null);;useRef<HTMLInput
           tags={state.tags || []}
           includeRestTimeInStats={!!state.includeRestTimeInTasks}
           timeSettings={state.timeSettings}
+          timezone={state.timezone}
           dateIndicators={dateIndicators}
         />
       )}

@@ -1,37 +1,21 @@
 {
-  "version": "v9.6.0",
-  "date": "2026-10-29",
+  "version": "v9.7.1",
+  "date": "2026-10-30",
   "latestRelease": {
-    "version": "v9.6.0",
-    "date": "2026-10-29",
-    "time": "01:00:00",
-    "title": "Version 9.6.0: The Whole Day, End to End",
+    "version": "v9.7.1",
+    "date": "2026-10-30",
+    "time": "17:20:00",
+    "title": "Version 9.7.1: Legacy Migration, Actually Gone",
     "items": [
       {
-        "category": "Navigation",
-        "description": "Start of the Day and End of the Day became full pages at /start-of-day and /end-of-day, reachable by URL, bookmarkable, and no longer covering whatever tab you were on. Their dialog versions are gone rather than kept alongside."
+        "category": "Security",
+        "description": "The old secret-code account migration is gone for good. An earlier pass had stopped it from working but left the endpoint answering 410 and kept the field it used to store, so the client and the API still carried the name of a feature nobody should be able to call."
       },
       {
-        "category": "Journal",
-        "description": "The journal is a page of its own: entries in a rail down the left, the day plan on the left page and the writing on the right, with a title you can name per entry and slash commands in the editor."
-      },
-      {
-        "category": "Record",
-        "description": "The Sleep Times axis follows the week instead of a fixed 24-hour band, and still draws the plain 18:00 to 18:00 axis on a week with no records."
-      },
-      {
-        "category": "Record",
-        "description": "Every card on this page — heatmap squares, donut slices, all four charts — opens on hover, survives the trip to the pointer, and pins on click. Charts use our own anchored card now; the library's tooltip followed the cursor and could not be reached."
-      },
-      {
-        "category": "Explore",
-        "description": "Active Talents cards stay open when you move onto them, so the descriptions and claim buttons are finally usable."
-      },
-      {
-        "category": "Record",
-        "description": "Animations play once per appearance: pinning a card that is already on screen no longer replays the entrance."
+        "category": "Security",
+        "description": "A Scholar Passport no longer reports the old code it was once tied to, because that field is no longer read, written or returned."
       }
     ]
   },
-  "timestamp": 1793206810756
+  "timestamp": 1793351940574
 }

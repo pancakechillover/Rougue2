@@ -2,8 +2,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { History, Clock, Trophy, Edit2, Trash2, Filter, Search, X, SearchX, Calendar, Sword, ChevronUp, ChevronDown, Zap, Layers, Download, Brain, Wind, Sunrise, Sun, Moon, Star } from 'lucide-react';
 import { StudySession, Dungeon, MajorDungeon, RewardCard, TimeSettings } from '../../types';
-import { cn, getSessionEffectiveMinutes } from '../../lib/utils';
-import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { cn, getSessionEffectiveMinutes, getSettlementStart, getSettlementEnd } from '../../lib/utils';
+import { format, parseISO, isAfter, isBefore } from 'date-fns';
 import { SpinnerInput } from '../common/SpinnerInput';
 import { DatePicker } from '../common/DatePicker';
 import { BulkSessionModal } from '../modals/BulkSessionModal';
@@ -183,10 +183,10 @@ export const RecentSessions: React.FC<RecentSessionsProps> = ({
       let matchesDate = true;
       const sessionDate = parseISO(session.timestamp);
       if (dateRange.start) {
-        matchesDate = matchesDate && isAfter(sessionDate, startOfDay(parseISO(dateRange.start)));
+        matchesDate = matchesDate && isAfter(sessionDate, getSettlementStart(parseISO(dateRange.start), timeSettings));
       }
       if (dateRange.end) {
-        matchesDate = matchesDate && isBefore(sessionDate, endOfDay(parseISO(dateRange.end)));
+        matchesDate = matchesDate && isBefore(sessionDate, getSettlementEnd(parseISO(dateRange.end), timeSettings));
       }
 
       // Duration Filter

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import {
@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Copy,
   Check,
-  ArrowRightLeft,
   Cloud,
   Sparkles,
   Trash2,
@@ -82,7 +81,6 @@ interface ScholarPassportModalProps {
     captchaToken?: string
   ) => Promise<any>;
   onLogout: () => Promise<void>;
-  onMigrateLegacy: (oldSecretCode: string) => Promise<any>;
   isSyncing: boolean;
   isVerifying?: boolean;
   syncError: string | null;
@@ -112,7 +110,6 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
   onLogin,
   onRegister,
   onLogout,
-  onMigrateLegacy,
   isSyncing,
   isVerifying,
   syncError,
@@ -182,18 +179,20 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     }
   }, []);
 
-  // Migration state
-  const [legacyCodeInput, setLegacyCodeInput] = useState(
-    state.secretCode && !state.secretCode.startsWith('usr_') ? state.secretCode : ''
-  );
-  const [migrationResult, setMigrationResult] = useState<{
-    saveMigrated?: boolean;
-    guildMigrated?: boolean;
-    pushMigrated?: boolean;
-    teamId?: string | null;
-  } | null>(null);
-  const [migrationSuccessMsg, setMigrationSuccessMsg] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+
+  // Timers that outlive a single render must be cancelled on unmount, otherwise
+  // a closed modal still fires a stray verify request / a setState on a dead tree.
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    []
+  );
 
   // Confirmation sub-view for destructive / overwrite actions
   const [confirmAction, setConfirmAction] = useState<{
@@ -203,12 +202,6 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     isDanger?: boolean;
     onConfirm: () => void;
   } | null>(null);
-
-  useEffect(() => {
-    if (state.secretCode && !state.secretCode.startsWith('usr_') && !legacyCodeInput) {
-      setLegacyCodeInput(state.secretCode);
-    }
-  }, [state.secretCode]);
 
   useEffect(() => {
     if (isOpen && !(state.account?.token && state.account?.userId)) {
@@ -391,7 +384,8 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
         setConfirmPassword('');
         setRegistrationSecret('');
         setCaptchaInput('');
-        setTimeout(() => onVerify(), 150);
+        if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = setTimeout(() => onVerify(), 150);
       } else {
         if (typeof res.error === 'string' && res.error.toLowerCase().includes('already taken')) {
           setUsernameCheckStatus('taken');
@@ -412,7 +406,8 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
       if (res.success) {
         setPassword('');
         setCaptchaInput('');
-        setTimeout(() => onVerify(), 150);
+        if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = setTimeout(() => onVerify(), 150);
       } else {
         setLocalFormError(
           res.error || 'Log-in failed: Unable to log in. Please check your username and password.'
@@ -422,29 +417,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
     }
   };
 
-  const handleRunMigration = async () => {
-    const trimmed = legacyCodeInput.trim();
-    if (!trimmed || trimmed.length < 6) {
-      setLocalFormError('Please enter a valid legacy Secret Code (at least 6 characters).');
-      return;
-    }
-    setLocalFormError(null);
-    setAuthError?.(null);
-    setMigrationSuccessMsg(null);
-
-    const res = await onMigrateLegacy(trimmed);
-    if (res.success) {
-      setMigrationResult(res.migrated || {});
-      setMigrationSuccessMsg(`Successfully bound legacy code "${trimmed}" to your Scholar Passport.`);
-      setTimeout(() => onVerify(), 200);
-    }
-  };
-
   const copyUserId = () => {
     if (!account?.userId) return;
     navigator.clipboard.writeText(account.userId);
     setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedId(false), 2000);
   };
 
   const cloudState = syncCheckResult?.cloudData?.state || syncCheckResult?.cloudData;
@@ -1241,62 +1219,6 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                     Verify & Compare
                   </button>
                 </div>
-              </div>
-
-              {/* Legacy Secret Code Migration Card */}
-              <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <ArrowRightLeft size={13} />
-                    Legacy Secret Code Migration
-                  </span>
-                  {account.boundOldCode && (
-                    <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-mono text-indigo-300">
-                      Bound: {account.boundOldCode}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Bind your previous 6–12 character Secret Code or UUID to seamlessly transfer your Cloud Save, Fellowship Guild role & chat history, and Web Push reminders into this account.
-                </p>
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter old Secret Code"
-                    value={legacyCodeInput}
-                    onChange={(e) => setLegacyCodeInput(e.target.value)}
-                    className="flex-1 min-w-0 px-3.5 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-600 text-xs font-mono focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRunMigration}
-                    disabled={authLoading || !legacyCodeInput.trim()}
-                    className="px-4 py-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 disabled:opacity-40 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-1.5"
-                  >
-                    {authLoading ? <RefreshCw size={13} className="animate-spin" /> : <ArrowRightLeft size={13} />}
-                    Migrate
-                  </button>
-                </div>
-
-                {migrationSuccessMsg && (
-                  <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl space-y-1.5">
-                    <p className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                      <CheckCircle2 size={14} />
-                      {migrationSuccessMsg}
-                    </p>
-                    {migrationResult && (
-                      <div className="flex flex-wrap gap-2 text-[10px] text-slate-300 font-mono">
-                        <span>Cloud Save: {migrationResult.saveMigrated ? 'Transferred' : 'Kept Existing'}</span>
-                        <span>•</span>
-                        <span>Guild Identity: {migrationResult.guildMigrated ? 'Upgraded' : 'None Found'}</span>
-                        <span>•</span>
-                        <span>Push Queue: {migrationResult.pushMigrated ? 'Rebound' : 'None Active'}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Footer Actions */}

@@ -92,70 +92,59 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
       if (import.meta.env.DEV) console.log('Push Check Results (Detailed):', checkData);
       
       if (checkData.success) {
-        const myResult = checkData.results?.find((r: any) => r.secretCode === pushIdentity);
+        // The endpoint answers with counts only now — it no longer reports which
+        // tasks it handled, because those entries named their owner. Read the
+        // aggregate instead of matching by identity.
+        const summary = checkData.summary || {};
         const debug = checkData.debug || {};
-        
+
         if (import.meta.env.DEV) console.log(`[Debug Info] Queue Count: ${debug.totalPendingInQueue}, Server Time: ${debug.serverTime}`);
-        
-        if (myResult) {
-          if (myResult.status === 'sent') {
-            setModalConfig({
-              isOpen: true,
-              title: "Test Successful",
-              message: `Success! Notification sent.\nQueue: ${debug.totalPendingInQueue} tasks remaining.`,
-              confirmText: "Great",
-              type: "info",
-              isAlert: true
-            });
-          } else if (myResult.status === 'no_subscription') {
-            setModalConfig({
-              isOpen: true,
-              title: "No Subscription",
-              message: 'Error: No subscription found on server. Try "Force Sync" first.',
-              confirmText: "Close",
-              type: "warning",
-              isAlert: true
-            });
-          } else if (myResult.status === 'failed') {
-            const err = myResult.error || {};
-            setModalConfig({
-              isOpen: true,
-              title: "Push Rejected",
-              message: `Push Service Rejected: ${err.message} (Status: ${err.statusCode})\n\nThis usually means the VAPID keys or subscription are invalid.`,
-              confirmText: "Close",
-              type: "danger",
-              isAlert: true
-            });
-          } else {
-            setModalConfig({
-              isOpen: true,
-              title: "Notification Status",
-              message: `Notification status: ${myResult.status} ${myResult.error || ''}`,
-              confirmText: "Close",
-              type: "warning",
-              isAlert: true
-            });
-          }
+
+        if ((summary.sent || 0) > 0) {
+          setModalConfig({
+            isOpen: true,
+            title: "Test Successful",
+            message: `Success! ${summary.sent} notification(s) sent.\nQueue: ${debug.totalPendingInQueue} tasks remaining.`,
+            confirmText: "Great",
+            type: "info",
+            isAlert: true
+          });
+        } else if ((summary.noSubscription || 0) > 0) {
+          setModalConfig({
+            isOpen: true,
+            title: "No Subscription",
+            message: 'Error: No subscription found on server. Try "Force Sync" first.',
+            confirmText: "Close",
+            type: "warning",
+            isAlert: true
+          });
+        } else if ((summary.failed || 0) > 0) {
+          setModalConfig({
+            isOpen: true,
+            title: "Push Rejected",
+            message: `${summary.failed} push attempt(s) were rejected by the push service.\n\nThis usually means the VAPID keys or the subscription are stale — try "Force Sync", then send again.`,
+            confirmText: "Close",
+            type: "danger",
+            isAlert: true
+          });
+        } else if (checkData.processed > 0) {
+          setModalConfig({
+            isOpen: true,
+            title: "Process Result",
+            message: `Processed ${checkData.processed} task(s), but nothing was delivered. Check console.`,
+            confirmText: "Close",
+            type: "warning",
+            isAlert: true
+          });
         } else {
-          if (checkData.processed > 0) {
-            setModalConfig({
-              isOpen: true,
-              title: "Process Result",
-              message: `Processed ${checkData.processed} tasks, but none matched your code. Check console.`,
-              confirmText: "Close",
-              type: "warning",
-              isAlert: true
-            });
-          } else {
-            setModalConfig({
-              isOpen: true,
-              title: "Queue Status",
-              message: `No tasks processed. Queue count: ${debug.totalPendingInQueue}. If > 0, the task might not be due yet (Server Time: ${debug.serverTime}).`,
-              confirmText: "Close",
-              type: "info",
-              isAlert: true
-            });
-          }
+          setModalConfig({
+            isOpen: true,
+            title: "Queue Status",
+            message: `No tasks processed. Queue count: ${debug.totalPendingInQueue}. If > 0, the task might not be due yet (Server Time: ${debug.serverTime}).`,
+            confirmText: "Close",
+            type: "info",
+            isAlert: true
+          });
         }
       } else {
         setModalConfig({
@@ -657,10 +646,13 @@ export const DeveloperSettings: React.FC<DeveloperSettingsProps> = ({
                     onConfirm: async () => {
                       setIsTestingNotification(true);
                       try {
-                        if (state.secretCode) {
+                        if (state.account?.token) {
                           await fetch('/api/push/subscribe', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${state.account.token}`
+                            },
                             body: JSON.stringify({ secretCode: state.secretCode, subscription: null })
                           });
                         }

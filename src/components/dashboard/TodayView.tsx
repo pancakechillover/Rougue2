@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import { AppState, Dungeon, MajorDungeon, TodayTodo } from '../../types';
 import { Reorder, useDragControls } from 'motion/react';
-import { cn, getSettlementDay, sortAgendaTodos, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
-import { format, addDays, subDays, parseISO, differenceInCalendarDays, isToday } from 'date-fns';
+import { cn, getSettlementDay, getDayStartHour, isSettlementToday, sortAgendaTodos, getDungeonHierarchyStats, getTierProgressColor } from '../../lib/utils';
+import { format, addDays, subDays, parseISO, differenceInCalendarDays } from 'date-fns';
 import { DatePicker } from '../common/DatePicker';
 import { ExpeditionSelect } from '../common/ExpeditionSelect';
 import { TagBadge } from '../common/TagBadge';
@@ -131,13 +131,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [viewDate, setViewDate] = useState<Date>(new Date());
 
-  // Time settings
-  const ts = state.timeSettings || {
-    morning: { start: 8, end: 12 },
-    afternoon: { start: 14, end: 18 },
-    night: { start: 20, end: 24 }
-  };
-  const borderHour = ts.morning.start;
+  // Day boundary comes from the user's Activity Time Peaks (single source of truth)
+  const borderHour = getDayStartHour(state.timeSettings);
 
   const isDarkTheme = ['night', 'forest', 'ocean'].includes(state.theme || '');
 
@@ -463,16 +458,17 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 value={format(viewDate, 'yyyy-MM-dd')}
                 onChange={(newDateStr) => setViewDate(new Date(newDateStr))}
                 indicators={datePickerIndicators}
+                timeSettings={state.timeSettings}
                 nav={{
                   onPrev: () => setViewDate(prev => subDays(prev, 1)),
                   onNext: () => setViewDate(prev => addDays(prev, 1)),
-                  onToday: () => setViewDate(new Date()),
+                  onToday: () => setViewDate(parseISO(getSettlementDay(new Date(), state.timeSettings))),
                   size: 'md',
                 }}
               >
                 <div className="px-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap min-w-[110px] text-center hover:bg-slate-800 rounded-lg h-8 transition-colors flex items-center justify-center cursor-pointer gap-1.5">
                   <Calendar size={13} className="text-indigo-400" />
-                  <span>{isToday(baseDate) ? 'Today' : format(baseDate, 'MMM do')}</span>
+                  <span>{isSettlementToday(baseDate, state.timeSettings) ? 'Today' : format(baseDate, 'MMM do')}</span>
                 </div>
               </DatePicker>
             </div>

@@ -23,10 +23,11 @@ import {
   SlidersHorizontal,
   Calculator
 } from 'lucide-react';
-import { cn, getSessionEffectiveMinutes, formatDuration } from '../../lib/utils';
+import { cn, getSessionEffectiveMinutes, formatDuration, getDayStartHour, getSettlementDay } from '../../lib/utils';
 import { getEffectiveTargetFocusMinutes } from '../../lib/workstationUtils';
 import { playSound } from '../../lib/sound';
 import { AppState, Dungeon, MajorDungeon } from '../../types';
+import { useAutosave } from '../../hooks/useAutosave';
 
 import { EfficiencyDetailsModal } from './EfficiencyDetailsModal';
 import { MoodSelector } from '../common/MoodSelector';
@@ -45,10 +46,10 @@ interface DailySummaryViewProps {
 }
 
 export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dungeons, majorDungeons, onClose, onNavigateToStats, onOpenJournal, onSave, onUpdateState }) => {
-  const [rating, setRating] = useState(() => Number(localStorage.getItem('scholar_rating_draft')) || 0);
-  const [reflection, setReflection] = useState(() => localStorage.getItem('scholar_reflection_draft') || '');
-  const [mood, setMood] = useState(() => localStorage.getItem('scholar_mood_draft') || '');
-  const [title, setTitle] = useState(() => localStorage.getItem('scholar_title_draft') || '');
+  const [rating, setRating] = useState(0);
+  const [reflection, setReflection] = useState('');
+  const [mood, setMood] = useState('');
+  const [title, setTitle] = useState('');
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
 
   // Efficiency Calculation State
@@ -59,12 +60,6 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
   const hasInitializedFromLog = useRef(false);
 
   const today = useMemo(() => {
-    const ts = state.timeSettings || {
-      morning: { start: 8, end: 12 },
-      afternoon: { start: 14, end: 18 },
-      night: { start: 20, end: 24 }
-    };
-
     const getYMD = (d: Date) => {
       const year = d.getFullYear();
       const month = (d.getMonth() + 1).toString().padStart(2, '0');
@@ -82,42 +77,23 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
       }
     }
 
-    const currentHour = now.getHours();
+    // Single source of truth: the settlement label decides the day, the border hour decides the window.
+    const ts = state.timeSettings;
+    const borderHour = getDayStartHour(ts);
+    const settlementDay = getSettlementDay(now, ts);
+    const [sy, sm, sd] = settlementDay.split('-').map(Number);
+    const startDate = new Date(sy, sm - 1, sd, borderHour, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
 
-    // Start with today's morning
-    let startDate = new Date(now);
-    startDate.setHours(ts.morning.start, 0, 0, 0);
-
-    let endDate = new Date(now);
-    
-    // If the night block spans midnight, the 'end' date needs to be the next day relative to the morning start.
-    let nightEndHour = ts.night.end;
-    let daysToadd = 0;
-    if (ts.night.end < ts.night.start) {
-        nightEndHour = ts.night.end;
-        daysToadd = 1;
-    } else if (ts.night.end === 24) {
-        nightEndHour = 0;
-        daysToadd = 1;
-    }
-    
-    endDate.setHours(nightEndHour, 0, 0, 0);
-    endDate.setDate(endDate.getDate() + daysToadd);
-
-    // If we are currently before the morning start, we belong to the previous day's settlement period
-    if (currentHour < ts.morning.start) {
-        startDate.setDate(startDate.getDate() - 1);
-        endDate.setDate(endDate.getDate() - 1);
-    }
-
-    const formatDate = (d: Date, is24: boolean = false) => {
-      if (is24) {
+    const formatDate = (d: Date, asEnd: boolean = false) => {
+      // A window ending exactly at midnight reads better as "MM/DD 24:00" than the next day's 00:00
+      if (asEnd && d.getHours() === 0 && d.getMinutes() === 0) {
         const prev = new Date(d);
         prev.setDate(prev.getDate() - 1);
         const mo = (prev.getMonth() + 1).toString().padStart(2, '0');
         const da = prev.getDate().toString().padStart(2, '0');
-        const m = d.getMinutes().toString().padStart(2, '0');
-        return `${mo}/${da} 24:${m}`;
+        return `${mo}/${da} 24:00`;
       }
       const mo = (d.getMonth() + 1).toString().padStart(2, '0');
       const da = d.getDate().toString().padStart(2, '0');
@@ -128,7 +104,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
 
     return {
       dateString: getYMD(startDate),
-      settlementPeriod: `${formatDate(startDate)} - ${formatDate(endDate, ts.night.end === 24)}`
+      settlementPeriod: `${formatDate(startDate)} - ${formatDate(endDate, true)}`
     };
   }, [state.timeSettings, state.timezone]);
 
@@ -136,23 +112,13 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
 
   // End applyFormat
 
-  React.useEffect(() => {
-    localStorage.setItem('scholar_reflection_draft', reflection);
-  }, [reflection]);
-
-  React.useEffect(() => {
-    localStorage.setItem('scholar_rating_draft', rating.toString());
-  }, [rating]);
-
-  React.useEffect(() => {
-    if (mood) localStorage.setItem('scholar_mood_draft', mood);
-    else localStorage.removeItem('scholar_mood_draft');
-  }, [mood]);
-
-  React.useEffect(() => {
-    if (title) localStorage.setItem('scholar_title_draft', title);
-    else localStorage.removeItem('scholar_title_draft');
-  }, [title]);
+  // Autosave replaces the old per-field draft keys, which were one shared set
+  // for every date: yesterday's unsaved text used to open tonight, and the real
+  // save only happened on "Save & Rest".
+  const { markDirty, status: saveStatus } = useAutosave(
+    [rating, reflection, mood, title],
+    () => onSave(today.dateString, rating, reflection, mood, title)
+  );
 
   const dailyStats = useMemo(() => {
     const ts = state.timeSettings || {
@@ -161,33 +127,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
       night: { start: 20, end: 24 }
     };
 
-    const getYMD = (d: Date) => {
-      const year = d.getFullYear();
-      const month = (d.getMonth() + 1).toString().padStart(2, '0');
-      const day = d.getDate().toString().padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    const getAssignedDate = (date: Date) => {
-      const hour = date.getHours();
-      
-      
-      // Night span midnight check
-      if (ts.night.start > ts.night.end && hour < ts.night.end) {
-        const yesterday = new Date(date);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return getYMD(yesterday);
-      }
-      
-      // Before morning start check
-      if (hour < ts.morning.start) {
-        const yesterday = new Date(date);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return getYMD(yesterday);
-      }
-
-      return getYMD(date);
-    };
+    const getAssignedDate = (date: Date) => getSettlementDay(date, ts);
 
     const sessionsToday = state.history.filter(s => getAssignedDate(new Date(s.timestamp)) === today.dateString);
     const rewardsToday = state.rewardHistory.filter(r => getAssignedDate(new Date(r.timestamp)) === today.dateString);
@@ -428,13 +368,13 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
           {/* Left Column */}
           <div className="space-y-2.5 sm:space-y-3 flex flex-col lg:w-1/2 lg:flex-1 lg:h-full">
           {/* Daily Progress */}
-          <div className="bg-slate-950/50 rounded-2xl border border-slate-800 p-3.5 sm:p-4">
+          <div className="bg-slate-950/50 rounded-2xl border border-slate-800 p-3 sm:p-4">
             {(() => {
               const pomodoroDuration = (state.standardSessionMinutes || 25) + (state.standardRestMinutes || 5);
               const dailyGoalInMinutes = dailyStats.dailyGoal * pomodoroDuration;
               return (
                 <>
-                  <div className="flex items-center justify-between mb-2.5 px-1">
+                  <div className="flex items-center justify-between mb-2.5">
                     <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
                       <Target size={16} className="text-indigo-400" /> Daily Progress
                     </h3>
@@ -453,8 +393,12 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
             })()}
           </div>
 
-          {/* Summary Stats */}
-          <div className="space-y-2">
+          {/* Summary Stats
+              This section sits on the page rather than on a card, so the
+              transparent x-borders below stand in for the 1px border that
+              offsets the content of every neighbouring card — without them the
+              title icon lands a pixel left of the others. */}
+          <div className="space-y-2 px-3 sm:px-4 border-x border-transparent">
             <button 
               onClick={() => setIsStatsExpanded(!isStatsExpanded)}
               className="w-full flex items-center justify-between hover:text-white transition-colors group"
@@ -533,7 +477,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
             </h3>
             <MoodSelector
               value={mood}
-              onChange={(m) => setMood(m || "")}
+              onChange={(m) => { setMood(m || ""); markDirty(); }}
               enabledMoods={state.enabledMoods}
               variant="wrap"
             />
@@ -584,7 +528,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
                 ) : (
                   <StarRating
                     value={rating}
-                    onChange={setRating}
+                    onChange={(v) => { setRating(v); markDirty(); }}
                     size="lg"
                   />
                 )}
@@ -604,7 +548,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
                   <input
                     type="text"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => { setTitle(e.target.value); markDirty(); }}
                     placeholder={format(parseISO(today.dateString), 'MMM dd')}
                     className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-200 placeholder:text-slate-300 placeholder:font-bold outline-none hover:bg-slate-800/40 focus:bg-slate-800/60 px-2 py-1 rounded-lg border border-transparent focus:border-indigo-500/50 transition-all truncate"
                     title="Journal Title (Click to customize)"
@@ -612,7 +556,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
                   {title && (
                     <button
                       type="button"
-                      onClick={() => setTitle('')}
+                      onClick={() => { setTitle(''); markDirty(); }}
                       className="p-1 text-slate-500 hover:text-slate-300 rounded transition-colors shrink-0"
                       title="Reset to default date title"
                     >
@@ -621,9 +565,15 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
                   )}
                 </div>
               </div>
+              {saveStatus !== 'idle' && (
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 shrink-0">
+                  {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+                </span>
+              )}
+
               <ReflectionHeaderControls
                 reflection={reflection}
-                onSelectTemplate={setReflection}
+                onSelectTemplate={(text) => { setReflection(text); markDirty(); }}
                 templates={state.reflectionTemplates}
                 onUpdateTemplates={(templates) => onUpdateState?.({ reflectionTemplates: templates })}
                 autoLoadTemplateId={state.autoLoadTemplateId}
@@ -635,18 +585,13 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
                   });
                 }}
                 onOpenImmersive={() => {
-                  localStorage.removeItem('scholar_reflection_draft');
-                  localStorage.removeItem('scholar_rating_draft');
-                  localStorage.removeItem('scholar_mood_draft');
-                  localStorage.removeItem('scholar_mood_score_draft');
-                  localStorage.removeItem('scholar_title_draft');
                   onSave(today.dateString, rating, reflection, mood, title);
                   onClose();
                   onOpenJournal?.(today.dateString);
                 }}
                 showCopy={true}
                 showImportExport={true}
-                onImportReflection={setReflection}
+                onImportReflection={(text) => { setReflection(text); markDirty(); }}
                 exportFileName={`reflection-${today.dateString}.md`}
               />
             </div>
@@ -654,7 +599,7 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
             {/* Single Markdown Editor Pane (Regular Modal View) */}
             <MarkdownEditor 
               value={reflection}
-              onChange={setReflection}
+              onChange={(v) => { setReflection(v); markDirty(); }}
               placeholder="Write down your thoughts, achievements, or what you learned today... (Markdown shortcuts supported)"
               className="flex-1 h-full min-h-[300px]"
             />
@@ -662,11 +607,6 @@ export const DailySummaryView: React.FC<DailySummaryViewProps> = ({ state, dunge
 
           <button
             onClick={() => {
-              localStorage.removeItem('scholar_reflection_draft');
-              localStorage.removeItem('scholar_rating_draft');
-              localStorage.removeItem('scholar_mood_draft');
-              localStorage.removeItem('scholar_mood_score_draft');
-              localStorage.removeItem('scholar_title_draft');
               onSave(today.dateString, rating, reflection, mood, title);
               onNavigateToStats();
             }}
