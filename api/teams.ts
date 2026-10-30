@@ -2,6 +2,7 @@ import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import { verifyBearerToken } from './_shared/auth.js';
+import { isPublicGuildRequest } from './_shared/identity.js';
 
 function safeJsonParse<T>(value: any, fallback: T): T {
   if (!value) return fallback;
@@ -192,18 +193,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userBio = req.body?.userBio || decodeHeader(req.headers['x-user-bio']) || req.query?.userBio || '';
     const userTitle = req.body?.userTitle || decodeHeader(req.headers['x-user-title']) || req.query?.userTitle || '';
 
-    // Auth & Identity: Require authenticated Scholar Passport session for all guild actions
+    // Auth & Identity: the lobby is public so a player can see what exists
+    // before signing up. Everything else resolves to one guild — its roster,
+    // chat and applications — and a guild is a closed group, so a session is
+    // required to look inside one.
     const verifiedSession = await verifyBearerToken(client, req.headers.authorization);
-    if (!verifiedSession && method !== 'GET') {
+    if (!verifiedSession && !isPublicGuildRequest(method, Boolean(req.query?.id))) {
       return res.status(401).json({ error: 'Authentication required. Please sign in to Scholar Passport to access guild features.' });
     }
 
     // Identity comes from the session and nowhere else. A `usr_…` id used to be
     // accepted from x-secret-code as a fallback, which made a public name into a
     // credential: quoting a guild member's id was enough to be treated as them,
-    // and a GET then rewrote that member's name, avatar, bio, title, level and
-    // focus time from whatever headers the caller sent. A GET is now read-only
-    // for anyone without a session.
+    // and the details GET then rewrote that member's name, avatar, bio, title,
+    // level and focus time from whatever headers the caller sent.
     let userId = verifiedSession ? verifiedSession.userId : '';
     
     // Parse userLevel ensuring it is a valid positive number

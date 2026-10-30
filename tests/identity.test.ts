@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   isAccountId,
+  isPublicGuildRequest,
   isValidSecretCode,
   resolveSyncIdentity,
 } from '../api/_shared/identity.ts';
@@ -87,4 +88,22 @@ test('isValidSecretCode keeps accepting legacy codes and account ids alike', () 
   assert.equal(isValidSecretCode('AB-12_cd-ef'), true);
   assert.equal(isValidSecretCode('short'), false);
   assert.equal(isValidSecretCode(''), false);
+});
+
+test('only the guild lobby is public; one guild\'s insides are not', () => {
+  // Browsing what exists needs no account: names, descriptions, member counts.
+  assert.equal(isPublicGuildRequest('GET', false), true);
+  assert.equal(isPublicGuildRequest('get', false), true);
+
+  // Naming a guild asks for its roster, chat and applications.
+  assert.equal(isPublicGuildRequest('GET', true), false);
+
+  // Nothing that changes a guild is ever public, with or without an id.
+  for (const method of ['POST', 'DELETE', 'PUT', 'PATCH']) {
+    assert.equal(isPublicGuildRequest(method, false), false);
+    assert.equal(isPublicGuildRequest(method, true), false);
+  }
+
+  // A missing method is not a free pass either.
+  assert.equal(isPublicGuildRequest(undefined, false), false);
 });

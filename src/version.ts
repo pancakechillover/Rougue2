@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.7.2';
+export const APP_VERSION = 'v9.7.3';
 export const LAST_UPDATE_DATE = '2026-10-30';
-export const LAST_UPDATE_TIME = '17:46:00';
+export const LAST_UPDATE_TIME = '18:07:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.7.3',
+    date: '2026-10-30',
+    time: '18:07:00',
+    title: 'Version 9.7.3: Behind the Guild Door',
+    items: [
+      { category: 'Security', description: 'A guild\'s roster, chat log and pending applications were readable by anyone who knew the guild id, without signing in. The lobby stays open so you can see what exists before joining; everything inside a guild now needs a session.' },
+      { category: 'Fellowship', description: 'The app no longer sends your account id as a header on guild requests. It was only ever there because the server used to read it as proof of who you were, and it is now ignored on the other side too.' }
+    ]
+  },
   {
     version: 'v9.7.2',
     date: '2026-10-30',

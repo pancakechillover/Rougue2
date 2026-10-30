@@ -503,13 +503,14 @@ function App() {
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
-    if (state.teamId && activeTab !== 'dashboard') {
+    // One guild's members, chat and applicants are behind a session now, so a
+    // signed-out visitor has nothing to poll for.
+    if (state.teamId && state.account?.token && activeTab !== 'dashboard') {
       const checkTeam = async () => {
         try {
           const res = await fetch(`/api/teams?id=${state.teamId}`, {
             headers: {
               ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {}),
-              'x-secret-code': state.account?.userId || state.secretCode || '',
               'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
               'x-user-level': (state.level || 1).toString(),
               'x-user-avatar': state.userAvatar || '🎓',
@@ -563,7 +564,7 @@ function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [state.teamId, activeTab, state.account?.token, state.account?.userId, state.secretCode, state.userName]);
+  }, [state.teamId, activeTab, state.account?.token, state.userName]);
 
   // Workstation Active Session Auto-Cutoff Limit Check & State
   const [workstationTimeoutInfo, setWorkstationTimeoutInfo] = useState<WorkstationTimeoutInfo | null>(null);

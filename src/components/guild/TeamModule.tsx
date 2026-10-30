@@ -264,7 +264,9 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
   };
 
   const fetchTeam = async () => {
-    if (!state.teamId) return;
+    // A guild's members, chat and applicants sit behind a session; asking
+    // without one would only earn a 401 every 30 seconds.
+    if (!state.teamId || !state.account?.token) return;
     try {
       const targetType = team?.config?.targetType || state.lastTeamData?.team?.config?.targetType || 'total_time';
       const resetTime = team?.config?.resetTime || state.lastTeamData?.team?.config?.resetTime || '00:00';
@@ -275,7 +277,6 @@ export const TeamModule: React.FC<TeamModuleProps> = ({ state, setState, onRequi
       const res = await fetch(`/api/teams?id=${state.teamId}`, {
         headers: {
           ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {}),
-          'x-secret-code': state.account?.userId || state.secretCode || '',
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',
           'x-user-bio': encodeURIComponent(state.userBio || ''),

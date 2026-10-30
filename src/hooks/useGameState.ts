@@ -1606,7 +1606,6 @@ useCallback((amount: number) => {
         headers: {
           'Content-Type': 'application/json',
           ...(state.account?.token ? { Authorization: `Bearer ${state.account.token}` } : {}),
-          'x-secret-code': identityCode || '',
           'x-user-name': encodeURIComponent(state.userName || 'Scholar'),
           'x-user-avatar': state.userAvatar || 'User',
           'x-user-level': String(state.level || 1),

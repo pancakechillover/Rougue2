@@ -1,21 +1,21 @@
 {
-  "version": "v9.7.2",
+  "version": "v9.7.3",
   "date": "2026-10-30",
   "latestRelease": {
-    "version": "v9.7.2",
+    "version": "v9.7.3",
     "date": "2026-10-30",
-    "time": "17:46:00",
-    "title": "Version 9.7.2: A Name Is Not A Password",
+    "time": "18:07:00",
+    "title": "Version 9.7.3: Behind the Guild Door",
     "items": [
       {
         "category": "Security",
-        "description": "A Scholar Passport id is printed in every guild member list, so quoting one used to be enough to read, overwrite or delete that player's whole cloud save. The save endpoints now act as the signed-in session and refuse a bare account id, which never authenticated anyone in the first place."
+        "description": "A guild's roster, chat log and pending applications were readable by anyone who knew the guild id, without signing in. The lobby stays open so you can see what exists before joining; everything inside a guild now needs a session."
       },
       {
-        "category": "Security",
-        "description": "A guild page could be made to write as someone else. Opening a guild while naming another member's id or name let the caller rewrite that member's name, avatar, bio, title, level and focus total through request headers, because a read was also a write. A read now writes nothing for anyone without a session."
+        "category": "Fellowship",
+        "description": "The app no longer sends your account id as a header on guild requests. It was only ever there because the server used to read it as proof of who you were, and it is now ignored on the other side too."
       }
     ]
   },
-  "timestamp": 1793353515395
+  "timestamp": 1793354744444
 }

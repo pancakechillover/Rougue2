@@ -63,3 +63,15 @@ export function resolveSyncIdentity(
 
   return { kind: 'granted', identity: claimedCode, unified: false };
 }
+
+/**
+ * The one guild route that is open to callers without a session.
+ *
+ * The lobby lists guild names, descriptions and member counts, which is what a
+ * player needs in order to decide whether to sign up. Every other guild request
+ * resolves to a single guild — its roster, its chat, its applications — and a
+ * guild is a closed group, so its insides are not public.
+ */
+export function isPublicGuildRequest(method: string | undefined, hasTeamId: boolean): boolean {
+  return (method || '').toUpperCase() === 'GET' && !hasTeamId;
+}
