@@ -1,6 +1,9 @@
 # Scholar's Dungeon
 
-![Scholar's Dungeon](https://img.shields.io/badge/Status-Active-success)
+> **Maintenance mode since 2026-10-31.** Repairs only — bugs, security, build/CI.
+> No new features, no roadmap. See `AGENTS.md` for the exact rule.
+
+![Scholar's Dungeon](https://img.shields.io/badge/Status-Maintenance--only-yellow)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
