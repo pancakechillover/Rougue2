@@ -6,6 +6,11 @@ import {
   isValidUsernameForSignIn,
   isValidPassword,
 } from '../src/lib/authRules.js';
+import {
+  ACCOUNT_CAPACITY,
+  reconcileActiveAccounts,
+  touchActiveAccount,
+} from './_shared/capacity.js';
 
 // ── Redis Connection ─────────────────────────────────────────────────────
 
@@ -560,13 +565,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const client = await getRedisClient();
       if (!client) {
+        // Never claim a name is free when the lookup could not run. Registration
+        // would fail right after, and the caller would have no idea why.
         return res.status(200).json({
           success: true,
           valid: true,
-          available: true,
+          available: null,
           unchecked: true,
           username: cleanUsername,
-          message: `Username "@${cleanUsername}" is available.`,
+          message: `Can't verify "@${cleanUsername}" right now — it will be checked when you sign up.`,
         });
       }
 
@@ -703,13 +710,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const lookupKey = `scholar_user_lookup:${normalizedUsername}`;
       const newUserId = `usr_${crypto.randomUUID().replace(/-/g, '')}`;
 
-      // Enforce 300 active users capacity before creating a new user
-      const fifteenDaysAgoMs = Date.now() - 15 * 24 * 3600 * 1000;
-      await client.zRemRangeByScore('scholar_active_users', 0, fifteenDaysAgoMs);
-      const activeCount = await client.zCard('scholar_active_users');
-      if (activeCount >= 300) {
+      // Enforce the seat quota before creating a new user. The pool is pruned
+      // first: only accounts hold seats, so stale and never-backed entries are
+      // dropped rather than left to block sign-ups.
+      const { accounts: activeCount } = await reconcileActiveAccounts(client);
+      if (activeCount >= ACCOUNT_CAPACITY) {
         return res.status(403).json({
-          error: 'Registration failed: Server capacity is full (300/300 active scholars). Please try again later.',
+          error: `Registration failed: Server capacity is full (${ACCOUNT_CAPACITY}/${ACCOUNT_CAPACITY} active scholars). Please try again later.`,
         });
       }
 
@@ -753,7 +760,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         await client.hSet(`scholar_user:${newUserId}`, userRecord);
-        await client.zAdd('scholar_active_users', { score: nowMs, value: newUserId });
+        await touchActiveAccount(client, newUserId, nowMs);
 
         const tokenId = crypto.randomBytes(32).toString('hex');
         const token = signSessionToken(tokenId, authTokenSecret);
@@ -870,7 +877,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await client.hSet(`scholar_user:${userId}`, 'lastLoginAt', nowIso);
       userHash.lastLoginAt = nowIso;
 
-      await client.zAdd('scholar_active_users', { score: nowMs, value: userId });
+      await touchActiveAccount(client, userId, nowMs);
 
       const tokenId = crypto.randomBytes(32).toString('hex');
       const token = signSessionToken(tokenId, authTokenSecret);
@@ -906,7 +913,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Account no longer exists.' });
       }
 
-      await client.zAdd('scholar_active_users', { score: Date.now(), value: verified.userId });
+      await touchActiveAccount(client, verified.userId);
       const account = await buildAccountSummary(client, verified.userId, verified.token, userHash);
 
       return res.status(200).json({

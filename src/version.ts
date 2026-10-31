@@ -1,6 +1,6 @@
-export const APP_VERSION = 'v9.7.4';
-export const LAST_UPDATE_DATE = '2026-10-30';
-export const LAST_UPDATE_TIME = '18:19:00';
+export const APP_VERSION = 'v9.7.5';
+export const LAST_UPDATE_DATE = '2026-10-31';
+export const LAST_UPDATE_TIME = '17:05:00';
 
 export interface ReleaseLog {
   version: string;
@@ -11,6 +11,16 @@ export interface ReleaseLog {
 }
 
 export const RELEASE_HISTORY: ReleaseLog[] = [
+  {
+    version: 'v9.7.5',
+    date: '2026-10-31',
+    time: '17:05:00',
+    title: 'Version 9.7.5: Seats Are For Accounts',
+    items: [
+      { category: 'Security', description: 'The 300-scholar quota was counting sync codes as if they were people. Any code the server had not seen before took a seat, and the sync endpoint answers callers who are not signed in, so a few hundred made-up strings were enough to fill the server and turn away real sign-ups until those entries aged out. Only a Scholar Account holds a seat now, and the leftovers are cleared on the next registration.' },
+      { category: 'Fix', description: 'The username check used to answer "available" whenever it could not reach the database. It now says it could not check, because the sign-up would have failed a moment later for a reason nobody could see.' }
+    ]
+  },
   {
     version: 'v9.7.4',
     date: '2026-10-30',

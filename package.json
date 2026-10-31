@@ -2,7 +2,7 @@
   "name": "scholars-dungeon",
   "description": "A Roguelike-themed study system with Pomodoro timers, talent trees, and meta-progression rewards.",
   "private": true,
-  "version": "9.7.4",
+  "version": "9.7.5",
   "packageManager": "pnpm@10.33.3",
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     "lint": "eslint src api server.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"api/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "tsx --test"
   },
   "overrides": {
     "node-domexception": "npm:domexception@^4.0.0"

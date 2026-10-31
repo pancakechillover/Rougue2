@@ -147,7 +147,7 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showUserAgreement, setShowUserAgreement] = useState(false);
   const [usernameCheckStatus, setUsernameCheckStatus] = useState<
-    'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+    'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'unchecked'
   >('idle');
   const [usernameCheckMsg, setUsernameCheckMsg] = useState<string | null>(null);
 
@@ -259,18 +259,30 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
           } else if (data.available === false) {
             setUsernameCheckStatus('taken');
             setUsernameCheckMsg(data.message || `Username "@${trimmed}" is already taken.`);
+          } else if (data.available === null || data.unchecked) {
+            // The lookup could not run. Say so instead of painting the name green
+            // and letting the sign-up fail on the next screen for no visible reason.
+            setUsernameCheckStatus('unchecked');
+            setUsernameCheckMsg(
+              data.message ||
+                `Can't verify "@${trimmed}" right now — it will be checked when you sign up.`
+            );
           } else {
             setUsernameCheckStatus('available');
             setUsernameCheckMsg(data.message || `Username "@${trimmed}" is available.`);
           }
         } else {
-          setUsernameCheckStatus('idle');
-          setUsernameCheckMsg(null);
+          setUsernameCheckStatus('unchecked');
+          setUsernameCheckMsg(
+            data?.error || `Can't verify "@${trimmed}" right now — it will be checked when you sign up.`
+          );
         }
       } catch {
         if (!controller.signal.aborted) {
-          setUsernameCheckStatus('idle');
-          setUsernameCheckMsg(null);
+          setUsernameCheckStatus('unchecked');
+          setUsernameCheckMsg(
+            `Can't verify "@${trimmed}" right now — it will be checked when you sign up.`
+          );
         }
       }
     }, 320);
@@ -824,6 +836,12 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                         Invalid Format
                       </span>
                     )}
+                    {activeTab === 'register' && usernameCheckStatus === 'unchecked' && (
+                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                        <AlertTriangle size={11} />
+                        Not Checked
+                      </span>
+                    )}
                   </div>
                   <div className="relative">
                     <input
@@ -856,6 +874,9 @@ export const ScholarPassportModal: React.FC<ScholarPassportModalProps> = ({
                         )}
                         {usernameCheckStatus === 'invalid' && (
                           <AlertTriangle size={16} className="text-amber-400" />
+                        )}
+                        {usernameCheckStatus === 'unchecked' && (
+                          <AlertTriangle size={16} className="text-slate-400" />
                         )}
                       </div>
                     )}

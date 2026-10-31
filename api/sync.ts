@@ -2,6 +2,13 @@ import { createClient } from 'redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyBearerToken } from './_shared/auth.js';
 import { resolveSyncIdentity } from './_shared/identity.js';
+import {
+  ACCOUNT_CAPACITY,
+  ACTIVE_USERS_KEY,
+  countActiveAccounts,
+  reconcileActiveAccounts,
+  touchActiveAccount,
+} from './_shared/capacity.js';
 
 // Initialize Redis client lazily to reuse connection in serverless environment
 let redisClient: any = null;
@@ -109,20 +116,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { saveKey, historyKey } = getStorageKeys(activeIdentity, isUnified);
 
-      // Capacity limits / Prune expired BEFORE check
-      const fifteenDaysAgoMs = Date.now() - 15 * 24 * 3600 * 1000;
-      await client.zRemRangeByScore('scholar_active_users', 0, fifteenDaysAgoMs);
+      // Seats belong to accounts only. A legacy sync code has no account behind
+      // it, so it never enters the quota: this route is reachable without a
+      // session, and every unseen code used to claim a seat, which let anyone
+      // exhaust the pool and lock real users out of registration.
+      if (isUnified) {
+        await reconcileActiveAccounts(client);
+        await touchActiveAccount(client, activeIdentity);
 
-      // Track user active
-      await client.zAdd('scholar_active_users', { score: Date.now(), value: activeIdentity });
-
-      // Enforce 300 users limit
-      const userCount = await client.zCard('scholar_active_users');
-      if (userCount > 300) {
-        const rank = await client.zRank('scholar_active_users', activeIdentity);
-        if (rank !== null && rank >= 300) {
-          await client.zRem('scholar_active_users', activeIdentity);
-          return res.status(403).json({ error: "Capacity Full: Multi-device sync is capped at 300 registered users in the free tier quota. Try again later when inactive slots clear up." });
+        const activeAccounts = await countActiveAccounts(client);
+        if (activeAccounts > ACCOUNT_CAPACITY) {
+          const rank = await client.zRank(ACTIVE_USERS_KEY, activeIdentity);
+          if (rank !== null && rank >= ACCOUNT_CAPACITY) {
+            await client.zRem(ACTIVE_USERS_KEY, activeIdentity);
+            return res.status(403).json({ error: `Capacity Full: Multi-device sync is capped at ${ACCOUNT_CAPACITY} registered users in the free tier quota. Try again later when inactive slots clear up.` });
+          }
         }
       }
 
